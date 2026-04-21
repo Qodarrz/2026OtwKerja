@@ -19,16 +19,48 @@ enum AuthProvider {
   GOOGLE
 }
 
+enum Role {
+  USER
+  ADMIN
+}
+
 model User {
-  id         String       @id @default(uuid())
-  email      String       @unique
-  password   String?
-  name       String?
-  provider   AuthProvider @default(LOCAL)
-  providerId String?
-  sessions   Session[]
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
+  id              String           @id @default(uuid())
+  email           String           @unique
+  password        String?
+  name            String?
+  provider        AuthProvider     @default(LOCAL)
+  providerId      String?
+  role            Role             @default(USER)
+  verify_gmail    Boolean          @default(false)
+  
+  userDetail      UserDetail?
+  otpVerification OtpVerification?
+  sessions        Session[]
+  
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+model UserDetail {
+  id        String   @id @default(uuid())
+  phone     String?
+  address   String?
+  avatar    String?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model OtpVerification {
+  id                    String   @id @default(uuid())
+  otp_code              String
+  otp_expires_at        DateTime
+  otp_attempts          Int      @default(0)
+  last_otp_requested_at DateTime @default(now())
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId                String   @unique
 }
 
 model Session {

@@ -7,7 +7,7 @@ export const authService = {
     return data;
   },
 
-  async register(email: string, name: string, password: string): Promise<any> {
+  async register(email: string, name: string, password: string): Promise<any> { 
     const { data } = await api.post('/auth/register', { email, name, password });
     return data;
   },
@@ -17,8 +17,7 @@ export const authService = {
     return data;
   },
 
-  googleLogin(): void {
-    // Redirect to backend google auth endpoint
+  googleLogin(): void { 
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
     window.location.href = `${backendUrl}/auth/google`;
   }

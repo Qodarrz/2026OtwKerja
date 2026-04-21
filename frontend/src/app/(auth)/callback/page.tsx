@@ -14,13 +14,8 @@ export default function AuthCallbackPage() {
     const token = searchParams.get('token');
     
     if (token) {
-      // Decode JWT to get user info (basic decode or just fetch profile)
-      // Since our redirect includes token, we can use it to fetch the user
-      // Or we can assume the backend redirected with token and we fetch profile
-      
       const handleAuth = async () => {
         try {
-          // Fetch user profile using the token
           const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/auth/profile`, {
             headers: {
               'Authorization': `Bearer ${token}`

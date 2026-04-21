@@ -8,7 +8,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { RegisterDto, LoginDto } from './dto/auth.dto';
+import { RegisterDto, LoginDto, VerifyOtpDto, ResendOtpDto } from './dto/auth.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { GoogleAuthGuard } from './guards/google-auth.guard';
 import type { Response } from 'express';
@@ -20,6 +20,16 @@ export class AuthController {
   @Post('register')
   async register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
+  }
+
+  @Post('verify-otp')
+  async verifyOtp(@Body() dto: VerifyOtpDto) {
+    return this.authService.verifyOtp(dto);
+  }
+
+  @Post('resend-otp')
+  async resendOtp(@Body() dto: ResendOtpDto) {
+    return this.authService.resendOtp(dto);
   }
 
   @Post('login')
@@ -40,7 +50,6 @@ export class AuthController {
     const { access_token } = req.user;
 
     // Redirect to frontend with token (or set as cookie)
-    // For now, redirecting to a placeholder dashboard
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     return res.redirect(`${frontendUrl}/auth/callback?token=${access_token}`);
   }
