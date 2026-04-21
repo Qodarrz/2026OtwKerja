@@ -21,7 +21,7 @@ export default function Home() {
       <nav className="border-b border-white/5 bg-black/50 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-tr from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-linear-to-tr from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
               <Shield className="w-5 h-5 text-white" />
             </div>
             <span className="font-bold text-lg tracking-tight">UNTAR AUTH</span>
@@ -79,7 +79,7 @@ export default function Home() {
             System Online & Secure
           </div>
 
-          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-b from-white to-gray-500">
+          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 bg-clip-text text-transparent bg-linear-to-b from-white to-gray-500">
             Authentication for <br />
             Modern Applications
           </h1>
@@ -117,7 +117,7 @@ export default function Home() {
               <div className="flex gap-4">
                 <Link
                   href="/register"
-                  className="px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl font-bold flex items-center gap-2 hover:scale-105 transition-all shadow-xl shadow-purple-600/20"
+                  className="px-8 py-4 bg-linear-to-r from-purple-600 to-blue-600 rounded-xl font-bold flex items-center gap-2 hover:scale-105 transition-all shadow-xl shadow-purple-600/20"
                 >
                   <UserPlus className="w-5 h-5" />
                   Get Started Free
