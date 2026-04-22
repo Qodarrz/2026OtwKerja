@@ -22,6 +22,9 @@ enum AuthProvider {
 enum Role {
   USER
   ADMIN
+  DOCUMENT_VALIDATOR
+  FIELD_INSPECTOR
+  LEGALIZER
 }
 
 model User {
@@ -31,12 +34,17 @@ model User {
   name            String?
   provider        AuthProvider     @default(LOCAL)
   providerId      String?
-  role            Role             @default(USER)
+  roles           Role[]           // Changed to array for multiple roles
   verify_gmail    Boolean          @default(false)
   
   userDetail      UserDetail?
   otpVerification OtpVerification?
   sessions        Session[]
+  
+  // Permit relationships
+  applications    PermitApplication[]
+  validationActions ValidationAction[]
+  notifications   Notification[]
   
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
@@ -70,4 +78,222 @@ model Session {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
   createdAt DateTime @default(now())
+}
+
+// Permit Management Enums
+enum PermitType {
+  BUILDING_PERMIT
+  BUSINESS_LICENSE
+}
+
+enum LandType {
+  RESIDENTIAL
+  COMMERCIAL
+  INDUSTRIAL
+  AGRICULTURAL
+}
+
+enum WorkflowStage {
+  DRAFT
+  DOCUMENT_CHECK
+  FIELD_INSPECTION
+  LEGALIZATION
+  APPROVED
+  REJECTED
+}
+
+enum ActionType {
+  SUBMIT
+  APPROVE
+  REJECT
+  RESUBMIT
+}
+
+enum NotificationType {
+  APPLICATION_SUBMITTED
+  STAGE_ADVANCED
+  APPLICATION_APPROVED
+  APPLICATION_REJECTED
+  SLA_WARNING
+  SLA_OVERDUE
+}
+
+enum SLAStatus {
+  ON_TIME
+  WARNING
+  OVERDUE
+}
+
+// Permit Application Model
+model PermitApplication {
+  id                String           @id @default(uuid())
+  referenceNumber   String           @unique
+  permitType        PermitType
+  status            WorkflowStage    @default(DRAFT)
+  
+  // Applicant
+  applicant         User             @relation(fields: [applicantId], references: [id])
+  applicantId       String
+  
+  // Property Information (Building Permit)
+  locationAddress   String?
+  landSize          Float?           // square meters
+  landType          LandType?
+  buildingHeight    Float?           // meters
+  njopValue         Float?           // Indonesian Rupiah
+  isStrategicLocation Boolean?       @default(false)
+  
+  // Business Information (Business License)
+  businessName      String?
+  businessType      String?
+  businessLocation  String?
+  estimatedEmployees Int?
+  
+  // Tax Calculation
+  baseTax           Float?
+  strategicSurcharge Float?
+  landTypeSurcharge Float?
+  highRiseSurcharge Float?
+  administrativeFee Float?
+  totalCost         Float?
+  
+  // Workflow
+  currentStage      WorkflowStage    @default(DRAFT)
+  submittedAt       DateTime?
+  lastUpdatedAt     DateTime         @updatedAt
+  
+  // Rejection
+  rejectionReason   String?
+  rejectedBy        String?
+  rejectedAt        DateTime?
+  
+  // Field Inspection
+  inspectionNotes   String?
+  
+  // Relationships
+  documents         Document[]
+  validationActions ValidationAction[]
+  stageHistory      StageHistory[]
+  notifications     Notification[]
+  
+  // Resubmission tracking
+  originalApplicationId String?
+  originalApplication   PermitApplication? @relation("Resubmissions", fields: [originalApplicationId], references: [id])
+  resubmissions         PermitApplication[] @relation("Resubmissions")
+  
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  
+  @@index([applicantId])
+  @@index([status])
+  @@index([permitType])
+  @@index([referenceNumber])
+}
+
+// Document Model
+model Document {
+  id                String           @id @default(uuid())
+  filename          String
+  originalFilename  String
+  mimeType          String
+  fileSize          Int              // bytes
+  storagePath       String
+  
+  application       PermitApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  applicationId     String
+  
+  uploadedAt        DateTime         @default(now())
+  
+  @@index([applicationId])
+}
+
+// Validation Action Model
+model ValidationAction {
+  id                String           @id @default(uuid())
+  actionType        ActionType
+  stage             WorkflowStage
+  notes             String?
+  
+  application       PermitApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  applicationId     String
+  
+  performedBy       User             @relation(fields: [performedById], references: [id])
+  performedById     String
+  
+  performedAt       DateTime         @default(now())
+  
+  @@index([applicationId])
+  @@index([performedById])
+}
+
+// Stage History Model
+model StageHistory {
+  id                String           @id @default(uuid())
+  fromStage         WorkflowStage?
+  toStage           WorkflowStage
+  
+  application       PermitApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  applicationId     String
+  
+  transitionedBy    String?          // User ID
+  transitionedAt    DateTime         @default(now())
+  
+  // SLA tracking
+  completedAt       DateTime?        // When stage was completed
+  durationHours     Int?             // Duration in hours
+  slaStatus         SLAStatus?       // ON_TIME, WARNING, OVERDUE
+  
+  @@index([applicationId])
+  @@index([slaStatus])
+}
+
+// Notification Model
+model Notification {
+  id                String           @id @default(uuid())
+  type              NotificationType
+  title             String
+  message           String
+  isRead            Boolean          @default(false)
+  
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId            String
+  
+  application       PermitApplication? @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  applicationId     String?
+  
+  createdAt         DateTime         @default(now())
+  
+  @@index([userId, isRead])
+  @@index([applicationId])
+}
+
+// Audit Log Model
+model AuditLog {
+  id                String           @id @default(uuid())
+  entityType        String           // "PermitApplication", "User", etc.
+  entityId          String
+  action            String           // "CREATE", "UPDATE", "DELETE", "APPROVE", "REJECT"
+  changes           Json?            // Store before/after state
+  performedBy       String?          // User ID
+  ipAddress         String?
+  userAgent         String?
+  
+  createdAt         DateTime         @default(now())
+  
+  @@index([entityType, entityId])
+  @@index([performedBy])
+  @@index([createdAt])
+}
+
+// SLA Rules Model
+model SLARule {
+  id                String           @id @default(uuid())
+  stage             WorkflowStage    @unique
+  maxDurationHours  Int              // Maximum duration in hours
+  warningThreshold  Float            @default(0.8) // Warning at 80% of max duration
+  
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  
+  @@index([stage])
 }
