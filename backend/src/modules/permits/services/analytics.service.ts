@@ -1,0 +1,457 @@
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../../../prisma/prisma.service';
+import { WorkflowStage, Role, SLAStatus } from '@prisma/client';
+
+export interface DashboardMetrics {
+    activeApplications: number;
+    averageProcessingTimeHours: number;
+    overdueCount: number;
+    onTimePercentage: number;
+    totalProcessedToday: number;
+    totalProcessedThisMonth: number;
+    byStage: {
+        stage: WorkflowStage;
+        count: number;
+        averageDurationHours: number;
+    }[];
+    byPermitType: {
+        permitType: string;
+        count: number;
+        averageDurationHours: number;
+    }[];
+}
+
+export interface StaffPerformance {
+    staffId: string;
+    staffName: string;
+    staffEmail: string;
+    roles: Role[];
+    totalProcessed: number;
+    overdueCount: number;
+    onTimeCount: number;
+    averageDurationHours: number;
+    onTimePercentage: number;
+}
+
+export interface StageBottleneck {
+    stage: WorkflowStage;
+    averageDurationHours: number;
+    maxDurationHours: number;
+    overdueCount: number;
+    warningCount: number;
+    activeCount: number;
+    staffCount: number;
+    utilizationPercentage: number;
+    recommendedAction: string;
+}
+
+@Injectable()
+export class AnalyticsService {
+    constructor(
+        private prisma: PrismaService,
+    ) { }
+
+    /**
+     * Get comprehensive dashboard metrics
+     */
+    async getDashboardMetrics(
+        startDate?: Date,
+        endDate?: Date,
+    ): Promise<DashboardMetrics> {
+        const now = new Date();
+        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+        // Active applications (not APPROVED or REJECTED)
+        const activeApplications = await this.prisma.permitApplication.count({
+            where: {
+                status: {
+                    notIn: [WorkflowStage.APPROVED, WorkflowStage.REJECTED, WorkflowStage.DRAFT],
+                },
+            },
+        });
+
+        // Get completed stage histories for average processing time
+        const completedStages = await this.prisma.stageHistory.findMany({
+            where: {
+                completedAt: { not: null },
+                ...(startDate && { transitionedAt: { gte: startDate } }),
+                ...(endDate && { transitionedAt: { lte: endDate } }),
+            },
+            select: {
+                durationHours: true,
+                slaStatus: true,
+                toStage: true,
+                application: {
+                    select: {
+                        permitType: true,
+                    },
+                },
+            },
+        });
+
+        // Calculate average processing time
+        const totalDuration = completedStages.reduce(
+            (sum, stage) => sum + (stage.durationHours || 0),
+            0,
+        );
+        const averageProcessingTimeHours =
+            completedStages.length > 0 ? totalDuration / completedStages.length : 0;
+
+        // Count overdue
+        const overdueCount = completedStages.filter(
+            (s) => s.slaStatus === SLAStatus.OVERDUE,
+        ).length;
+
+        // Calculate on-time percentage
+        const onTimeCount = completedStages.filter(
+            (s) => s.slaStatus === SLAStatus.ON_TIME,
+        ).length;
+        const onTimePercentage =
+            completedStages.length > 0
+                ? (onTimeCount / completedStages.length) * 100
+                : 0;
+
+        // Total processed today
+        const totalProcessedToday = await this.prisma.permitApplication.count({
+            where: {
+                status: WorkflowStage.APPROVED,
+                updatedAt: { gte: todayStart },
+            },
+        });
+
+        // Total processed this month
+        const totalProcessedThisMonth = await this.prisma.permitApplication.count({
+            where: {
+                status: WorkflowStage.APPROVED,
+                updatedAt: { gte: monthStart },
+            },
+        });
+
+        // Group by stage
+        const byStageMap = new Map<WorkflowStage, { count: number; totalDuration: number }>();
+        completedStages.forEach((stage) => {
+            const existing = byStageMap.get(stage.toStage) || { count: 0, totalDuration: 0 };
+            byStageMap.set(stage.toStage, {
+                count: existing.count + 1,
+                totalDuration: existing.totalDuration + (stage.durationHours || 0),
+            });
+        });
+
+        const byStage = Array.from(byStageMap.entries()).map(([stage, data]) => ({
+            stage,
+            count: data.count,
+            averageDurationHours: data.count > 0 ? data.totalDuration / data.count : 0,
+        }));
+
+        // Group by permit type
+        const byPermitTypeMap = new Map<string, { count: number; totalDuration: number }>();
+        completedStages.forEach((stage) => {
+            const permitType = stage.application.permitType;
+            const existing = byPermitTypeMap.get(permitType) || { count: 0, totalDuration: 0 };
+            byPermitTypeMap.set(permitType, {
+                count: existing.count + 1,
+                totalDuration: existing.totalDuration + (stage.durationHours || 0),
+            });
+        });
+
+        const byPermitType = Array.from(byPermitTypeMap.entries()).map(([permitType, data]) => ({
+            permitType,
+            count: data.count,
+            averageDurationHours: data.count > 0 ? data.totalDuration / data.count : 0,
+        }));
+
+        return {
+            activeApplications,
+            averageProcessingTimeHours: Math.round(averageProcessingTimeHours * 10) / 10,
+            overdueCount,
+            onTimePercentage: Math.round(onTimePercentage * 10) / 10,
+            totalProcessedToday,
+            totalProcessedThisMonth,
+            byStage,
+            byPermitType,
+        };
+    }
+
+    /**
+     * Get staff performance metrics
+     */
+    async getStaffPerformance(
+        startDate?: Date,
+        endDate?: Date,
+    ): Promise<StaffPerformance[]> {
+        // Get all staff members (users with staff roles)
+        const staffMembers = await this.prisma.user.findMany({
+            where: {
+                roles: {
+                    hasSome: [
+                        Role.DOCUMENT_VALIDATOR,
+                        Role.FIELD_INSPECTOR,
+                        Role.LEGALIZER,
+                        Role.ADMIN,
+                    ],
+                },
+            },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                roles: true,
+            },
+        });
+
+        const performanceData: StaffPerformance[] = [];
+
+        for (const staff of staffMembers) {
+            // Get validation actions by this staff member
+            const actions = await this.prisma.validationAction.findMany({
+                where: {
+                    performedById: staff.id,
+                    actionType: { in: ['APPROVE', 'REJECT'] },
+                    ...(startDate && { performedAt: { gte: startDate } }),
+                    ...(endDate && { performedAt: { lte: endDate } }),
+                },
+                include: {
+                    application: {
+                        include: {
+                            stageHistory: {
+                                where: {
+                                    completedAt: { not: null },
+                                },
+                                select: {
+                                    durationHours: true,
+                                    slaStatus: true,
+                                },
+                            },
+                        },
+                    },
+                },
+            });
+
+            const totalProcessed = actions.length;
+
+            // Calculate metrics from stage histories
+            const allStageHistories = actions.flatMap(
+                (action) => action.application.stageHistory,
+            );
+
+            const overdueCount = allStageHistories.filter(
+                (s) => s.slaStatus === SLAStatus.OVERDUE,
+            ).length;
+
+            const onTimeCount = allStageHistories.filter(
+                (s) => s.slaStatus === SLAStatus.ON_TIME,
+            ).length;
+
+            const totalDuration = allStageHistories.reduce(
+                (sum, s) => sum + (s.durationHours || 0),
+                0,
+            );
+
+            const averageDurationHours =
+                allStageHistories.length > 0
+                    ? totalDuration / allStageHistories.length
+                    : 0;
+
+            const onTimePercentage =
+                totalProcessed > 0 ? (onTimeCount / totalProcessed) * 100 : 0;
+
+            performanceData.push({
+                staffId: staff.id,
+                staffName: staff.name || 'Unknown',
+                staffEmail: staff.email,
+                roles: staff.roles,
+                totalProcessed,
+                overdueCount,
+                onTimeCount,
+                averageDurationHours: Math.round(averageDurationHours * 10) / 10,
+                onTimePercentage: Math.round(onTimePercentage * 10) / 10,
+            });
+        }
+
+        // Sort by total processed (descending)
+        return performanceData.sort((a, b) => b.totalProcessed - a.totalProcessed);
+    }
+
+    /**
+     * Identify stage bottlenecks
+     */
+    async getStageBottlenecks(): Promise<StageBottleneck[]> {
+        const stages = [
+            WorkflowStage.DOCUMENT_CHECK,
+            WorkflowStage.FIELD_INSPECTION,
+            WorkflowStage.LEGALIZATION,
+        ];
+
+        const bottlenecks: StageBottleneck[] = [];
+
+        for (const stage of stages) {
+            // Get SLA rule for this stage
+            const slaRule = await this.prisma.sLARule.findUnique({
+                where: { stage },
+            });
+
+            if (!slaRule) continue;
+
+            // Get active applications at this stage
+            const activeCount = await this.prisma.permitApplication.count({
+                where: { currentStage: stage },
+            });
+
+            // Get completed stage histories
+            const completedStages = await this.prisma.stageHistory.findMany({
+                where: {
+                    toStage: stage,
+                    completedAt: { not: null },
+                },
+                select: {
+                    durationHours: true,
+                    slaStatus: true,
+                },
+            });
+
+            const totalDuration = completedStages.reduce(
+                (sum, s) => sum + (s.durationHours || 0),
+                0,
+            );
+            const averageDurationHours =
+                completedStages.length > 0 ? totalDuration / completedStages.length : 0;
+
+            const overdueCount = completedStages.filter(
+                (s) => s.slaStatus === SLAStatus.OVERDUE,
+            ).length;
+
+            const warningCount = completedStages.filter(
+                (s) => s.slaStatus === SLAStatus.WARNING,
+            ).length;
+
+            // Count staff members who can handle this stage
+            const roleMap = {
+                [WorkflowStage.DOCUMENT_CHECK]: Role.DOCUMENT_VALIDATOR,
+                [WorkflowStage.FIELD_INSPECTION]: Role.FIELD_INSPECTOR,
+                [WorkflowStage.LEGALIZATION]: Role.LEGALIZER,
+            };
+
+            const staffCount = await this.prisma.user.count({
+                where: {
+                    roles: { has: roleMap[stage] },
+                },
+            });
+
+            // Calculate utilization (active apps per staff member)
+            const utilizationPercentage =
+                staffCount > 0 ? (activeCount / staffCount) * 100 : 0;
+
+            // Determine recommended action
+            let recommendedAction = 'No action needed';
+            if (overdueCount > 5 && staffCount < 3) {
+                recommendedAction = 'Increase staff allocation - high overdue rate';
+            } else if (averageDurationHours > slaRule.maxDurationHours * 0.9) {
+                recommendedAction = 'Review process efficiency - approaching SLA limit';
+            } else if (utilizationPercentage > 150) {
+                recommendedAction = 'High workload - consider adding staff';
+            } else if (warningCount > overdueCount && warningCount > 3) {
+                recommendedAction = 'Monitor closely - many applications at warning threshold';
+            }
+
+            bottlenecks.push({
+                stage,
+                averageDurationHours: Math.round(averageDurationHours * 10) / 10,
+                maxDurationHours: slaRule.maxDurationHours,
+                overdueCount,
+                warningCount,
+                activeCount,
+                staffCount,
+                utilizationPercentage: Math.round(utilizationPercentage * 10) / 10,
+                recommendedAction,
+            });
+        }
+
+        // Sort by overdue count (descending) - most critical first
+        return bottlenecks.sort((a, b) => b.overdueCount - a.overdueCount);
+    }
+
+    /**
+     * Get monthly report data
+     */
+    async getMonthlyReport(year: number, month: number) {
+        const startDate = new Date(year, month - 1, 1);
+        const endDate = new Date(year, month, 0, 23, 59, 59);
+
+        const applications = await this.prisma.permitApplication.findMany({
+            where: {
+                submittedAt: {
+                    gte: startDate,
+                    lte: endDate,
+                },
+            },
+            include: {
+                stageHistory: {
+                    where: {
+                        completedAt: { not: null },
+                    },
+                    select: {
+                        durationHours: true,
+                        slaStatus: true,
+                    },
+                },
+            },
+        });
+
+        const totalApplications = applications.length;
+        const approvedCount = applications.filter(
+            (app) => app.status === WorkflowStage.APPROVED,
+        ).length;
+        const rejectedCount = applications.filter(
+            (app) => app.status === WorkflowStage.REJECTED,
+        ).length;
+
+        // Calculate average duration from stage histories
+        const allStageHistories = applications.flatMap((app) => app.stageHistory);
+        const totalDuration = allStageHistories.reduce(
+            (sum, s) => sum + (s.durationHours || 0),
+            0,
+        );
+        const averageDuration =
+            allStageHistories.length > 0 ? totalDuration / allStageHistories.length : 0;
+
+        const overdueCount = allStageHistories.filter(
+            (s) => s.slaStatus === SLAStatus.OVERDUE,
+        ).length;
+        const overduePercentage =
+            allStageHistories.length > 0
+                ? (overdueCount / allStageHistories.length) * 100
+                : 0;
+
+        // Group by permit type
+        const byPermitType = applications.reduce((acc, app) => {
+            const type = app.permitType;
+            if (!acc[type]) {
+                acc[type] = { count: 0, totalDuration: 0 };
+            }
+            acc[type].count++;
+            const appDuration = app.stageHistory.reduce(
+                (sum, s) => sum + (s.durationHours || 0),
+                0,
+            );
+            acc[type].totalDuration += appDuration;
+            return acc;
+        }, {} as Record<string, { count: number; totalDuration: number }>);
+
+        const byPermitTypeArray = Object.entries(byPermitType).map(([permitType, data]) => ({
+            permitType,
+            count: data.count,
+            averageDuration: data.count > 0 ? data.totalDuration / data.count : 0,
+        }));
+
+        return {
+            month: `${year}-${String(month).padStart(2, '0')}`,
+            totalApplications,
+            approvedCount,
+            rejectedCount,
+            averageDuration: Math.round(averageDuration * 10) / 10,
+            overduePercentage: Math.round(overduePercentage * 10) / 10,
+            byPermitType: byPermitTypeArray,
+        };
+    }
+}
