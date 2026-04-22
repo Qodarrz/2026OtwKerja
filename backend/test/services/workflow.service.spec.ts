@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { WorkflowService } from './workflow.service';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { WorkflowService } from '../../src/modules/permits/services/workflow.service';
+import { PrismaService } from '../../src/prisma/prisma.service';
 import { WorkflowStage, ActionType, Role, PermitType } from '@prisma/client';
 import {
     NotFoundException,

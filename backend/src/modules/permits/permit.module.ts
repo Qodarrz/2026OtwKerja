@@ -13,4 +13,4 @@ import { DocumentController } from './controllers/document.controller';
     providers: [PermitService, TaxCalculatorService, FileService],
     exports: [PermitService, TaxCalculatorService, FileService],
 })
-export class PermitModule { }
+export class PermitModule {}

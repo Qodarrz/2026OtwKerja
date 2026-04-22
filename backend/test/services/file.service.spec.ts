@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { FileService } from './file.service';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { FileService } from '../../src/modules/permits/services/file.service';
+import { PrismaService } from '../../src/prisma/prisma.service';
 import {
     BadRequestException,
     NotFoundException,

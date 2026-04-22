@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotificationService } from './notification.service';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { NotificationService } from '../../src/modules/permits/services/notification.service';
+import { PrismaService } from '../../src/prisma/prisma.service';
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { NotificationType, PermitType, WorkflowStage } from '@prisma/client';
 
