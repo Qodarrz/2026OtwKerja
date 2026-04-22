@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { WorkflowStage, ActionType, Role, Prisma } from '@prisma/client';
+import { SLAService } from './sla.service';
 
 export interface ApproveApplicationDto {
     notes?: string;
@@ -26,7 +27,10 @@ export interface StaffDashboardFilters {
 
 @Injectable()
 export class WorkflowService {
-    constructor(private prisma: PrismaService) { }
+    constructor(
+        private prisma: PrismaService,
+        private slaService: SLAService,
+    ) { }
 
     /**
      * Approve application at current stage
@@ -123,7 +127,42 @@ export class WorkflowService {
             },
         });
 
-        // Create stage history
+        // Create stage history with SLA tracking
+        const previousStageHistory = await this.prisma.stageHistory.findFirst({
+            where: {
+                applicationId,
+                toStage: application.currentStage,
+                completedAt: null,
+            },
+            orderBy: {
+                transitionedAt: 'desc',
+            },
+        });
+
+        // Complete previous stage and calculate SLA
+        if (previousStageHistory) {
+            const completedAt = new Date();
+            const durationHours = this.slaService.calculateDuration(
+                previousStageHistory.transitionedAt,
+                completedAt,
+            );
+
+            const slaCheck = await this.slaService.checkSLACompliance(
+                previousStageHistory.transitionedAt,
+                application.currentStage,
+            );
+
+            await this.prisma.stageHistory.update({
+                where: { id: previousStageHistory.id },
+                data: {
+                    completedAt,
+                    durationHours,
+                    slaStatus: slaCheck.status,
+                },
+            });
+        }
+
+        // Create new stage history for next stage
         await this.prisma.stageHistory.create({
             data: {
                 applicationId,
@@ -253,7 +292,42 @@ export class WorkflowService {
             },
         });
 
-        // Create stage history
+        // Create stage history with SLA tracking
+        const previousStageHistory = await this.prisma.stageHistory.findFirst({
+            where: {
+                applicationId,
+                toStage: application.currentStage,
+                completedAt: null,
+            },
+            orderBy: {
+                transitionedAt: 'desc',
+            },
+        });
+
+        // Complete previous stage and calculate SLA
+        if (previousStageHistory) {
+            const completedAt = new Date();
+            const durationHours = this.slaService.calculateDuration(
+                previousStageHistory.transitionedAt,
+                completedAt,
+            );
+
+            const slaCheck = await this.slaService.checkSLACompliance(
+                previousStageHistory.transitionedAt,
+                application.currentStage,
+            );
+
+            await this.prisma.stageHistory.update({
+                where: { id: previousStageHistory.id },
+                data: {
+                    completedAt,
+                    durationHours,
+                    slaStatus: slaCheck.status,
+                },
+            });
+        }
+
+        // Create new stage history for rejection
         await this.prisma.stageHistory.create({
             data: {
                 applicationId,

@@ -114,6 +114,14 @@ enum NotificationType {
   STAGE_ADVANCED
   APPLICATION_APPROVED
   APPLICATION_REJECTED
+  SLA_WARNING
+  SLA_OVERDUE
+}
+
+enum SLAStatus {
+  ON_TIME
+  WARNING
+  OVERDUE
 }
 
 // Permit Application Model
@@ -230,7 +238,13 @@ model StageHistory {
   transitionedBy    String?          // User ID
   transitionedAt    DateTime         @default(now())
   
+  // SLA tracking
+  completedAt       DateTime?        // When stage was completed
+  durationHours     Int?             // Duration in hours
+  slaStatus         SLAStatus?       // ON_TIME, WARNING, OVERDUE
+  
   @@index([applicationId])
+  @@index([slaStatus])
 }
 
 // Notification Model
@@ -269,4 +283,17 @@ model AuditLog {
   @@index([entityType, entityId])
   @@index([performedBy])
   @@index([createdAt])
+}
+
+// SLA Rules Model
+model SLARule {
+  id                String           @id @default(uuid())
+  stage             WorkflowStage    @unique
+  maxDurationHours  Int              // Maximum duration in hours
+  warningThreshold  Float            @default(0.8) // Warning at 80% of max duration
+  
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  
+  @@index([stage])
 }

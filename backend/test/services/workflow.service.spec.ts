@@ -1,7 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { WorkflowService } from '../../src/modules/permits/services/workflow.service';
+import { SLAService } from '../../src/modules/permits/services/sla.service';
 import { PrismaService } from '../../src/prisma/prisma.service';
-import { WorkflowStage, ActionType, Role, PermitType } from '@prisma/client';
+import { WorkflowStage, ActionType, Role, PermitType, SLAStatus } from '@prisma/client';
 import {
     NotFoundException,
     ForbiddenException,
@@ -11,6 +12,7 @@ import {
 describe('WorkflowService', () => {
     let service: WorkflowService;
     let prisma: PrismaService;
+    let slaService: SLAService;
 
     const mockPrismaService = {
         permitApplication: {
@@ -28,6 +30,8 @@ describe('WorkflowService', () => {
         stageHistory: {
             create: jest.fn(),
             findMany: jest.fn(),
+            findFirst: jest.fn(),
+            update: jest.fn(),
         },
         auditLog: {
             create: jest.fn(),
@@ -35,6 +39,23 @@ describe('WorkflowService', () => {
         notification: {
             create: jest.fn(),
         },
+    };
+
+    const mockSLAService = {
+        checkSLACompliance: jest.fn().mockResolvedValue({
+            status: SLAStatus.ON_TIME,
+            durationHours: 10,
+            maxDurationHours: 48,
+            remainingHours: 38,
+            percentageUsed: 20.8,
+        }),
+        calculateDuration: jest.fn().mockReturnValue(10),
+        getOverdueApplications: jest.fn(),
+        getWarningApplications: jest.fn(),
+        getSLAStatistics: jest.fn(),
+        getAllSLARules: jest.fn(),
+        updateSLARule: jest.fn(),
+        updateActiveSLAStatuses: jest.fn(),
     };
 
     beforeEach(async () => {
@@ -45,11 +66,16 @@ describe('WorkflowService', () => {
                     provide: PrismaService,
                     useValue: mockPrismaService,
                 },
+                {
+                    provide: SLAService,
+                    useValue: mockSLAService,
+                },
             ],
         }).compile();
 
         service = module.get<WorkflowService>(WorkflowService);
         prisma = module.get<PrismaService>(PrismaService);
+        slaService = module.get<SLAService>(SLAService);
 
         // Clear all mocks before each test
         jest.clearAllMocks();
