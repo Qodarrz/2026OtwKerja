@@ -25,6 +25,26 @@ export class PermitService {
     constructor(private prisma: PrismaService) { }
 
     /**
+     * Check if user has staff role (can access any application)
+     */
+    private async hasStaffRole(userId: string): Promise<boolean> {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: { roles: true },
+        });
+
+        if (!user) {
+            return false;
+        }
+
+        return user.roles.some((role) =>
+            ['ADMIN', 'DOCUMENT_VALIDATOR', 'FIELD_INSPECTOR', 'LEGALIZER'].includes(
+                role,
+            ),
+        );
+    }
+
+    /**
      * Create a new permit application (draft status)
      */
     async createApplication(userId: string, dto: CreateApplicationDto) {
@@ -108,10 +128,15 @@ export class PermitService {
             throw new NotFoundException('Application not found');
         }
 
-        // Check access: applicant can view their own, staff can view all
+        // Check access: applicant can view their own, staff can view applications at their assigned stages
         if (application.applicantId !== userId) {
-            // TODO: Check if user has staff role
-            // For now, allow access (will be enforced by guards)
+            const isStaff = await this.hasStaffRole(userId);
+
+            if (!isStaff) {
+                throw new ForbiddenException(
+                    'You can only view your own applications',
+                );
+            }
         }
 
         return application;

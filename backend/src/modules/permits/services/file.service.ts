@@ -29,6 +29,57 @@ export class FileService {
     constructor(private prisma: PrismaService) { }
 
     /**
+     * Check if user has staff role (can access any application)
+     */
+    private async hasStaffRole(userId: string): Promise<boolean> {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: { roles: true },
+        });
+
+        if (!user) {
+            return false;
+        }
+
+        return user.roles.some((role) =>
+            ['ADMIN', 'DOCUMENT_VALIDATOR', 'FIELD_INSPECTOR', 'LEGALIZER'].includes(
+                role,
+            ),
+        );
+    }
+
+    /**
+     * Verify user has access to an application (owner or staff)
+     */
+    private async verifyApplicationAccess(
+        applicationId: string,
+        userId: string,
+        action: string,
+    ): Promise<void> {
+        const application = await this.prisma.permitApplication.findUnique({
+            where: { id: applicationId },
+        });
+
+        if (!application) {
+            throw new NotFoundException('Application not found');
+        }
+
+        // Owner always has access
+        if (application.applicantId === userId) {
+            return;
+        }
+
+        // Check if user has staff role
+        const isStaff = await this.hasStaffRole(userId);
+
+        if (!isStaff) {
+            throw new ForbiddenException(
+                `You can only ${action} your own applications`,
+            );
+        }
+    }
+
+    /**
      * Upload a document for a permit application
      */
     async uploadDocument(
@@ -43,19 +94,11 @@ export class FileService {
         }
 
         // Verify application exists and user has access
-        const application = await this.prisma.permitApplication.findUnique({
-            where: { id: applicationId },
-        });
-
-        if (!application) {
-            throw new NotFoundException('Application not found');
-        }
-
-        // Check if user has access (applicant or staff)
-        if (application.applicantId !== userId) {
-            // TODO: Check if user has staff role
-            // For now, allow access (will be enforced by guards)
-        }
+        await this.verifyApplicationAccess(
+            applicationId,
+            userId,
+            'upload documents to',
+        );
 
         // Sanitize filename
         const sanitizedFilename = this.sanitizeFilename(file.originalname);
@@ -107,8 +150,13 @@ export class FileService {
 
         // Verify user has access to the application
         if (document.application.applicantId !== userId) {
-            // TODO: Check if user has staff role
-            // For now, allow access (will be enforced by guards)
+            const isStaff = await this.hasStaffRole(userId);
+
+            if (!isStaff) {
+                throw new ForbiddenException(
+                    'You can only download documents from your own applications',
+                );
+            }
         }
 
         // Check if file exists
@@ -177,19 +225,11 @@ export class FileService {
      */
     async listDocuments(applicationId: string, userId: string) {
         // Verify application exists and user has access
-        const application = await this.prisma.permitApplication.findUnique({
-            where: { id: applicationId },
-        });
-
-        if (!application) {
-            throw new NotFoundException('Application not found');
-        }
-
-        // Check if user has access
-        if (application.applicantId !== userId) {
-            // TODO: Check if user has staff role
-            // For now, allow access (will be enforced by guards)
-        }
+        await this.verifyApplicationAccess(
+            applicationId,
+            userId,
+            'view documents from',
+        );
 
         const documents = await this.prisma.document.findMany({
             where: { applicationId },
