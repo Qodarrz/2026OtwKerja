@@ -159,7 +159,7 @@ describe('Guards Integration Tests (e2e)', () => {
 
     function generateTokens() {
         // Generate JWT tokens directly using JwtService
-        const secret = process.env.JWT_SECRET || 'secretKey';
+        const secret = process.env.JWT_SECRET;
         
         adminToken = jwtService.sign({
             sub: adminUser.id,
