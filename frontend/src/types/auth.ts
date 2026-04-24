@@ -1,8 +1,17 @@
+export enum Role {
+  USER = 'USER',
+  ADMIN = 'ADMIN',
+  DOCUMENT_VALIDATOR = 'DOCUMENT_VALIDATOR',
+  FIELD_INSPECTOR = 'FIELD_INSPECTOR',
+  LEGALIZER = 'LEGALIZER',
+}
+
 export interface User {
   id: string;
   email: string;
   name: string | null;
   provider: 'LOCAL' | 'GOOGLE';
+  roles: Role[];
 }
 
 export interface AuthResponse {

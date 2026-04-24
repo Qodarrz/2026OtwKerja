@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { NotificationType, Prisma } from '@prisma/client';
+import { NotificationGateway } from '../gateways/notification.gateway';
 
 export interface ListNotificationsQuery {
     isRead?: boolean;
@@ -18,7 +19,10 @@ export interface PaginatedResult<T> {
 
 @Injectable()
 export class NotificationService {
-    constructor(private prisma: PrismaService) { }
+    constructor(
+        private prisma: PrismaService,
+        private gateway: NotificationGateway,
+    ) { }
 
     /**
      * Create notification when application is submitted
@@ -119,6 +123,57 @@ export class NotificationService {
     }
 
     /**
+     * Create notification for staff when application is nearing SLA limit
+     */
+    async notifySLAWarning(
+        applicationId: string,
+        staffId: string,
+        stage: string,
+    ): Promise<void> {
+        const application = await this.prisma.permitApplication.findUnique({
+            where: { id: applicationId },
+        });
+
+        if (!application) return;
+
+        await this.prisma.notification.create({
+            data: {
+                userId: staffId,
+                type: 'SLA_WARNING' as any,
+                title: 'SLA Warning',
+                message: `Application ${application.referenceNumber} in ${stage} is nearing SLA limit. Please process immediately.`,
+                applicationId,
+            },
+        });
+    }
+
+    /**
+     * Create notification for supervisor when application is overdue (Escalation)
+     */
+    async notifySLAEscalation(
+        applicationId: string,
+        supervisorId: string,
+        stage: string,
+        staffName: string,
+    ): Promise<void> {
+        const application = await this.prisma.permitApplication.findUnique({
+            where: { id: applicationId },
+        });
+
+        if (!application) return;
+
+        await this.prisma.notification.create({
+            data: {
+                userId: supervisorId,
+                type: 'SLA_ESCALATION' as any,
+                title: 'SLA Escalation Alert',
+                message: `URGENT: Application ${application.referenceNumber} in ${stage} is OVERDUE. Assigned to: ${staffName}.`,
+                applicationId,
+            },
+        });
+    }
+
+    /**
      * Get user notifications with pagination
      */
     async getUserNotifications(
@@ -158,6 +213,11 @@ export class NotificationService {
             }),
             this.prisma.notification.count({ where }),
         ]);
+
+        // Push via WebSocket after saving (mocking for all types)
+        data.forEach(notification => {
+            this.gateway.sendNotification(userId, notification);
+        });
 
         return {
             data,

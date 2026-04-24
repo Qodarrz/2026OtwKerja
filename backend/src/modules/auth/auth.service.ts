@@ -9,7 +9,12 @@ import { UsersService } from '../users/users.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { RegisterDto, LoginDto, VerifyOtpDto, ResendOtpDto } from './dto/auth.dto';
+import {
+  RegisterDto,
+  LoginDto,
+  VerifyOtpDto,
+  ResendOtpDto,
+} from './dto/auth.dto';
 import { AuthProvider } from '@prisma/client';
 import { MailerService } from '../mailer/mailer.service';
 
@@ -28,7 +33,7 @@ export class AuthService {
 
   async register(dto: RegisterDto) {
     const existing = await this.usersService.findByEmail(dto.email);
-    
+
     if (existing) {
       if (existing.verify_gmail) {
         throw new ConflictException('Email already in use and verified');
@@ -53,7 +58,7 @@ export class AuthService {
           verify_gmail: false,
           // Create empty detail
           userDetail: {
-            create: {}
+            create: {},
           },
           // Create initial OTP record
           otpVerification: {
@@ -62,13 +67,13 @@ export class AuthService {
               otp_expires_at: otpExpires,
               otp_attempts: 1,
               last_otp_requested_at: new Date(),
-            }
-          }
+            },
+          },
         },
         include: {
           otpVerification: true,
-          userDetail: true
-        }
+          userDetail: true,
+        },
       });
 
       return user;
@@ -78,7 +83,8 @@ export class AuthService {
 
     const { password: _password, ...userWithoutPassword } = result;
     return {
-      message: 'Registration successful. Please check your email for verification code.',
+      message:
+        'Registration successful. Please check your email for verification code.',
       user: userWithoutPassword,
     };
   }
@@ -86,7 +92,7 @@ export class AuthService {
   async verifyOtp(dto: VerifyOtpDto) {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
-      include: { otpVerification: true }
+      include: { otpVerification: true },
     });
 
     if (!user) {
@@ -126,7 +132,7 @@ export class AuthService {
   async resendOtp(dto: ResendOtpDto) {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
-      include: { otpVerification: true }
+      include: { otpVerification: true },
     });
 
     if (!user) {
@@ -141,12 +147,17 @@ export class AuthService {
     const threeHoursAgo = new Date(now.getTime() - 3 * 60 * 60 * 1000);
 
     let attempts = user.otpVerification?.otp_attempts || 0;
-    if (user.otpVerification?.last_otp_requested_at && user.otpVerification.last_otp_requested_at < threeHoursAgo) {
+    if (
+      user.otpVerification?.last_otp_requested_at &&
+      user.otpVerification.last_otp_requested_at < threeHoursAgo
+    ) {
       attempts = 0;
     }
 
     if (attempts >= 3) {
-      throw new ForbiddenException('Too many attempts. Please try again in 3 hours.');
+      throw new ForbiddenException(
+        'Too many attempts. Please try again in 3 hours.',
+      );
     }
 
     const otp = this.generateOtp();
@@ -227,19 +238,19 @@ export class AuthService {
   }) {
     let user = await this.prisma.user.findUnique({
       where: { email: details.email },
-      include: { userDetail: true }
+      include: { userDetail: true },
     });
 
     if (user) {
       if (user.provider !== details.provider) {
         user = await this.prisma.user.update({
           where: { email: details.email },
-          data: { 
-            provider: details.provider, 
+          data: {
+            provider: details.provider,
             providerId: details.providerId,
-            verify_gmail: true 
+            verify_gmail: true,
           },
-          include: { userDetail: true }
+          include: { userDetail: true },
         });
       }
     } else {
@@ -251,10 +262,10 @@ export class AuthService {
           providerId: details.providerId,
           verify_gmail: true,
           userDetail: {
-            create: {}
-          }
+            create: {},
+          },
         },
-        include: { userDetail: true }
+        include: { userDetail: true },
       });
     }
 
@@ -286,7 +297,7 @@ export class AuthService {
   async getUserProfile(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      include: { userDetail: true }
+      include: { userDetail: true },
     });
     if (!user) {
       throw new UnauthorizedException('User not found');

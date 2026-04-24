@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { WorkflowStage, SLAStatus } from '@prisma/client';
+import { WorkflowStage, SLAStatus, Role } from '@prisma/client';
+import { NotificationService } from './notification.service';
 
 export interface SLACheckResult {
     status: SLAStatus;
@@ -22,7 +23,10 @@ export interface SLAStatistics {
 
 @Injectable()
 export class SLAService {
-    constructor(private prisma: PrismaService) { }
+    constructor(
+        private prisma: PrismaService,
+        private notificationService: NotificationService,
+    ) { }
 
     /**
      * Check SLA compliance for a specific stage
@@ -266,6 +270,13 @@ export class SLAService {
                     ],
                 },
             },
+            include: {
+                application: {
+                    include: {
+                        applicant: true
+                    }
+                }
+            }
         });
 
         let updatedCount = 0;
@@ -286,6 +297,33 @@ export class SLAService {
                             durationHours: slaCheck.durationHours,
                         },
                     });
+
+                    // TRIGGER NOTIFICATIONS / ESCALATIONS
+                    if (slaCheck.status === SLAStatus.WARNING) {
+                        // Notify the person who transitioned it (staff)
+                        if (stageHistory.transitionedBy) {
+                            await this.notificationService.notifySLAWarning(
+                                stageHistory.applicationId,
+                                stageHistory.transitionedBy,
+                                stageHistory.toStage
+                            );
+                        }
+                    } else if (slaCheck.status === SLAStatus.OVERDUE) {
+                        // ESCALATION: Notify all Admins/Supervisors
+                        const admins = await this.prisma.user.findMany({
+                            where: { roles: { has: Role.ADMIN } }
+                        });
+
+                        for (const admin of admins) {
+                            await this.notificationService.notifySLAEscalation(
+                                stageHistory.applicationId,
+                                admin.id,
+                                stageHistory.toStage,
+                                'Staff PIC'
+                            );
+                        }
+                    }
+
                     updatedCount++;
                 }
             } catch (error) {
