@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { NotificationType, Prisma } from '@prisma/client';
+import { NotificationType, Prisma, Role } from '@prisma/client';
 import { NotificationGateway } from '../gateways/notification.gateway';
 
 export interface ListNotificationsQuery {
@@ -36,7 +36,7 @@ export class NotificationService {
             throw new NotFoundException('Application not found');
         }
 
-        await this.prisma.notification.create({
+        const notification = await this.prisma.notification.create({
             data: {
                 userId: application.applicantId,
                 type: NotificationType.APPLICATION_SUBMITTED,
@@ -45,6 +45,28 @@ export class NotificationService {
                 applicationId,
             },
         });
+
+        // Deliver via WebSocket
+        try {
+            this.gateway.sendToUser(
+                notification.userId,
+                'notification:application_submitted',
+                {
+                    id: notification.id,
+                    type: notification.type,
+                    title: notification.title,
+                    message: notification.message,
+                    timestamp: notification.createdAt.toISOString(),
+                    metadata: {
+                        applicationId: notification.applicationId,
+                        referenceNumber: application.referenceNumber,
+                    },
+                }
+            );
+        } catch (error) {
+            // Log error but don't fail the notification creation
+            console.error('WebSocket delivery failed for application submitted notification:', error);
+        }
     }
 
     /**
@@ -62,7 +84,7 @@ export class NotificationService {
             throw new NotFoundException('Application not found');
         }
 
-        await this.prisma.notification.create({
+        const notification = await this.prisma.notification.create({
             data: {
                 userId: application.applicantId,
                 type: NotificationType.STAGE_ADVANCED,
@@ -71,6 +93,28 @@ export class NotificationService {
                 applicationId,
             },
         });
+
+        // Deliver via WebSocket
+        try {
+            this.gateway.sendToUser(
+                notification.userId,
+                'notification:stage_advanced',
+                {
+                    id: notification.id,
+                    type: notification.type,
+                    title: notification.title,
+                    message: notification.message,
+                    timestamp: notification.createdAt.toISOString(),
+                    metadata: {
+                        applicationId: notification.applicationId,
+                        referenceNumber: application.referenceNumber,
+                        stage: newStage,
+                    },
+                }
+            );
+        } catch (error) {
+            console.error('WebSocket delivery failed for stage advanced notification:', error);
+        }
     }
 
     /**
@@ -85,7 +129,7 @@ export class NotificationService {
             throw new NotFoundException('Application not found');
         }
 
-        await this.prisma.notification.create({
+        const notification = await this.prisma.notification.create({
             data: {
                 userId: application.applicantId,
                 type: NotificationType.APPLICATION_APPROVED,
@@ -94,6 +138,27 @@ export class NotificationService {
                 applicationId,
             },
         });
+
+        // Deliver via WebSocket
+        try {
+            this.gateway.sendToUser(
+                notification.userId,
+                'notification:application_approved',
+                {
+                    id: notification.id,
+                    type: notification.type,
+                    title: notification.title,
+                    message: notification.message,
+                    timestamp: notification.createdAt.toISOString(),
+                    metadata: {
+                        applicationId: notification.applicationId,
+                        referenceNumber: application.referenceNumber,
+                    },
+                }
+            );
+        } catch (error) {
+            console.error('WebSocket delivery failed for application approved notification:', error);
+        }
     }
 
     /**
@@ -111,7 +176,7 @@ export class NotificationService {
             throw new NotFoundException('Application not found');
         }
 
-        await this.prisma.notification.create({
+        const notification = await this.prisma.notification.create({
             data: {
                 userId: application.applicantId,
                 type: NotificationType.APPLICATION_REJECTED,
@@ -120,6 +185,28 @@ export class NotificationService {
                 applicationId,
             },
         });
+
+        // Deliver via WebSocket
+        try {
+            this.gateway.sendToUser(
+                notification.userId,
+                'notification:application_rejected',
+                {
+                    id: notification.id,
+                    type: notification.type,
+                    title: notification.title,
+                    message: notification.message,
+                    timestamp: notification.createdAt.toISOString(),
+                    metadata: {
+                        applicationId: notification.applicationId,
+                        referenceNumber: application.referenceNumber,
+                        rejectionReason: reason,
+                    },
+                }
+            );
+        } catch (error) {
+            console.error('WebSocket delivery failed for application rejected notification:', error);
+        }
     }
 
     /**
@@ -136,7 +223,13 @@ export class NotificationService {
 
         if (!application) return;
 
-        await this.prisma.notification.create({
+        // Get staff details for metadata
+        const staff = await this.prisma.user.findUnique({
+            where: { id: staffId },
+            select: { name: true },
+        });
+
+        const notification = await this.prisma.notification.create({
             data: {
                 userId: staffId,
                 type: 'SLA_WARNING' as any,
@@ -145,6 +238,43 @@ export class NotificationService {
                 applicationId,
             },
         });
+
+        // Map stage to role for broadcast
+        const roleMap: Record<string, Role> = {
+            DOCUMENT_CHECK: Role.DOCUMENT_VALIDATOR,
+            FIELD_INSPECTION: Role.FIELD_INSPECTOR,
+            LEGALIZATION: Role.LEGALIZER,
+        };
+
+        const payload = {
+            id: notification.id,
+            type: notification.type,
+            title: notification.title,
+            message: notification.message,
+            timestamp: notification.createdAt.toISOString(),
+            metadata: {
+                applicationId: notification.applicationId,
+                referenceNumber: application.referenceNumber,
+                stage,
+                urgencyLevel: 'high' as const,
+                assignedStaffName: staff?.name || 'Unknown',
+                timeRemaining: 3600, // Placeholder - should be calculated from SLA
+            },
+        };
+
+        // Deliver via WebSocket
+        try {
+            // Send to specific staff member
+            this.gateway.sendToUser(staffId, 'notification:sla_warning', payload);
+
+            // Broadcast to role room based on stage
+            const role = roleMap[stage];
+            if (role) {
+                this.gateway.sendToRole(role, 'notification:sla_warning', payload);
+            }
+        } catch (error) {
+            console.error('WebSocket delivery failed for SLA warning notification:', error);
+        }
     }
 
     /**
@@ -162,7 +292,7 @@ export class NotificationService {
 
         if (!application) return;
 
-        await this.prisma.notification.create({
+        const notification = await this.prisma.notification.create({
             data: {
                 userId: supervisorId,
                 type: 'SLA_ESCALATION' as any,
@@ -171,6 +301,33 @@ export class NotificationService {
                 applicationId,
             },
         });
+
+        const payload = {
+            id: notification.id,
+            type: notification.type,
+            title: notification.title,
+            message: notification.message,
+            timestamp: notification.createdAt.toISOString(),
+            metadata: {
+                applicationId: notification.applicationId,
+                referenceNumber: application.referenceNumber,
+                stage,
+                urgencyLevel: 'critical' as const,
+                assignedStaffName: staffName,
+                overdueDuration: 7200, // Placeholder - should be calculated from SLA
+            },
+        };
+
+        // Deliver via WebSocket
+        try {
+            // Send to supervisor
+            this.gateway.sendToUser(supervisorId, 'notification:sla_overdue', payload);
+
+            // Broadcast to all admins
+            this.gateway.sendToRole(Role.ADMIN, 'notification:sla_overdue', payload);
+        } catch (error) {
+            console.error('WebSocket delivery failed for SLA escalation notification:', error);
+        }
     }
 
     /**
