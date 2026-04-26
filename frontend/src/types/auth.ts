@@ -12,6 +12,8 @@ export interface User {
   name: string | null;
   provider: 'LOCAL' | 'GOOGLE';
   roles: Role[];
+  isKtpVerified: boolean;
+  verify_gmail: boolean;
 }
 
 export interface AuthResponse {

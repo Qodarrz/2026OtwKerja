@@ -36,6 +36,7 @@ model User {
   providerId      String?
   roles           Role[]           // Changed to array for multiple roles
   verify_gmail    Boolean          @default(false)
+  isKtpVerified   Boolean          @default(false)
   
   userDetail      UserDetail?
   otpVerification OtpVerification?
@@ -55,6 +56,16 @@ model UserDetail {
   phone     String?
   address   String?
   avatar    String?
+  
+  // KTP Data
+  nik           String?
+  ktpFullName   String?
+  ktpBirthDate  DateTime?
+  ktpBirthPlace String?
+  ktpGender     String?
+  ktpAddress    String?
+  ktpImageUrl   String?
+  
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String   @unique
   createdAt DateTime @default(now())

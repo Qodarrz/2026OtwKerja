@@ -14,9 +14,13 @@ export class SLAScheduler {
    */
   @Cron(CronExpression.EVERY_HOUR)
   async handleCron() {
-    this.logger.debug('Running automated SLA status check...');
-    const result = await this.slaService.updateActiveSLAStatuses();
-    this.logger.log(`SLA check completed. Updated ${result.updatedCount} applications.`);
+    try {
+      this.logger.debug('Running automated SLA status check...');
+      const result = await this.slaService.updateActiveSLAStatuses();
+      this.logger.log(`SLA check completed. Updated ${result.updatedCount} applications.`);
+    } catch (error) {
+      this.logger.error('SLA Scheduler failed unexpectely:', error);
+    }
   }
 
   /**

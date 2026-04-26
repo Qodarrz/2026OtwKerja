@@ -32,61 +32,89 @@ export class AuthService {
   }
 
   async register(dto: RegisterDto) {
-    const existing = await this.usersService.findByEmail(dto.email);
+    try {
+      const existing = await this.usersService.findByEmail(dto.email);
 
-    if (existing) {
-      if (existing.verify_gmail) {
-        throw new ConflictException('Email already in use and verified');
+      if (existing) {
+        if (existing.verify_gmail) {
+          throw new ConflictException('Email already in use and verified');
+        }
+        // If not verified, we allow resending OTP
+        return this.resendOtp({ email: dto.email });
       }
-      // If not verified, we allow resending OTP
-      return this.resendOtp({ email: dto.email });
-    }
 
-    const hashedPassword = await bcrypt.hash(dto.password, 10);
-    const otp = this.generateOtp();
-    const otpExpires = new Date();
-    otpExpires.setMinutes(otpExpires.getMinutes() + 10);
+      const hashedPassword = await bcrypt.hash(dto.password, 10);
+      const otp = this.generateOtp();
+      const otpExpires = new Date();
+      otpExpires.setMinutes(otpExpires.getMinutes() + 10);
 
-    // Using transaction to ensure all records are created
-    const result = await this.prisma.$transaction(async (tx) => {
-      const user = await tx.user.create({
-        data: {
-          email: dto.email,
-          name: dto.name,
-          password: hashedPassword,
-          provider: AuthProvider.LOCAL,
-          verify_gmail: false,
-          // Create empty detail
-          userDetail: {
-            create: {},
-          },
-          // Create initial OTP record
-          otpVerification: {
-            create: {
-              otp_code: otp,
-              otp_expires_at: otpExpires,
-              otp_attempts: 1,
-              last_otp_requested_at: new Date(),
+      // Using transaction to ensure all records are created
+      const result = await this.prisma.$transaction(async (tx) => {
+        const user = await tx.user.create({
+          data: {
+            email: dto.email,
+            name: dto.name,
+            password: hashedPassword,
+            provider: AuthProvider.LOCAL,
+            verify_gmail: false,
+            userDetail: {
+              create: {},
+            },
+            otpVerification: {
+              create: {
+                otp_code: otp,
+                otp_expires_at: otpExpires,
+                otp_attempts: 1,
+                last_otp_requested_at: new Date(),
+              },
             },
           },
-        },
-        include: {
-          otpVerification: true,
-          userDetail: true,
+          include: {
+            otpVerification: true,
+            userDetail: true,
+          },
+        });
+
+        return user;
+      });
+
+      await this.mailerService.sendOtpEmail(result.email, otp);
+
+      const payload = { 
+        sub: result.id, 
+        email: result.email, 
+        roles: result.roles, 
+        isVerified: false,
+        isKtpVerified: false 
+      };
+      const token = this.jwtService.sign(payload);
+
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7);
+
+      await this.prisma.session.create({
+        data: {
+          userId: result.id,
+          token: token,
+          expiresAt: expiresAt,
         },
       });
 
-      return user;
-    });
-
-    await this.mailerService.sendOtpEmail(result.email, otp);
-
-    const { password: _password, ...userWithoutPassword } = result;
-    return {
-      message:
-        'Registration successful. Please check your email for verification code.',
-      user: userWithoutPassword,
-    };
+      const { password: _password, ...userWithoutPassword } = result;
+      return {
+        message:
+          'Registration successful. Please check your email for verification code.',
+        access_token: token,
+        user: {
+          ...userWithoutPassword,
+          isKtpVerified: false,
+        },
+      };
+    } catch (error) {
+      console.error('[AuthService] Registration error:', error);
+      if (error instanceof ConflictException) throw error;
+      throw error;
+    }
   }
 
   async verifyOtp(dto: VerifyOtpDto) {
@@ -124,9 +152,44 @@ export class AuthService {
       this.prisma.otpVerification.delete({
         where: { userId: user.id },
       }),
+      this.prisma.session.deleteMany({
+        where: { userId: user.id },
+      }),
     ]);
 
-    return { message: 'Email verified successfully' };
+    // Generate new token with updated verification status
+    const payload = { 
+      sub: user.id, 
+      email: user.email, 
+      roles: user.roles, 
+      isVerified: true,
+      isKtpVerified: user.isKtpVerified 
+    };
+    const token = this.jwtService.sign(payload);
+
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+
+    await this.prisma.session.create({
+      data: {
+        userId: user.id,
+        token: token,
+        expiresAt: expiresAt,
+      },
+    });
+
+    return { 
+      message: 'Email verified successfully',
+      access_token: token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        roles: user.roles,
+        verify_gmail: true,
+        isKtpVerified: user.isKtpVerified,
+      }
+    };
   }
 
   async resendOtp(dto: ResendOtpDto) {
@@ -196,16 +259,19 @@ export class AuthService {
       throw new UnauthorizedException('Please login with Google');
     }
 
-    if (!user.verify_gmail) {
-      throw new ForbiddenException('Please verify your email first');
-    }
-
     const isMatch = await bcrypt.compare(dto.password, user.password);
     if (!isMatch) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const payload = { sub: user.id, email: user.email, roles: user.roles };
+    const payload = { 
+      sub: user.id, 
+      email: user.email, 
+      roles: user.roles, 
+      isVerified: user.verify_gmail,
+      isKtpVerified: (user as any).isKtpVerified 
+    };
+
     const token = this.jwtService.sign(payload);
 
     const expiresAt = new Date();
@@ -226,6 +292,8 @@ export class AuthService {
         email: user.email,
         name: user.name,
         roles: user.roles,
+        verify_gmail: user.verify_gmail,
+        isKtpVerified: (user as any).isKtpVerified,
       },
     };
   }
@@ -260,16 +328,38 @@ export class AuthService {
           name: details.name,
           provider: details.provider,
           providerId: details.providerId,
-          verify_gmail: true,
+          verify_gmail: false, // Set to false to require OTP even for OAuth
           userDetail: {
             create: {},
           },
         },
         include: { userDetail: true },
       });
+
+      // Send initial OTP for OAuth if needed
+      const otp = this.generateOtp();
+      const otpExpires = new Date();
+      otpExpires.setMinutes(otpExpires.getMinutes() + 10);
+      await this.prisma.otpVerification.create({
+        data: {
+          userId: user.id,
+          otp_code: otp,
+          otp_expires_at: otpExpires,
+          otp_attempts: 1,
+          last_otp_requested_at: new Date(),
+        },
+      });
+      await this.mailerService.sendOtpEmail(user.email, otp);
     }
 
-    const payload = { sub: user.id, email: user.email, roles: user.roles };
+    const payload = { 
+      sub: user.id, 
+      email: user.email, 
+      roles: user.roles, 
+      isVerified: user.verify_gmail,
+      isKtpVerified: (user as any).isKtpVerified 
+    };
+
     const token = this.jwtService.sign(payload);
 
     const expiresAt = new Date();
@@ -290,6 +380,8 @@ export class AuthService {
         email: user.email,
         name: user.name,
         roles: user.roles,
+        verify_gmail: user.verify_gmail,
+        isKtpVerified: (user as any).isKtpVerified,
       },
     };
   }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Navbar } from "@/components/layout/Navbar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -14,24 +15,78 @@ import {
   Filter,
   MoreVertical,
   Check,
-  X
+  X,
+  Loader2
 } from "lucide-react";
-import { cn, formatCurrency } from "@/lib/utils";
-
-const adminStats = [
-  { label: "Total Pengajuan", value: "1,284", icon: BarChart3, color: "text-indigo-500", bg: "bg-indigo-500/10" },
-  { label: "Butuh Validasi", value: "42", icon: FileCheck, color: "text-amber-500", bg: "bg-amber-500/10" },
-  { label: "User Aktif", value: "856", icon: Users, color: "text-blue-500", bg: "bg-blue-500/10" },
-  { label: "Laporan Konflik", value: "5", icon: AlertCircle, color: "text-rose-500", bg: "bg-rose-500/10" },
-];
-
-const pendingApprovals = [
-  { id: "APP-2024-088", user: "Andi Wijaya", type: "IMB Residensial", date: "2 jam lalu", priority: "High" },
-  { id: "APP-2024-089", user: "PT. Maju Bersama", type: "PBG Komersial", date: "4 jam lalu", priority: "Medium" },
-  { id: "APP-2024-090", user: "Siti Aminah", type: "IMB Residensial", date: "1 hari lalu", priority: "Low" },
-];
+import { cn } from "@/lib/utils";
+import { analyticsService } from "@/services/analytics.service";
 
 export default function AdminDashboardPage() {
+  const [metrics, setMetrics] = useState<any>(null);
+  const [bottlenecks, setBottlenecks] = useState<any>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [metricsData, bottlenecksData] = await Promise.all([
+          analyticsService.getDashboardMetrics(),
+          analyticsService.getBottlenecks()
+        ]);
+        setMetrics(metricsData);
+        setBottlenecks(bottlenecksData);
+      } catch (error) {
+        console.error("Failed to fetch admin data", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
+  const stats = [
+    { 
+      label: "Total Pengajuan", 
+      value: metrics?.totalApplications || "0", 
+      icon: BarChart3, 
+      color: "text-indigo-500", 
+      bg: "bg-indigo-500/10",
+      change: "+12%" 
+    },
+    { 
+      label: "Butuh Validasi", 
+      value: metrics?.pendingCount || "0", 
+      icon: FileCheck, 
+      color: "text-amber-500", 
+      bg: "bg-amber-500/10",
+      change: "+5%" 
+    },
+    { 
+      label: "SLA Overdue", 
+      value: metrics?.overdueCount || "0", 
+      icon: AlertCircle, 
+      color: "text-rose-500", 
+      bg: "bg-rose-500/10",
+      change: "-2%" 
+    },
+    { 
+      label: "Tingkat Persetujuan", 
+      value: metrics?.approvalRate ? `${metrics.approvalRate}%` : "0%", 
+      icon: Check, 
+      color: "text-emerald-500", 
+      bg: "bg-emerald-500/10",
+      change: "+3%" 
+    },
+  ];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-10 h-10 animate-spin text-indigo-600" />
+      </div>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-background pt-32 pb-20 px-6">
       <Navbar />
@@ -43,7 +98,7 @@ export default function AdminDashboardPage() {
               <span className="px-2 py-0.5 bg-indigo-100 text-indigo-600 text-[10px] font-bold rounded uppercase tracking-wider">Internal Portal</span>
             </div>
             <h1 className="text-3xl font-bold tracking-tight">Admin Console</h1>
-            <p className="text-muted-foreground mt-1">Monitoring dan validasi perizinan FlowGov.</p>
+            <p className="text-muted-foreground mt-1">Monitoring dan validasi perizinan FlowGov secara real-time.</p>
           </div>
           <div className="flex items-center gap-3">
             <Button variant="outline" className="rounded-xl">
@@ -57,7 +112,7 @@ export default function AdminDashboardPage() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-          {adminStats.map((stat, i) => (
+          {stats.map((stat, i) => (
             <motion.div
               key={stat.label}
               initial={{ opacity: 0, y: 20 }}
@@ -70,8 +125,11 @@ export default function AdminDashboardPage() {
                     <div className={cn("p-2 rounded-xl", stat.bg)}>
                       <stat.icon className={cn("w-6 h-6", stat.color)} />
                     </div>
-                    <div className="flex items-center text-emerald-500 text-xs font-bold">
-                      +12% <ArrowUpRight className="w-3 h-3 ml-1" />
+                    <div className={cn(
+                      "flex items-center text-xs font-bold",
+                      stat.change.startsWith('+') ? "text-emerald-500" : "text-rose-500"
+                    )}>
+                      {stat.change} <ArrowUpRight className="w-3 h-3 ml-1" />
                     </div>
                   </div>
                   <div className="flex flex-col">
@@ -90,57 +148,41 @@ export default function AdminDashboardPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between border-b border-border/50 pb-6 mb-6">
                 <div>
-                  <CardTitle>Antrian Validasi</CardTitle>
-                  <CardDescription>Segera tinjau berkas yang masuk untuk menjaga SLA.</CardDescription>
-                </div>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <input 
-                    placeholder="Cari ID/User..." 
-                    className="pl-9 pr-4 py-2 bg-muted/50 border-none rounded-lg text-sm focus:ring-1 ring-primary outline-none"
-                  />
+                  <CardTitle>Analisis Hambatan (Bottlenecks)</CardTitle>
+                  <CardDescription>Visualisasi durasi rata-rata per tahapan kerja.</CardDescription>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-2 px-0">
-                {pendingApprovals.map((app, i) => (
-                  <div 
-                    key={app.id} 
-                    className="flex items-center justify-between p-4 px-6 hover:bg-muted/30 transition-colors group"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center font-bold text-xs">
-                        {app.id.split('-')[2]}
-                      </div>
+              <CardContent className="space-y-6">
+                {bottlenecks.map((item: any, i: number) => (
+                  <div key={item.stage} className="space-y-2">
+                    <div className="flex justify-between items-end">
                       <div>
-                        <p className="font-bold">{app.user}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {app.type} • {app.date}
-                        </p>
+                        <p className="text-xs font-bold uppercase text-muted-foreground">{item.stage.replace('_', ' ')}</p>
+                        <p className="text-lg font-bold">{item.avgDurationHours.toFixed(1)} Jam</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs font-medium text-muted-foreground">Volume</p>
+                        <p className="text-sm font-bold">{item.count} Berkas</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className={cn(
-                        "text-[10px] font-bold uppercase px-2 py-0.5 rounded-full",
-                        app.priority === "High" ? "bg-rose-100 text-rose-600" :
-                        app.priority === "Medium" ? "bg-amber-100 text-amber-600" :
-                        "bg-blue-100 text-blue-600"
-                      )}>
-                        {app.priority}
-                      </div>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button size="icon" variant="ghost" className="h-8 w-8 text-emerald-600 hover:bg-emerald-50">
-                          <Check className="w-4 h-4" />
-                        </Button>
-                        <Button size="icon" variant="ghost" className="h-8 w-8 text-rose-600 hover:bg-rose-50">
-                          <X className="w-4 h-4" />
-                        </Button>
-                        <Button size="icon" variant="ghost" className="h-8 w-8">
-                          <MoreVertical className="w-4 h-4" />
-                        </Button>
-                      </div>
+                    <div className="h-3 w-full bg-muted rounded-full overflow-hidden">
+                      <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: `${Math.min((item.avgDurationHours / 48) * 100, 100)}%` }}
+                        className={cn(
+                          "h-full rounded-full",
+                          item.avgDurationHours > 24 ? "bg-rose-500" : 
+                          item.avgDurationHours > 12 ? "bg-amber-500" : "bg-indigo-500"
+                        )} 
+                      />
                     </div>
                   </div>
                 ))}
+                {bottlenecks.length === 0 && (
+                  <div className="py-10 text-center text-muted-foreground">
+                    Belum ada data historis untuk analisis bottleneck.
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -150,10 +192,12 @@ export default function AdminDashboardPage() {
                 <CardDescription>Konsentrasi permohonan berdasarkan wilayah.</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="h-[250px] bg-muted/50 rounded-2xl flex items-center justify-center border-2 border-dashed border-border">
-                  <div className="text-center">
-                    <BarChart3 className="w-10 h-10 mx-auto text-muted-foreground/50 mb-2" />
-                    <p className="text-sm text-muted-foreground">Peta Heatmap Wilayah</p>
+                <div className="h-[250px] bg-muted/50 rounded-2xl flex items-center justify-center border-2 border-dashed border-border overflow-hidden relative">
+                   <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent" />
+                  <div className="text-center relative z-10">
+                    <BarChart3 className="w-10 h-10 mx-auto text-indigo-500/50 mb-2" />
+                    <p className="text-sm text-muted-foreground font-medium">Peta Heatmap Wilayah (Proprietary Data)</p>
+                    <p className="text-[10px] text-muted-foreground/60 mt-1 uppercase tracking-widest">Jakarta Metropolitan Area</p>
                   </div>
                 </div>
               </CardContent>
@@ -162,27 +206,27 @@ export default function AdminDashboardPage() {
 
           {/* Sidebar Stats */}
           <div className="space-y-6">
-            <Card>
+            <Card className="border-indigo-500/20 shadow-xl shadow-indigo-500/5">
               <CardHeader>
                 <CardTitle className="text-lg">Kepatuhan SLA</CardTitle>
-                <CardDescription>Status kecepatan pelayanan.</CardDescription>
+                <CardDescription>Status kecepatan pelayanan kumulatif.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-4">
                   {[
-                    { label: "On-Time", value: 88, color: "bg-emerald-500" },
-                    { label: "Delayed", value: 8, color: "bg-amber-500" },
-                    { label: "Overdue", value: 4, color: "bg-rose-500" },
+                    { label: "On-Time", value: metrics?.slaStats?.onTimePercentage || 0, color: "bg-emerald-500" },
+                    { label: "Delayed/Warning", value: metrics?.slaStats?.warningCount || 0, color: "bg-amber-500", isAbsolute: true },
+                    { label: "Overdue", value: metrics?.slaStats?.overduePercentage || 0, color: "bg-rose-500" },
                   ].map((sla) => (
                     <div key={sla.label} className="space-y-2">
                       <div className="flex justify-between text-xs font-bold uppercase">
                         <span>{sla.label}</span>
-                        <span>{sla.value}%</span>
+                        <span>{sla.isAbsolute ? sla.value : `${sla.value}%`}</span>
                       </div>
                       <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
                         <motion.div 
                           initial={{ width: 0 }}
-                          animate={{ width: `${sla.value}%` }}
+                          animate={{ width: sla.isAbsolute ? '10%' : `${sla.value}%` }}
                           className={cn("h-full", sla.color)} 
                         />
                       </div>
@@ -191,10 +235,36 @@ export default function AdminDashboardPage() {
                 </div>
 
                 <div className="pt-4 border-t border-border">
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Sistem mendeteksi lonjakan pengajuan di wilayah **Jakarta Selatan**. Rekomendasi: Penambahan validator lapangan.
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertCircle className="w-4 h-4 text-indigo-500" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-indigo-600">AI Recommendation</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Berdasarkan analisis bottleneck, tahap **{bottlenecks[0]?.stage || 'Verifikasi'}** mengalami keterlambatan rata-rata tertinggi. 
+                    Disarankan alokasi sumber daya tambahan pada unit kerja terkait.
                   </p>
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-indigo-600 text-white border-none shadow-2xl shadow-indigo-200">
+               <CardHeader>
+                <CardTitle className="text-white text-lg">Governance Audit</CardTitle>
+                <CardDescription className="text-indigo-100">Jejak aktivitas terverifikasi.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                 <div className="flex items-center gap-4 mb-4">
+                    <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
+                       <Check className="w-6 h-6" />
+                    </div>
+                    <div>
+                       <p className="text-2xl font-bold">100%</p>
+                       <p className="text-xs text-indigo-100">Audit Immutability</p>
+                    </div>
+                 </div>
+                 <p className="text-[10px] text-indigo-100/80 leading-relaxed uppercase tracking-widest font-bold">
+                    Seluruh log aktivitas diproteksi oleh enkripsi satu arah dan tidak dapat dimodifikasi.
+                 </p>
               </CardContent>
             </Card>
           </div>

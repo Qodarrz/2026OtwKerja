@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../../../prisma/prisma.service';
 import { WorkflowStage, ActionType, Role, Prisma } from '@prisma/client';
 import { SLAService } from './sla.service';
+import { NotificationService } from './notification.service';
 
 export interface ApproveApplicationDto {
     notes?: string;
@@ -30,6 +31,7 @@ export class WorkflowService {
     constructor(
         private prisma: PrismaService,
         private slaService: SLAService,
+        private notificationService: NotificationService,
     ) { }
 
     /**
@@ -41,7 +43,7 @@ export class WorkflowService {
         userId: string,
         dto: ApproveApplicationDto,
     ) {
-        // Get application
+        // Get application and user first (outside transaction for read efficiency)
         const application = await this.prisma.permitApplication.findUnique({
             where: { id: applicationId },
         });
@@ -50,7 +52,6 @@ export class WorkflowService {
             throw new NotFoundException('Application not found');
         }
 
-        // Get user with roles
         const user = await this.prisma.user.findUnique({
             where: { id: userId },
         });
@@ -75,9 +76,7 @@ export class WorkflowService {
         const nextStage = this.getNextStage(application.currentStage);
 
         if (!nextStage) {
-            throw new BadRequestException(
-                'Cannot advance from current stage',
-            );
+            throw new BadRequestException('Cannot advance from current stage');
         }
 
         // For Field Inspector, inspection notes are required
@@ -91,129 +90,114 @@ export class WorkflowService {
             );
         }
 
-        // Update application
-        const updateData: Prisma.PermitApplicationUpdateInput = {
-            status: nextStage,
-            currentStage: nextStage,
-        };
+        // Execute atomic transaction
+        return this.prisma.$transaction(async (tx) => {
+            // 1. Update application status
+            const updateData: Prisma.PermitApplicationUpdateInput = {
+                status: nextStage,
+                currentStage: nextStage,
+            };
 
-        // Save inspection notes if provided
-        if (dto.inspectionNotes) {
-            updateData.inspectionNotes = dto.inspectionNotes;
-        }
+            if (dto.inspectionNotes) {
+                updateData.inspectionNotes = dto.inspectionNotes;
+            }
 
-        const updated = await this.prisma.permitApplication.update({
-            where: { id: applicationId },
-            data: updateData,
-            include: {
-                applicant: {
-                    select: {
-                        id: true,
-                        email: true,
-                        name: true,
+            const updated = await tx.permitApplication.update({
+                where: { id: applicationId },
+                data: updateData,
+                include: {
+                    applicant: {
+                        select: {
+                            id: true,
+                            email: true,
+                            name: true,
+                        },
                     },
                 },
-            },
-        });
+            });
 
-        // Create validation action
-        await this.prisma.validationAction.create({
-            data: {
-                actionType: ActionType.APPROVE,
-                stage: application.currentStage,
-                notes: dto.notes,
-                applicationId,
-                performedById: userId,
-            },
-        });
-
-        // Create stage history with SLA tracking
-        const previousStageHistory = await this.prisma.stageHistory.findFirst({
-            where: {
-                applicationId,
-                toStage: application.currentStage,
-                completedAt: null,
-            },
-            orderBy: {
-                transitionedAt: 'desc',
-            },
-        });
-
-        // Complete previous stage and calculate SLA
-        if (previousStageHistory) {
-            const completedAt = new Date();
-            const durationHours = this.slaService.calculateDuration(
-                previousStageHistory.transitionedAt,
-                completedAt,
-            );
-
-            const slaCheck = await this.slaService.checkSLACompliance(
-                previousStageHistory.transitionedAt,
-                application.currentStage,
-            );
-
-            await this.prisma.stageHistory.update({
-                where: { id: previousStageHistory.id },
+            // 2. Create validation action
+            await tx.validationAction.create({
                 data: {
-                    completedAt,
-                    durationHours,
-                    slaStatus: slaCheck.status,
+                    actionType: ActionType.APPROVE,
+                    stage: application.currentStage,
+                    notes: dto.notes,
+                    applicationId,
+                    performedById: userId,
                 },
             });
-        }
 
-        // Create new stage history for next stage
-        await this.prisma.stageHistory.create({
-            data: {
-                applicationId,
-                fromStage: application.currentStage,
-                toStage: nextStage,
-                transitionedBy: userId,
-            },
-        });
-
-        // Create audit log
-        await this.prisma.auditLog.create({
-            data: {
-                entityType: 'PermitApplication',
-                entityId: applicationId,
-                action: 'APPROVE',
-                changes: {
-                    from: application.currentStage,
-                    to: nextStage,
-                    approvedBy: userId,
-                    notes: dto.notes,
-                    inspectionNotes: dto.inspectionNotes,
+            // 3. Update stage history and SLA
+            const previousStageHistory = await tx.stageHistory.findFirst({
+                where: {
+                    applicationId,
+                    toStage: application.currentStage,
+                    completedAt: null,
                 },
-                performedBy: userId,
-            },
+                orderBy: {
+                    transitionedAt: 'desc',
+                },
+            });
+
+            if (previousStageHistory) {
+                const completedAt = new Date();
+                const durationHours = this.slaService.calculateDuration(
+                    previousStageHistory.transitionedAt,
+                    completedAt,
+                );
+
+                // Note: checkSLACompliance uses findUnique on SLARule, which is fine inside tx
+                const slaCheck = await this.slaService.checkSLACompliance(
+                    previousStageHistory.transitionedAt,
+                    application.currentStage,
+                );
+
+                await tx.stageHistory.update({
+                    where: { id: previousStageHistory.id },
+                    data: {
+                        completedAt,
+                        durationHours,
+                        slaStatus: slaCheck.status,
+                    },
+                });
+            }
+
+            // 4. Create new stage history entry
+            await tx.stageHistory.create({
+                data: {
+                    applicationId,
+                    fromStage: application.currentStage,
+                    toStage: nextStage,
+                    transitionedBy: userId,
+                },
+            });
+
+            // 5. Create audit log
+            await tx.auditLog.create({
+                data: {
+                    entityType: 'PermitApplication',
+                    entityId: applicationId,
+                    action: 'APPROVE',
+                    changes: {
+                        from: application.currentStage,
+                        to: nextStage,
+                        approvedBy: userId,
+                        notes: dto.notes,
+                        inspectionNotes: dto.inspectionNotes,
+                    },
+                    performedBy: userId,
+                },
+            });
+
+            // 6. Trigger notifications (outside transaction context but within the method)
+            if (nextStage === WorkflowStage.APPROVED) {
+                await this.notificationService.notifyApplicationApproved(applicationId);
+            } else {
+                await this.notificationService.notifyStageAdvanced(applicationId, nextStage);
+            }
+
+            return updated;
         });
-
-        // Create notification for applicant
-        const notificationType =
-            nextStage === WorkflowStage.APPROVED
-                ? 'APPLICATION_APPROVED'
-                : 'STAGE_ADVANCED';
-
-        const notificationMessage =
-            nextStage === WorkflowStage.APPROVED
-                ? `Your application ${application.referenceNumber} has been approved`
-                : `Your application ${application.referenceNumber} has advanced to ${nextStage} stage`;
-
-        await this.prisma.notification.create({
-            data: {
-                userId: application.applicantId,
-                type: notificationType,
-                title:
-                    nextStage === WorkflowStage.APPROVED
-                        ? 'Application Approved'
-                        : 'Stage Advanced',
-                message: notificationMessage,
-                applicationId,
-            },
-        });
-
-        return updated;
     }
 
     /**
@@ -230,7 +214,7 @@ export class WorkflowService {
             throw new BadRequestException('Rejection reason is required');
         }
 
-        // Get application
+        // Get application and user (outside transaction)
         const application = await this.prisma.permitApplication.findUnique({
             where: { id: applicationId },
         });
@@ -239,7 +223,6 @@ export class WorkflowService {
             throw new NotFoundException('Application not found');
         }
 
-        // Get user with roles
         const user = await this.prisma.user.findUnique({
             where: { id: userId },
         });
@@ -260,112 +243,109 @@ export class WorkflowService {
             );
         }
 
-        // Update application
-        const updated = await this.prisma.permitApplication.update({
-            where: { id: applicationId },
-            data: {
-                status: WorkflowStage.REJECTED,
-                currentStage: WorkflowStage.REJECTED,
-                rejectionReason: dto.reason,
-                rejectedBy: userId,
-                rejectedAt: new Date(),
-            },
-            include: {
-                applicant: {
-                    select: {
-                        id: true,
-                        email: true,
-                        name: true,
+        // Execute atomic transaction
+        return this.prisma.$transaction(async (tx) => {
+            // 1. Update application status to REJECTED
+            const updated = await tx.permitApplication.update({
+                where: { id: applicationId },
+                data: {
+                    status: WorkflowStage.REJECTED,
+                    currentStage: WorkflowStage.REJECTED,
+                    rejectionReason: dto.reason,
+                    rejectedBy: userId,
+                    rejectedAt: new Date(),
+                },
+                include: {
+                    applicant: {
+                        select: {
+                            id: true,
+                            email: true,
+                            name: true,
+                        },
                     },
                 },
-            },
-        });
+            });
 
-        // Create validation action
-        await this.prisma.validationAction.create({
-            data: {
-                actionType: ActionType.REJECT,
-                stage: application.currentStage,
-                notes: dto.notes,
-                applicationId,
-                performedById: userId,
-            },
-        });
-
-        // Create stage history with SLA tracking
-        const previousStageHistory = await this.prisma.stageHistory.findFirst({
-            where: {
-                applicationId,
-                toStage: application.currentStage,
-                completedAt: null,
-            },
-            orderBy: {
-                transitionedAt: 'desc',
-            },
-        });
-
-        // Complete previous stage and calculate SLA
-        if (previousStageHistory) {
-            const completedAt = new Date();
-            const durationHours = this.slaService.calculateDuration(
-                previousStageHistory.transitionedAt,
-                completedAt,
-            );
-
-            const slaCheck = await this.slaService.checkSLACompliance(
-                previousStageHistory.transitionedAt,
-                application.currentStage,
-            );
-
-            await this.prisma.stageHistory.update({
-                where: { id: previousStageHistory.id },
+            // 2. Create validation action
+            await tx.validationAction.create({
                 data: {
-                    completedAt,
-                    durationHours,
-                    slaStatus: slaCheck.status,
+                    actionType: ActionType.REJECT,
+                    stage: application.currentStage,
+                    notes: dto.notes,
+                    applicationId,
+                    performedById: userId,
                 },
             });
-        }
 
-        // Create new stage history for rejection
-        await this.prisma.stageHistory.create({
-            data: {
-                applicationId,
-                fromStage: application.currentStage,
-                toStage: WorkflowStage.REJECTED,
-                transitionedBy: userId,
-            },
-        });
-
-        // Create audit log
-        await this.prisma.auditLog.create({
-            data: {
-                entityType: 'PermitApplication',
-                entityId: applicationId,
-                action: 'REJECT',
-                changes: {
-                    from: application.currentStage,
-                    to: WorkflowStage.REJECTED,
-                    rejectedBy: userId,
-                    reason: dto.reason,
-                    notes: dto.notes,
+            // 3. Update stage history and SLA
+            const previousStageHistory = await tx.stageHistory.findFirst({
+                where: {
+                    applicationId,
+                    toStage: application.currentStage,
+                    completedAt: null,
                 },
-                performedBy: userId,
-            },
-        });
+                orderBy: {
+                    transitionedAt: 'desc',
+                },
+            });
 
-        // Create notification for applicant
-        await this.prisma.notification.create({
-            data: {
-                userId: application.applicantId,
-                type: 'APPLICATION_REJECTED',
-                title: 'Application Rejected',
-                message: `Your application ${application.referenceNumber} has been rejected. Reason: ${dto.reason}`,
+            if (previousStageHistory) {
+                const completedAt = new Date();
+                const durationHours = this.slaService.calculateDuration(
+                    previousStageHistory.transitionedAt,
+                    completedAt,
+                );
+
+                const slaCheck = await this.slaService.checkSLACompliance(
+                    previousStageHistory.transitionedAt,
+                    application.currentStage,
+                );
+
+                await tx.stageHistory.update({
+                    where: { id: previousStageHistory.id },
+                    data: {
+                        completedAt,
+                        durationHours,
+                        slaStatus: slaCheck.status,
+                    },
+                });
+            }
+
+            // 4. Create new stage history for rejection
+            await tx.stageHistory.create({
+                data: {
+                    applicationId,
+                    fromStage: application.currentStage,
+                    toStage: WorkflowStage.REJECTED,
+                    transitionedBy: userId,
+                },
+            });
+
+            // 5. Create audit log
+            await tx.auditLog.create({
+                data: {
+                    entityType: 'PermitApplication',
+                    entityId: applicationId,
+                    action: 'REJECT',
+                    changes: {
+                        from: application.currentStage,
+                        to: WorkflowStage.REJECTED,
+                        rejectedBy: userId,
+                        reason: dto.reason,
+                        notes: dto.notes,
+                    },
+                    performedBy: userId,
+                },
+            });
+
+            // 6. Trigger notification
+            await this.notificationService.notifyApplicationRejected(
                 applicationId,
-            },
-        });
+                dto.reason,
+            );
 
-        return updated;
+            return updated;
+        });
     }
 
     /**

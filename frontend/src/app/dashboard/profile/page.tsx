@@ -1,23 +1,57 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
-  User, 
+  User as UserIcon, 
   Mail, 
   Phone, 
   MapPin, 
   Shield, 
   Camera,
-  CheckCircle2
+  CheckCircle2,
+  Loader2
 } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
+  const [profile, setProfile] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/auth/profile`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setProfile(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch profile', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-background pt-32 pb-20 px-6">
@@ -37,20 +71,31 @@ export default function ProfilePage() {
                 <div className="relative group cursor-pointer">
                   <div className="w-32 h-32 rounded-full bg-gradient-to-tr from-primary to-accent p-1">
                     <div className="w-full h-full rounded-full bg-background flex items-center justify-center overflow-hidden border-4 border-background">
-                      <User className="w-16 h-16 text-muted-foreground" />
+                      {profile?.userDetail?.ktpImageUrl ? (
+                        <img src={profile.userDetail.ktpImageUrl} alt="Profile" className="w-full h-full object-cover" />
+                      ) : (
+                        <UserIcon className="w-16 h-16 text-muted-foreground" />
+                      )}
                     </div>
                   </div>
                   <div className="absolute bottom-0 right-0 p-2 bg-primary text-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
                     <Camera className="w-4 h-4" />
                   </div>
                 </div>
-                <h3 className="text-xl font-bold mt-4">Budi Setiawan</h3>
+                <h3 className="text-xl font-bold mt-4">{profile?.name || "User"}</h3>
                 <p className="text-sm text-muted-foreground">Warga Negara Indonesia</p>
                 
-                <div className="mt-6 flex items-center gap-2 px-4 py-1.5 bg-emerald-500/10 text-emerald-600 rounded-full border border-emerald-500/20">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span className="text-xs font-bold uppercase tracking-wider">Terverifikasi Biometrik</span>
-                </div>
+                {profile?.isKtpVerified ? (
+                  <div className="mt-6 flex items-center gap-2 px-4 py-1.5 bg-emerald-500/10 text-emerald-600 rounded-full border border-emerald-500/20">
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span className="text-xs font-bold uppercase tracking-wider">Terverifikasi KTP</span>
+                  </div>
+                ) : (
+                  <div className="mt-6 flex items-center gap-2 px-4 py-1.5 bg-amber-500/10 text-amber-600 rounded-full border border-amber-500/20">
+                    <Shield className="w-4 h-4" />
+                    <span className="text-xs font-bold uppercase tracking-wider">Belum Verifikasi KTP</span>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -77,15 +122,15 @@ export default function ProfilePage() {
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-muted-foreground uppercase">Nama Lengkap</label>
                     <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input disabled={!isEditing} defaultValue="Budi Setiawan" className="pl-10" />
+                      <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input disabled={!isEditing} value={profile?.userDetail?.ktpFullName || profile?.name || ""} className="pl-10" />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-muted-foreground uppercase">Email</label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input disabled={!isEditing} defaultValue="budi.setiawan@gmail.com" className="pl-10" />
+                      <Input disabled={true} value={profile?.email || ""} className="pl-10 bg-muted/30" />
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -99,7 +144,7 @@ export default function ProfilePage() {
                     <label className="text-xs font-bold text-muted-foreground uppercase">NIK</label>
                     <div className="relative">
                       <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input disabled={true} defaultValue="317101234567890" className="pl-10 bg-muted/30" />
+                      <Input disabled={true} value={profile?.userDetail?.nik || "-"} className="pl-10 bg-muted/30" />
                     </div>
                   </div>
                 </div>
@@ -111,7 +156,7 @@ export default function ProfilePage() {
                     <textarea 
                       disabled={!isEditing} 
                       className="w-full min-h-[100px] bg-background border border-border rounded-xl p-3 pl-10 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all disabled:opacity-50"
-                      defaultValue="Jl. Sudirman No. 45, Kebayoran Baru, Jakarta Selatan, DKI Jakarta 12190"
+                      value={profile?.userDetail?.ktpAddress || ""}
                     />
                   </div>
                 </div>

@@ -36,7 +36,7 @@ export class NotificationService {
             throw new NotFoundException('Application not found');
         }
 
-        await this.prisma.notification.create({
+        const notification = await this.prisma.notification.create({
             data: {
                 userId: application.applicantId,
                 type: NotificationType.APPLICATION_SUBMITTED,
@@ -45,6 +45,8 @@ export class NotificationService {
                 applicationId,
             },
         });
+
+        this.gateway.sendNotification(application.applicantId, notification);
     }
 
     /**
@@ -62,7 +64,7 @@ export class NotificationService {
             throw new NotFoundException('Application not found');
         }
 
-        await this.prisma.notification.create({
+        const notification = await this.prisma.notification.create({
             data: {
                 userId: application.applicantId,
                 type: NotificationType.STAGE_ADVANCED,
@@ -71,6 +73,8 @@ export class NotificationService {
                 applicationId,
             },
         });
+
+        this.gateway.sendNotification(application.applicantId, notification);
     }
 
     /**
@@ -85,7 +89,7 @@ export class NotificationService {
             throw new NotFoundException('Application not found');
         }
 
-        await this.prisma.notification.create({
+        const notification = await this.prisma.notification.create({
             data: {
                 userId: application.applicantId,
                 type: NotificationType.APPLICATION_APPROVED,
@@ -94,6 +98,8 @@ export class NotificationService {
                 applicationId,
             },
         });
+
+        this.gateway.sendNotification(application.applicantId, notification);
     }
 
     /**
@@ -111,7 +117,7 @@ export class NotificationService {
             throw new NotFoundException('Application not found');
         }
 
-        await this.prisma.notification.create({
+        const notification = await this.prisma.notification.create({
             data: {
                 userId: application.applicantId,
                 type: NotificationType.APPLICATION_REJECTED,
@@ -120,6 +126,8 @@ export class NotificationService {
                 applicationId,
             },
         });
+
+        this.gateway.sendNotification(application.applicantId, notification);
     }
 
     /**
@@ -136,7 +144,7 @@ export class NotificationService {
 
         if (!application) return;
 
-        await this.prisma.notification.create({
+        const notification = await this.prisma.notification.create({
             data: {
                 userId: staffId,
                 type: 'SLA_WARNING' as any,
@@ -145,6 +153,8 @@ export class NotificationService {
                 applicationId,
             },
         });
+
+        this.gateway.sendNotification(staffId, notification);
     }
 
     /**
@@ -162,7 +172,7 @@ export class NotificationService {
 
         if (!application) return;
 
-        await this.prisma.notification.create({
+        const notification = await this.prisma.notification.create({
             data: {
                 userId: supervisorId,
                 type: 'SLA_ESCALATION' as any,
@@ -171,6 +181,8 @@ export class NotificationService {
                 applicationId,
             },
         });
+
+        this.gateway.sendNotification(supervisorId, notification);
     }
 
     /**
@@ -213,11 +225,6 @@ export class NotificationService {
             }),
             this.prisma.notification.count({ where }),
         ]);
-
-        // Push via WebSocket after saving (mocking for all types)
-        data.forEach(notification => {
-            this.gateway.sendNotification(userId, notification);
-        });
 
         return {
             data,

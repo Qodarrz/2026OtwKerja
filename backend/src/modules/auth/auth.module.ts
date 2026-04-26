@@ -7,19 +7,23 @@ import { PassportModule } from '@nestjs/passport';
 import { JwtStrategy } from '../../common/guards/jwt.strategy';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { MailerModule } from '../mailer/mailer.module';
+import { OcrService } from './ocr.service';
+import { KtpController } from './ktp.controller';
+import { PrismaModule } from '../../prisma/prisma.module';
 
 @Module({
   imports: [
     UsersModule,
     PassportModule,
     MailerModule,
+    PrismaModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'secretKey',
       signOptions: { expiresIn: '7d' },
     }),
   ],
-  controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, GoogleStrategy],
+  controllers: [AuthController, KtpController],
+  providers: [AuthService, JwtStrategy, GoogleStrategy, OcrService],
   exports: [AuthService],
 })
 export class AuthModule {}

@@ -25,7 +25,12 @@ function AuthCallbackContent() {
           if (response.ok) {
             const userData = await response.json();
             login(token, userData);
-            router.push('/');
+            
+            if (!userData.isKtpVerified) {
+              router.push('/verify-ktp');
+            } else {
+              router.push('/');
+            }
           } else {
             console.error('Failed to fetch profile');
             router.push('/login?error=oauth_failed');

@@ -259,25 +259,31 @@ export class SLAService {
      */
     async updateActiveSLAStatuses() {
         // Get all active stage histories (not completed)
-        const activeStages = await this.prisma.stageHistory.findMany({
-            where: {
-                completedAt: null,
-                toStage: {
-                    in: [
-                        WorkflowStage.DOCUMENT_CHECK,
-                        WorkflowStage.FIELD_INSPECTION,
-                        WorkflowStage.LEGALIZATION,
-                    ],
+        let activeStages: any[] = [];
+        try {
+            activeStages = await this.prisma.stageHistory.findMany({
+                where: {
+                    completedAt: null,
+                    toStage: {
+                        in: [
+                            WorkflowStage.DOCUMENT_CHECK,
+                            WorkflowStage.FIELD_INSPECTION,
+                            WorkflowStage.LEGALIZATION,
+                        ],
+                    },
                 },
-            },
-            include: {
-                application: {
-                    include: {
-                        applicant: true
+                include: {
+                    application: {
+                        include: {
+                            applicant: true
+                        }
                     }
                 }
-            }
-        });
+            });
+        } catch (error) {
+            console.error('Failed to fetch active stages for SLA check:', error);
+            return { updatedCount: 0, totalChecked: 0, error: error.message };
+        }
 
         let updatedCount = 0;
 

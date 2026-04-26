@@ -62,8 +62,8 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Get('profile')
   async getProfile(@Request() req: any) {
-    // req.user contains { sub: id, email: email } from JwtStrategy
-    const user = await this.authService.getUserProfile(req.user.sub);
+    // req.user contains { userId: id, email: email } from JwtStrategy
+    const user = await this.authService.getUserProfile(req.user.userId);
     return user;
   }
 
