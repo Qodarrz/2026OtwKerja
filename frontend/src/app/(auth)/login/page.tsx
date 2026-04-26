@@ -16,8 +16,11 @@ import {
   Eye,
   Building2,
   User,
-  ShieldCheck
+  ShieldCheck,
+  Building
 } from 'lucide-react';
+
+import { motion } from 'framer-motion';
 
 function LoginForm() {
   const [email, setEmail] = useState('');
@@ -63,53 +66,104 @@ function LoginForm() {
   };
 
   return (
-    <div className="h-screen w-full bg-white flex overflow-hidden font-sans">
+    <div className="h-screen w-full bg-background flex flex-col lg:flex-row overflow-hidden font-sans bg-topography">
+      {/* Mobile Image Header */}
+      <div className="lg:hidden h-[25vh] w-full relative shrink-0">
+        <img 
+          alt="Government Building" 
+          className="absolute inset-0 w-full h-full object-cover" 
+          src="/images/government-building.jpg"
+        />
+        <div className="absolute inset-0 bg-primary/20 mix-blend-multiply" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 to-transparent" />
+      </div>
+
       {/* Left Section: Form */}
-      <div className="w-full lg:w-[480px] xl:w-[550px] flex flex-col h-full bg-white relative z-10">
-        <div className="flex-1 flex flex-col justify-center px-8 sm:px-12 md:px-16 lg:px-14 xl:px-20 overflow-y-auto custom-scrollbar py-8">
+      <motion.div 
+        initial={{ x: -50, y: -50, opacity: 0 }}
+        animate={{ x: 0, y: 0, opacity: 1 }}
+        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+        className="w-full lg:w-[480px] xl:w-[500px] flex flex-col h-full bg-card relative z-10 lg:rounded-none rounded-t-[2rem] -mt-8 lg:mt-0 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] lg:shadow-none"
+      >
+        <div className="flex-1 flex flex-col justify-center px-8 sm:px-12 lg:px-12 xl:px-14 overflow-y-auto custom-scrollbar py-8">
           <div className="w-full max-w-sm mx-auto space-y-8">
             {/* Logo and Header */}
             <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200">
-                  <ShieldCheck className="w-6 h-6 text-white" />
+              <div className="flex items-center gap-3 mb-8">
+                <img 
+                  src="/images/logo-gov.svg" 
+                  alt="Logo Instansi" 
+                  className="w-12 h-12"
+                />
+                <div className="flex flex-col">
+                  <span className="font-extrabold text-xl tracking-tight text-foreground leading-none">
+                    Portal<span className="text-primary font-medium">Perizinan</span>
+                  </span>
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">Republik Indonesia</span>
                 </div>
-                <span className="font-bold text-2xl tracking-tight">Flow<span className="text-indigo-600">Gov</span></span>
               </div>
               <div>
-                <h1 className="text-2xl xl:text-3xl font-bold text-gray-900">Masuk Akun</h1>
-                <p className="text-sm xl:text-base text-gray-500 mt-1">Silakan masuk untuk melanjutkan akses ke portal perizinan.</p>
+                <h1 className="text-2xl xl:text-3xl font-bold text-foreground">Masuk Akun</h1>
+                <p className="text-sm xl:text-base text-muted-foreground mt-2 leading-relaxed">Silakan masuk untuk melanjutkan akses ke layanan publik.</p>
               </div>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
               {error && (
-                <div className="bg-red-50 border border-red-100 text-red-600 p-4 rounded-xl text-sm font-medium">
+                <div className="bg-destructive/10 border border-destructive/20 text-destructive p-4 rounded-xl text-sm font-medium flex items-start gap-3 animate-shake">
+                  <Shield className="w-5 h-5 shrink-0" />
                   {error}
                 </div>
               )}
               {success && (
-                <div className="bg-emerald-50 border border-emerald-100 text-emerald-600 p-4 rounded-xl text-sm font-medium">
+                <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 p-4 rounded-xl text-sm font-medium">
                   {success}
                 </div>
               )}
 
+              <div className="space-y-4">
+                <button
+                  type="button"
+                  onClick={() => window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/auth/google`}
+                  className="w-full h-12 bg-card border border-border hover:bg-muted text-foreground font-medium rounded-xl transition-all flex items-center justify-center gap-3"
+                >
+                  <svg className="w-5 h-5" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                  </svg>
+                  Masuk dengan Google
+                </button>
+
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-border"></div>
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-3 bg-card text-muted-foreground text-xs font-medium uppercase tracking-wider">Atau masuk dengan email</span>
+                  </div>
+                </div>
+              </div>
+
               {/* Account Type Selection */}
               <div className="space-y-3">
-                <label className="text-xs xl:text-sm font-semibold text-gray-700">Jenis Akun</label>
-                <div className="grid grid-cols-2 gap-3">
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Jenis Akun</label>
+                <div className="grid grid-cols-2 gap-3 p-1 bg-muted rounded-xl">
                   <button 
                     type="button" 
                     onClick={() => setAccType('perorangan')}
-                    className={`py-2.5 px-4 text-xs xl:text-sm font-medium rounded-xl border transition-all ${accType === 'perorangan' ? 'bg-blue-50 border-blue-600 text-blue-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                    className={`py-2.5 px-4 text-xs xl:text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-2 ${accType === 'perorangan' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
                   >
+                    <UserIcon className="w-4 h-4" />
                     Perorangan
                   </button>
                   <button 
                     type="button" 
                     onClick={() => setAccType('usaha')}
-                    className={`py-2.5 px-4 text-xs xl:text-sm font-medium rounded-xl border transition-all ${accType === 'usaha' ? 'bg-blue-50 border-blue-600 text-blue-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                    className={`py-2.5 px-4 text-xs xl:text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-2 ${accType === 'usaha' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
                   >
+                    <Building className="w-4 h-4" />
                     Badan Usaha
                   </button>
                 </div>
@@ -117,16 +171,16 @@ function LoginForm() {
 
               {/* Email / Identifier */}
               <div className="space-y-2">
-                <label className="text-xs xl:text-sm font-semibold text-gray-700">Email atau NIK</label>
+                <label className="text-sm font-medium text-foreground">Email atau NIK</label>
                 <div className="relative group">
-                  <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 xl:h-5 xl:w-5 text-gray-400 group-focus-within:text-blue-600 transition-colors" />
+                  <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-foreground transition-colors" />
                   <input
                     type="text"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-transparent border border-gray-200 rounded-xl py-3.5 pl-11 xl:pl-12 pr-4 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-600 transition-all text-sm"
-                    placeholder="Masukkan Email atau NIK anda"
+                    className="clean-input pl-12"
+                    placeholder="Masukkan Email atau NIK"
                   />
                 </div>
               </div>
@@ -134,39 +188,39 @@ function LoginForm() {
               {/* Password */}
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <label className="text-xs xl:text-sm font-semibold text-gray-700">Kata Sandi</label>
-                  <Link href="/forgot-password" size="sm" className="text-[10px] xl:text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors">
+                  <label className="text-sm font-medium text-foreground">Kata Sandi</label>
+                  <Link href="/forgot-password" size="sm" className="text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors">
                     Lupa sandi?
                   </Link>
                 </div>
                 <div className="relative group">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 xl:h-5 xl:w-5 text-gray-400 group-focus-within:text-blue-600 transition-colors" />
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-foreground transition-colors" />
                   <input
                     type="password"
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-transparent border border-gray-200 rounded-xl py-3.5 pl-11 xl:pl-12 pr-11 xl:pr-12 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-600 transition-all text-sm"
-                    placeholder="Masukkan kata sandi"
+                    className="clean-input pl-12 pr-12"
+                    placeholder="••••••••"
                   />
-                  <button type="button" className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-600 transition-colors">
-                    <Eye className="w-4 h-4 xl:h-5 xl:w-5" />
+                  <button type="button" className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                    <Eye className="w-5 h-5" />
                   </button>
                 </div>
               </div>
 
               {/* Security Code Mock */}
               <div className="space-y-2">
-                <label className="text-xs xl:text-sm font-semibold text-gray-700">Kode Keamanan</label>
+                <label className="text-sm font-medium text-foreground">Kode Keamanan</label>
                 <div className="flex space-x-3">
-                  <div className="w-1/2 h-11 xl:h-12 bg-gray-50 rounded-xl flex items-center justify-center font-bold text-base xl:text-lg tracking-widest text-gray-700 select-none border-2 border-dashed border-gray-200/60">
+                  <div className="w-24 h-12 bg-muted rounded-xl flex items-center justify-center font-bold text-lg tracking-widest text-foreground select-none border border-border">
                     5 + 3
                   </div>
-                  <div className="w-1/2">
+                  <div className="flex-1">
                     <input 
                       type="text" 
-                      className="w-full h-11 xl:h-12 bg-transparent border border-gray-200 rounded-xl px-4 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-600 transition-all text-center font-bold" 
-                      placeholder="Hasil" 
+                      className="clean-input text-center font-bold text-lg h-12" 
+                      placeholder="?" 
                     />
                   </div>
                 </div>
@@ -175,22 +229,22 @@ function LoginForm() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full h-11 xl:h-12 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 group active:scale-[0.98] shadow-lg shadow-indigo-200"
+                className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl transition-all flex items-center justify-center gap-2 group active:scale-[0.98]"
               >
                 {isLoading ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
                   <>
-                    Masuk Sekarang
+                    Masuk
                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </>
                 )}
               </button>
 
-              <div className="text-center">
-                <p className="text-xs xl:text-sm text-gray-500 font-sans">
-                  Belum punya akun?{' '}
-                  <Link href="/register" className="font-bold text-blue-600 hover:text-blue-700">Daftar</Link>
+              <div className="text-center pt-2">
+                <p className="text-sm text-muted-foreground">
+                  Belum memiliki akun?{' '}
+                  <Link href="/register" className="font-semibold text-foreground hover:underline underline-offset-4 decoration-2 decoration-accent/50">Daftar disini</Link>
                 </p>
               </div>
             </form>
@@ -198,30 +252,46 @@ function LoginForm() {
         </div>
 
         {/* Footer */}
-        <div className="p-6 text-center border-t border-gray-50 hidden lg:block">
-          <p className="text-[10px] text-gray-400 font-medium tracking-tight">© 2026 FlowGov Portal Perizinan. Hak Cipta Dilindungi.</p>
+        <div className="p-6 text-center border-t border-border hidden lg:block">
+          <p className="text-[10px] text-muted-foreground font-medium tracking-tight">© 2026 Portal Pelayanan Publik Perizinan. Hak Cipta Dilindungi.</p>
         </div>
-      </div>
+      </motion.div>
 
-      {/* Right Section: Banner */}
-      <div className="hidden lg:block relative flex-1 h-full bg-gray-100 overflow-hidden">
-        {/* Placeholder for city image */}
-        <div className="absolute inset-0 bg-blue-900/60 z-10" />
-        <img 
-          alt="Government Banner" 
-          className="absolute inset-0 w-full h-full object-cover rounded-tl-[60px]" 
-          src="https://images.unsplash.com/photo-1596422846543-75c6fc18a594?q=80&w=2070&auto=format&fit=crop"
-        />
-        <div className="absolute bottom-16 left-16 right-16 text-white space-y-6 z-20">
-          <div className="inline-flex items-center space-x-2 px-3 py-1.5 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
-            <span className="text-[10px] xl:text-xs font-bold uppercase tracking-wider">Pelayanan Publik Prima</span>
+      {/* Right Section: Banner (Image with gap and curve) */}
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
+        className="hidden lg:flex relative flex-1 h-full bg-background pb-6"
+      >
+        {/* Container for the image that creates the gap ONLY at bottom */}
+        <motion.div 
+          initial={{ x: 50, y: 50, opacity: 0 }}
+          animate={{ x: 0, y: 0, opacity: 1 }}
+          transition={{ duration: 1, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
+          className="relative w-full h-full bg-secondary rounded-bl-[6rem] overflow-hidden"
+        >
+          <div className="absolute inset-0 bg-primary/10 z-10 mix-blend-multiply" />
+          <img 
+            alt="Government Building" 
+            className="absolute inset-0 w-full h-full object-cover object-center" 
+            src="/images/government-building.jpg"
+          />
+          
+          {/* Subtle gradient overlay for text readability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+          
+          <div className="absolute bottom-12 left-12 right-12 text-white space-y-4 z-20">
+            <div className="inline-flex items-center space-x-2 px-3 py-1.5 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
+              <span className="text-[10px] xl:text-xs font-bold uppercase tracking-wider">Pelayanan Publik Prima</span>
+            </div>
+            <h2 className="text-4xl xl:text-5xl font-extrabold leading-tight">
+              Solusi Perizinan <br/>Cepat & Terpercaya.
+            </h2>
+            <p className="text-base xl:text-lg text-white/90 font-sans max-w-md">Membangun masa depan layanan publik yang lebih efisien bagi seluruh masyarakat.</p>
           </div>
-          <h2 className="text-4xl xl:text-5xl font-bold leading-tight">
-            Solusi Perizinan <br/>Cepat & Terpercaya.
-          </h2>
-          <p className="text-base xl:text-lg text-indigo-50/90 font-sans max-w-lg">Membangun masa depan layanan publik yang lebih efisien bagi seluruh masyarakat.</p>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     </div>
   );
 }
