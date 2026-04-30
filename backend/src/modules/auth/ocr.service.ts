@@ -16,7 +16,9 @@ export class OcrService {
    * Extracts KTP data using Tesseract.js
    */
   async extractKtpData(file: Express.Multer.File): Promise<KtpData> {
-    console.log(`[OcrService] Real OCR processing: ${file.originalname} (${file.size} bytes)`);
+    console.log(
+      `[OcrService] Real OCR processing: ${file.originalname} (${file.size} bytes)`,
+    );
 
     try {
       const result = await Tesseract.recognize(file.buffer, 'ind', {
@@ -27,7 +29,7 @@ export class OcrService {
       console.log('[OcrService] Raw Extracted Text:', text);
 
       // --- PARSING LOGIC ---
-      const lines = text.split('\n').map(l => l.trim());
+      const lines = text.split('\n').map((l) => l.trim());
 
       // 1. NIK (16 digits)
       const nikMatch = text.match(/\b\d{16}\b/);
@@ -35,7 +37,9 @@ export class OcrService {
 
       // 2. Full Name (Look for line containing "Nama")
       let fullName = '';
-      const nameIndex = lines.findIndex(l => l.toUpperCase().includes('NAMA'));
+      const nameIndex = lines.findIndex((l) =>
+        l.toUpperCase().includes('NAMA'),
+      );
       if (nameIndex !== -1) {
         fullName = this.cleanLabel(lines[nameIndex], 'NAMA');
         // If the line is just "Nama :", take the next line
@@ -47,7 +51,9 @@ export class OcrService {
       // 3. Birth Place & Date (Look for "Tempat/Tgl Lahir")
       let birthPlace = '';
       let birthDate = '';
-      const birthIndex = lines.findIndex(l => l.toUpperCase().includes('LAHIR'));
+      const birthIndex = lines.findIndex((l) =>
+        l.toUpperCase().includes('LAHIR'),
+      );
       if (birthIndex !== -1) {
         const birthStr = this.cleanLabel(lines[birthIndex], 'LAHIR');
         const parts = birthStr.split(',');
@@ -67,12 +73,17 @@ export class OcrService {
 
       // 5. Address (Look for "Alamat")
       let address = '';
-      const addressIndex = lines.findIndex(l => l.toUpperCase().includes('ALAMAT'));
+      const addressIndex = lines.findIndex((l) =>
+        l.toUpperCase().includes('ALAMAT'),
+      );
       if (addressIndex !== -1) {
         address = this.cleanLabel(lines[addressIndex], 'ALAMAT');
         // Usually address spans multiple lines (RT/RW, Kelurahan, etc.)
         for (let i = 1; i <= 3; i++) {
-          if (lines[addressIndex + i] && !lines[addressIndex + i].includes(':')) {
+          if (
+            lines[addressIndex + i] &&
+            !lines[addressIndex + i].includes(':')
+          ) {
             address += ' ' + lines[addressIndex + i];
           } else {
             break;

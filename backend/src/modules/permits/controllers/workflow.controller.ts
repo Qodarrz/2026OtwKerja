@@ -4,6 +4,7 @@ import {
     Get,
     Param,
     Post,
+    Query,
     Request,
     UseGuards,
 } from '@nestjs/common';
@@ -63,5 +64,18 @@ export class WorkflowController {
     @Get(':id/validation-actions')
     async getValidationActions(@Param('id') id: string) {
         return this.workflowService.getValidationActions(id);
+    }
+    
+    /**
+     * GET /api/permits/applications/staff-tasks
+     * Get applications for staff dashboard
+     */
+    @Get('staff/tasks')
+    async getStaffTasks(
+        @Request() req: any,
+        @Query() query: any, // Use any or define a proper DTO if needed
+    ) {
+        const userId = req.user.sub;
+        return this.workflowService.getApplicationsForStaff(userId, query);
     }
 }

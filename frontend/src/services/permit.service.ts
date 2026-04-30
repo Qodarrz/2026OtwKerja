@@ -34,5 +34,10 @@ export const permitService = {
   async calculateTax(id: string) {
     const { data } = await api.post(`/permits/applications/${id}/calculate-tax`);
     return data;
+  },
+
+  async getStaffTasks(params?: any) {
+    const { data } = await api.get('/permits/applications/staff/tasks', { params });
+    return data;
   }
 };
