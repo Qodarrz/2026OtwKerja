@@ -20,10 +20,6 @@ import type {
 export class WorkflowController {
     constructor(private readonly workflowService: WorkflowService) { }
 
-    /**
-     * POST /api/permits/applications/:id/approve
-     * Approve at current stage
-     */
     @Post(':id/approve')
     async approveApplication(
         @Request() req: any,
@@ -34,10 +30,6 @@ export class WorkflowController {
         return this.workflowService.approveApplication(id, userId, dto);
     }
 
-    /**
-     * POST /api/permits/applications/:id/reject
-     * Reject application
-     */
     @Post(':id/reject')
     async rejectApplication(
         @Request() req: any,
@@ -48,28 +40,16 @@ export class WorkflowController {
         return this.workflowService.rejectApplication(id, userId, dto);
     }
 
-    /**
-     * GET /api/permits/applications/:id/history
-     * Get stage history
-     */
     @Get(':id/history')
     async getStageHistory(@Param('id') id: string) {
         return this.workflowService.getStageHistory(id);
     }
 
-    /**
-     * GET /api/permits/applications/:id/validation-actions
-     * Get validation actions
-     */
     @Get(':id/validation-actions')
     async getValidationActions(@Param('id') id: string) {
         return this.workflowService.getValidationActions(id);
     }
     
-    /**
-     * GET /api/permits/applications/staff-tasks
-     * Get applications for staff dashboard
-     */
     @Get('staff/tasks')
     async getStaffTasks(
         @Request() req: any,

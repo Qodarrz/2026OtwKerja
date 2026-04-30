@@ -50,13 +50,13 @@ export default function LandingPage() {
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link href="/register">
-                <Button size="lg" variant="premium" className="group">
+                <Button size="lg" variant="outline" className="group">
                   Mulai Sekarang
                   <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </Link>
               <Link href="/public-tracking">
-                <Button size="lg" variant="outline" className="rounded-2xl border-primary/20 hover:bg-primary/5 text-primary">
+                <Button size="lg" variant="outline" className="group">
                   Lacak Izin Publik
                 </Button>
               </Link>
