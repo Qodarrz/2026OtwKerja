@@ -47,7 +47,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="h-screen w-full bg-background flex overflow-hidden font-sans transition-colors duration-300">
+    <div className="h-screen w-full bg-background flex overflow-hidden font-sans transition-colors duration-300 lg:flex-row-reverse">
       {/* Back to Home Button */}
       <Link 
         href="/" 
@@ -58,7 +58,7 @@ export default function RegisterPage() {
       </Link>
 
       {/* Left Section: Form */}
-      <div className="w-full lg:w-[480px] xl:w-[550px] flex flex-col h-full bg-card relative z-10 border-r border-border">
+      <div className="w-full lg:w-[480px] xl:w-[550px] flex flex-col h-full bg-card relative z-10 border-border lg:border-l">
         <div className="flex-1 flex flex-col justify-center px-8 sm:px-12 md:px-16 lg:px-14 xl:px-20 overflow-y-auto custom-scrollbar py-8">
           <div className="w-full max-sm mx-auto space-y-8">
             {/* Logo and Header */}
@@ -163,20 +163,22 @@ export default function RegisterPage() {
       </div>
 
       {/* Right Section: Banner */}
-      <div className="hidden lg:block relative flex-1 h-full bg-muted overflow-hidden">
-        <img 
-          alt="Government Banner" 
-          className="absolute inset-0 w-full h-full object-cover" 
-          src="https://images.unsplash.com/photo-1541746972996-4e0b0f43e02a?q=80&w=2070&auto=format&fit=crop"
-        />
-        <div className="absolute bottom-16 left-16 right-16 text-white space-y-6 z-20">
-          <div className="inline-flex items-center space-x-2 px-3 py-1.5 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
-            <span className="text-[10px] xl:text-xs font-bold uppercase tracking-wider">Registrasi Mandiri</span>
+      <div className="hidden lg:block relative flex-1 h-full bg-muted overflow-hidden pt-10">
+        <div className="relative h-[calc(100%-2.5rem)] w-full rounded-tr-[60px] overflow-hidden">
+          <img
+            alt="Government Banner"
+            className="absolute inset-0 w-full h-full object-cover"
+            src="https://images.unsplash.com/photo-1541746972996-4e0b0f43e02a?q=80&w=2070&auto=format&fit=crop"
+          />
+          <div className="absolute bottom-16 left-16 right-16 text-white space-y-6 z-20">
+            <div className="inline-flex items-center space-x-2 px-3 py-1.5 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
+              <span className="text-[10px] xl:text-xs font-bold uppercase tracking-wider">Registrasi Mandiri</span>
+            </div>
+            <h2 className="text-4xl xl:text-5xl font-bold leading-tight">
+              Kemudahan Akses <br/>Dalam Genggaman.
+            </h2>
+            <p className="text-base xl:text-lg text-white/80 font-sans max-w-lg">Satu akun untuk semua kebutuhan perizinan dan layanan publik Anda.</p>
           </div>
-          <h2 className="text-4xl xl:text-5xl font-bold leading-tight">
-            Kemudahan Akses <br/>Dalam Genggaman.
-          </h2>
-          <p className="text-base xl:text-lg text-white/80 font-sans max-w-lg">Satu akun untuk semua kebutuhan perizinan dan layanan publik Anda.</p>
         </div>
       </div>
     </div>

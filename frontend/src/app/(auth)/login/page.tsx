@@ -216,21 +216,22 @@ function LoginForm() {
       </div>
 
       {/* Right Section: Banner */}
-      <div className="hidden lg:block relative flex-1 h-full bg-muted overflow-hidden">
-        <img 
-          alt="Government Banner" 
-          className="absolute inset-0 w-full h-full object-cover opacity-80" 
-          src="https://images.unsplash.com/photo-1449824913935-59a10b8d2000?q=80&w=2070&auto=format&fit=crop"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent lg:hidden" />
-        <div className="absolute bottom-16 left-16 right-16 text-white space-y-6 z-20">
-          <div className="inline-flex items-center space-x-2 px-3 py-1.5 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
-            <span className="text-[10px] xl:text-xs font-bold uppercase tracking-wider">Pelayanan Publik Prima</span>
+      <div className="hidden lg:block relative flex-1 h-full bg-muted overflow-hidden pb-10">
+        <div className="relative h-full w-full rounded-bl-[60px] overflow-hidden">
+          <img 
+            alt="Government Banner" 
+            className="absolute inset-0 w-full h-full object-cover opacity-80" 
+            src="https://images.unsplash.com/photo-1449824913935-59a10b8d2000?q=80&w=2070&auto=format&fit=crop"
+          />
+          <div className="absolute bottom-16 left-16 right-16 text-white space-y-6 z-20">
+            <div className="inline-flex items-center space-x-2 px-3 py-1.5 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
+              <span className="text-[10px] xl:text-xs font-bold uppercase tracking-wider">Pelayanan Publik Prima</span>
+            </div>
+            <h2 className="text-4xl xl:text-5xl font-bold leading-tight">
+              Solusi Perizinan <br/>Cepat & Terpercaya.
+            </h2>
+            <p className="text-base xl:text-lg text-white/80 font-sans max-w-lg">Membangun masa depan layanan publik yang lebih efisien bagi seluruh masyarakat.</p>
           </div>
-          <h2 className="text-4xl xl:text-5xl font-bold leading-tight">
-            Solusi Perizinan <br/>Cepat & Terpercaya.
-          </h2>
-          <p className="text-base xl:text-lg text-white/80 font-sans max-w-lg">Membangun masa depan layanan publik yang lebih efisien bagi seluruh masyarakat.</p>
         </div>
       </div>
     </div>
