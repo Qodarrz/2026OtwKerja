@@ -47,12 +47,15 @@ function LoginForm() {
       const response = await authService.login(email, password);
       login(response.access_token, response.user);
       
-      const internalRoles = ['ADMIN', 'DOCUMENT_VALIDATOR', 'FIELD_INSPECTOR', 'LEGALIZER'];
-      const hasInternalRole = response.user.roles.some(role => internalRoles.includes(role));
+      // Let AuthContext handle the redirection via its useEffect
+      // or provide a hint for immediate redirection
+      const isInternal = response.user.roles.some(role => 
+        ['ADMIN', 'DOCUMENT_VALIDATOR', 'FIELD_INSPECTOR', 'LEGALIZER'].includes(role)
+      );
       
       if (!response.user.verify_gmail) {
         router.push(`/verify-otp?email=${encodeURIComponent(email)}`);
-      } else if (hasInternalRole) {
+      } else if (isInternal) {
         router.push('/dashboard');
       } else if (!response.user.isKtpVerified) {
         router.push('/verify-ktp');

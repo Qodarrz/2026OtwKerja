@@ -19,21 +19,31 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { analyticsService } from "@/services/analytics.service";
+import { 
+  ShieldAlert, 
+  History, 
+  User, 
+  Activity,
+  Cpu
+} from "lucide-react";
 
 export function AdminDashboardView() {
   const [metrics, setMetrics] = useState<any>(null);
   const [bottlenecks, setBottlenecks] = useState<any>([]);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [metricsData, bottlenecksData] = await Promise.all([
+        const [metricsData, bottlenecksData, auditLogsData] = await Promise.all([
           analyticsService.getDashboardMetrics(),
-          analyticsService.getBottlenecks()
+          analyticsService.getBottlenecks(),
+          analyticsService.getAuditLogs(5)
         ]);
         setMetrics(metricsData);
         setBottlenecks(bottlenecksData);
+        setAuditLogs(auditLogsData);
       } catch (error) {
         console.error("Failed to fetch admin data", error);
       } finally {
@@ -45,40 +55,40 @@ export function AdminDashboardView() {
 
   const stats = [
     { 
-      label: "Total Pengajuan", 
-      value: metrics?.totalApplications || "0", 
-      icon: BarChart3, 
-      color: "text-sky-600", 
-      bg: "bg-sky-50",
-      change: "+12%",
-      description: "Dari bulan lalu" 
+      label: "Impact Score", 
+      value: metrics?.impactScore ? `${metrics.impactScore}%` : "0%", 
+      icon: Cpu, 
+      color: "text-indigo-600", 
+      bg: "bg-indigo-50",
+      change: "+8%",
+      description: "Komposit efisiensi" 
     },
     { 
-      label: "Butuh Validasi", 
-      value: metrics?.pendingCount || "0", 
-      icon: FileCheck, 
-      color: "text-amber-600", 
-      bg: "bg-amber-50",
-      change: "+5%",
-      description: "Menunggu respon"
+      label: "On-Time Rate", 
+      value: metrics?.onTimePercentage ? `${metrics.onTimePercentage}%` : "0%", 
+      icon: Zap, 
+      color: "text-emerald-600", 
+      bg: "bg-emerald-50",
+      change: "+3%",
+      description: "Kepatuhan SLA"
     },
     { 
       label: "SLA Overdue", 
       value: metrics?.overdueCount || "0", 
-      icon: AlertCircle, 
+      icon: ShieldAlert, 
       color: "text-rose-600", 
       bg: "bg-rose-50",
       change: "-2%",
       description: "Butuh atensi segera"
     },
     { 
-      label: "Tingkat Persetujuan", 
-      value: metrics?.approvalRate ? `${metrics.approvalRate}%` : "0%", 
-      icon: Check, 
-      color: "text-emerald-600", 
-      bg: "bg-emerald-50",
-      change: "+3%",
-      description: "Efisiensi proses"
+      label: "Efisiensi", 
+      value: metrics?.efficiency ? `${metrics.efficiency}%` : "0%", 
+      icon: Activity, 
+      color: "text-sky-600", 
+      bg: "bg-sky-50",
+      change: "+5%",
+      description: "Kecepatan proses"
     },
   ];
 
@@ -242,7 +252,7 @@ export function AdminDashboardView() {
             </CardContent>
           </Card>
 
-          <Card className="border-none bg-background overflow-hidden shadow-2xl shadow-slate-200">
+          <Card className="border-none bg-slate-900 overflow-hidden shadow-2xl shadow-slate-200">
             <CardContent className="p-8">
                <div className="flex items-center justify-between mb-8">
                   <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center">
@@ -253,13 +263,26 @@ export function AdminDashboardView() {
                     <p className="text-lg font-black text-emerald-400 leading-none mt-1 uppercase">Aktif</p>
                   </div>
                </div>
-               <div className="space-y-4">
-                 <h3 className="text-2xl font-black leading-tight tracking-tight text-foreground">Audit Trail Terproteksi</h3>
-                 <p className="text-xs text-slate-400 leading-relaxed font-medium">
-                   Seluruh log aktivitas diproteksi enkripsi SHA-256 dan tersimpan dalam urutan kronologis yang tidak dapat diubah (Immutable).
-                 </p>
-                 <Button className="w-full bg-white text-slate-900 hover:bg-slate-100 font-extrabold rounded-xl h-10 mt-4 border-none transition-all active:scale-95">
-                    Verifikasi Log Sekarang
+               
+               <div className="space-y-6">
+                 <div className="flex items-center gap-2">
+                    <History className="w-4 h-4 text-slate-400" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Recent Audit Logs</span>
+                 </div>
+                 
+                 <div className="space-y-4">
+                    {auditLogs.map((log, i) => (
+                      <div key={log.id} className="flex gap-3 items-start border-l-2 border-slate-700 pl-4 py-1">
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-black text-slate-200 uppercase tracking-tight">{log.action}</p>
+                          <p className="text-[10px] text-slate-500 font-medium leading-none">{new Date(log.createdAt).toLocaleTimeString()}</p>
+                        </div>
+                      </div>
+                    ))}
+                 </div>
+
+                 <Button className="w-full bg-white text-slate-900 hover:bg-slate-100 font-extrabold rounded-xl h-11 mt-4 border-none transition-all active:scale-95 shadow-lg">
+                    Lihat Selengkapnya
                  </Button>
                </div>
             </CardContent>

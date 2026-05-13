@@ -157,7 +157,6 @@ export class AuthService {
       }),
     ]);
 
-    // Generate new token with updated verification status
     const payload = { 
       sub: user.id, 
       email: user.email, 

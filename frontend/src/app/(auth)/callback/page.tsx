@@ -3,6 +3,7 @@
 import { Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { authService } from '@/services/auth.service';
 import { Loader2 } from 'lucide-react';
 
 function AuthCallbackContent() {
@@ -11,41 +12,31 @@ function AuthCallbackContent() {
   const { login } = useAuth();
 
   useEffect(() => {
-    const token = searchParams.get('token');
-    
-    if (token) {
-      const handleAuth = async () => {
-        try {
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/auth/profile`, {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
-          
-          if (response.ok) {
-            const userData = await response.json();
-            login(token, userData);
-            
-            if (!userData.isKtpVerified) {
-              router.push('/verify-ktp');
-            } else {
-              router.push('/');
-            }
-          } else {
-            console.error('Failed to fetch profile');
-            router.push('/login?error=oauth_failed');
-          }
-        } catch (err) {
-          console.error('OAuth callback error:', err);
-          router.push('/login?error=oauth_failed');
-        }
-      };
+    const handleAuth = async () => {
+      try {
+        const userData = await authService.getProfile();
+        login('', userData); // token is in cookie
+        
+        const internalRoles = ['ADMIN', 'DOCUMENT_VALIDATOR', 'FIELD_INSPECTOR', 'LEGALIZER'];
+        const isInternal = userData.roles.some((role: any) => internalRoles.includes(role));
 
-      handleAuth();
-    } else {
-      router.push('/login');
-    }
-  }, [searchParams, login, router]);
+        if (!userData.verify_gmail) {
+          router.push(`/verify-otp?email=${encodeURIComponent(userData.email)}`);
+        } else if (isInternal) {
+          router.push('/dashboard');
+        } else if (!userData.isKtpVerified) {
+          router.push('/verify-ktp');
+        } else {
+          router.push('/submit');
+        }
+      } catch (err) {
+        console.error('OAuth callback error:', err);
+        router.push('/login?error=oauth_failed');
+      }
+    };
+
+    handleAuth();
+  }, [login, router]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#0a0a0a] text-white">

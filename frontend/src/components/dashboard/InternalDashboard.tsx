@@ -23,6 +23,14 @@ import { cn } from "@/lib/utils";
 import { permitService } from "@/services/permit.service";
 import { useAuth } from "@/contexts/AuthContext";
 import { Role } from "@/types/auth";
+import { SLACountdown } from "./SLACountdown";
+import { 
+  FileSearch, 
+  MapPin, 
+  Gavel, 
+  ShieldCheck,
+  MoreVertical 
+} from "lucide-react";
 
 export function InternalDashboard() {
   const { user } = useAuth();
@@ -44,12 +52,14 @@ export function InternalDashboard() {
     fetchData();
   }, []);
 
-  const getRoleLabel = () => {
-    if (user?.roles.includes(Role.DOCUMENT_VALIDATOR)) return "Document Validator";
-    if (user?.roles.includes(Role.FIELD_INSPECTOR)) return "Field Inspector";
-    if (user?.roles.includes(Role.LEGALIZER)) return "Legalizer";
-    return "Staff";
+  const getRoleInfo = () => {
+    if (user?.roles.includes(Role.DOCUMENT_VALIDATOR)) return { label: "Document Validator", icon: FileSearch, color: "text-blue-600", bg: "bg-blue-50" };
+    if (user?.roles.includes(Role.FIELD_INSPECTOR)) return { label: "Field Inspector", icon: MapPin, color: "text-indigo-600", bg: "bg-indigo-50" };
+    if (user?.roles.includes(Role.LEGALIZER)) return { label: "Legalizer", icon: Gavel, color: "text-purple-600", bg: "bg-purple-50" };
+    return { label: "Staff", icon: Inbox, color: "text-slate-600", bg: "bg-slate-50" };
   };
+
+  const roleInfo = getRoleInfo();
 
   if (loading) {
     return (
@@ -64,10 +74,10 @@ export function InternalDashboard() {
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-1">
           <div className="flex items-center gap-2 mb-2">
-             <div className="p-1.5 bg-primary/10 rounded-lg">
-                <Inbox className="w-3.5 h-3.5 text-primary" />
+             <div className={cn("p-1.5 rounded-lg", roleInfo.bg)}>
+                <roleInfo.icon className={cn("w-3.5 h-3.5", roleInfo.color)} />
              </div>
-             <span className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-muted-foreground">{getRoleLabel()} Portal</span>
+             <span className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-muted-foreground">{roleInfo.label} Portal</span>
           </div>
           <h1 className="text-4xl font-extrabold tracking-tight text-slate-900">Antrean Berkas</h1>
           <p className="text-muted-foreground font-medium">Prioritaskan pengajuan perizinan berdasarkan tenggat waktu SLA.</p>
@@ -104,8 +114,8 @@ export function InternalDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[
           { label: "Total Antrean", value: tasks.length, icon: FileText, color: "bg-primary", text: "text-primary", bg: "bg-primary/5" },
-          { label: "SLA Warning", value: tasks.filter(t => t.isPendingLong).length, icon: Clock, color: "bg-amber-500", text: "text-amber-600", bg: "bg-amber-50/50" },
-          { label: "Selesai Hari Ini", value: "8", icon: CheckCircle2, color: "bg-emerald-500", text: "text-emerald-600", bg: "bg-emerald-50/50" },
+          { label: "SLA Warning", value: tasks.filter(t => t.slaStatus === 'WARNING').length, icon: Clock, color: "bg-amber-500", text: "text-amber-600", bg: "bg-amber-50/50" },
+          { label: "SLA Overdue", value: tasks.filter(t => t.slaStatus === 'OVERDUE').length, icon: AlertCircle, color: "bg-rose-500", text: "text-rose-600", bg: "bg-rose-50/50" },
         ].map((stat, i) => (
           <Card key={stat.label} className="border-none shadow-sm overflow-hidden bg-white">
             <CardContent className="p-6">
@@ -127,7 +137,7 @@ export function InternalDashboard() {
         <div className="p-8 border-b border-slate-50 flex items-center justify-between">
            <div>
               <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Tugas Yang Perlu Diproses</h2>
-              <p className="text-sm text-muted-foreground font-medium">Daftar berkas yang berada pada tahap <span className="text-primary font-bold">{getRoleLabel()}</span>.</p>
+              <p className="text-sm text-muted-foreground font-medium">Daftar berkas yang berada pada tahap <span className="text-primary font-bold">{roleInfo.label}</span>.</p>
            </div>
         </div>
         <CardContent className="p-0">
@@ -164,19 +174,12 @@ export function InternalDashboard() {
                             {new Date(task.submittedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
                           </div>
                         </td>
-                        <td className="px-8 py-6">
-                          <div className="flex items-center gap-3">
-                             <div className={cn(
-                               "w-2 h-2 rounded-full shadow-sm",
-                               task.isPendingLong ? "bg-rose-500 animate-pulse shadow-rose-200" : "bg-emerald-500 shadow-emerald-200"
-                             )} />
-                             <span className={cn(
-                               "text-xs font-black uppercase tracking-widest",
-                               task.isPendingLong ? "text-rose-600" : "text-emerald-600"
-                             )}>
-                               {task.daysPending} Hari Tertahan
-                             </span>
-                          </div>
+                        <td className="px-8 py-6 w-64">
+                          <SLACountdown 
+                            remainingHours={task.remainingHours} 
+                            maxHours={task.maxHours} 
+                            status={task.slaStatus} 
+                          />
                         </td>
                         <td className="px-8 py-6 text-right">
                           <Link href={`/dashboard/validate/${task.id}`}>
@@ -224,15 +227,12 @@ export function InternalDashboard() {
                         <h4 className="font-extrabold text-slate-900 truncate tracking-tight">{task.applicant?.name || 'Unknown User'}</h4>
                       </div>
                       <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-                        <div className="space-y-1">
-                          <p className="text-[10px] font-bold text-slate-400 uppercase">Tipe Izin</p>
-                          <p className="text-xs font-black text-slate-600">{task.permitType.replace('_', ' ')}</p>
-                        </div>
-                        <div className="text-right space-y-1">
-                          <p className="text-[10px] font-bold text-slate-400 uppercase">Status</p>
-                          <p className={cn("text-xs font-black", task.isPendingLong ? "text-rose-600" : "text-emerald-600")}>
-                            {task.daysPending}H
-                          </p>
+                        <div className="w-full">
+                          <SLACountdown 
+                            remainingHours={task.remainingHours} 
+                            maxHours={task.maxHours} 
+                            status={task.slaStatus} 
+                          />
                         </div>
                       </div>
                       <Link href={`/dashboard/validate/${task.id}`} className="block">

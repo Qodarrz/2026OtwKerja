@@ -20,20 +20,32 @@ import {
 import Link from "next/link";
 import { cn, formatCurrency } from "@/lib/utils";
 import { permitService, PermitApplication } from "@/services/permit.service";
+import { analyticsService } from "@/services/analytics.service";
 import { useAuth } from "@/contexts/AuthContext";
 
 export function UserDashboard() {
   const { user } = useAuth();
   const [applications, setApplications] = useState<PermitApplication[]>([]);
+  const [metrics, setMetrics] = useState({
+    activeCount: 0,
+    approvedCount: 0,
+    waitingCount: 0,
+    draftCount: 0,
+    totalCost: 0
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const response = await permitService.getApplications({ limit: 5 });
-        setApplications(response.data);
+        const [appsRes, metricsRes] = await Promise.all([
+          permitService.getApplications({ limit: 5 }),
+          analyticsService.getUserMetrics()
+        ]);
+        setApplications(appsRes.data);
+        setMetrics(metricsRes);
       } catch (error) {
-        console.error("Failed to fetch applications", error);
+        console.error("Failed to fetch dashboard data", error);
       } finally {
         setLoading(false);
       }
@@ -44,22 +56,22 @@ export function UserDashboard() {
   const stats = [
     { 
       label: "Izin Aktif", 
-      value: applications.filter(a => !['APPROVED', 'REJECTED', 'DRAFT'].includes(a.status)).length.toString(), 
+      value: metrics.activeCount.toString(), 
       icon: Activity, color: "text-sky-600", bg: "bg-sky-50" 
     },
     { 
       label: "Selesai", 
-      value: applications.filter(a => a.status === 'APPROVED').length.toString(), 
+      value: metrics.approvedCount.toString(), 
       icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-50" 
     },
     { 
       label: "Menunggu", 
-      value: applications.filter(a => a.status === 'DOCUMENT_CHECK').length.toString(), 
+      value: metrics.waitingCount.toString(), 
       icon: Clock, color: "text-amber-600", bg: "bg-amber-50" 
     },
     { 
       label: "Draft", 
-      value: applications.filter(a => a.status === 'DRAFT').length.toString(), 
+      value: metrics.draftCount.toString(), 
       icon: FileText, color: "text-slate-500", bg: "bg-slate-50" 
     },
   ];
@@ -216,7 +228,7 @@ export function UserDashboard() {
                 </div>
                 <div className="space-y-1">
                   <p className="text-3xl font-black text-slate-900 tracking-tighter leading-none">
-                    {formatCurrency(applications.reduce((acc, app) => acc + (app.totalCost || 0), 0))}
+                    {formatCurrency(metrics.totalCost)}
                   </p>
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Akumulatif</p>
                 </div>
@@ -249,7 +261,10 @@ export function UserDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="border-none bg-primary text-white overflow-hidden shadow-2xl shadow-primary/20">
+          <Card className={cn(
+            "border-none overflow-hidden shadow-2xl shadow-primary/20",
+            user?.isKtpVerified ? "bg-primary text-white" : "bg-amber-500 text-white"
+          )}>
              <CardContent className="p-8">
                <div className="flex items-center gap-3 mb-6">
                   <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
@@ -258,10 +273,21 @@ export function UserDashboard() {
                   <p className="text-sm font-black uppercase tracking-widest leading-none">Status KTP</p>
                </div>
                <div className="space-y-4">
-                  <h4 className="text-2xl font-black leading-tight tracking-tight">KTP Terverifikasi</h4>
+                  <h4 className="text-2xl font-black leading-tight tracking-tight">
+                    {user?.isKtpVerified ? "KTP Terverifikasi" : "KTP Belum Verifikasi"}
+                  </h4>
                   <p className="text-xs text-blue-100 font-medium leading-relaxed">
-                    Identitas Anda telah tervalidasi melalui sistem OCR. Anda dapat melanjutkan seluruh proses perizinan tanpa hambatan.
+                    {user?.isKtpVerified 
+                      ? "Identitas Anda telah tervalidasi melalui sistem OCR. Anda dapat melanjutkan seluruh proses perizinan tanpa hambatan."
+                      : "Harap verifikasi KTP Anda untuk dapat mengajukan perizinan secara penuh di platform FlowGov."}
                   </p>
+                  {!user?.isKtpVerified && (
+                    <Link href="/dashboard/profile">
+                      <Button className="w-full bg-white text-amber-600 hover:bg-white/90 rounded-xl font-bold mt-4">
+                        Verifikasi Sekarang
+                      </Button>
+                    </Link>
+                  )}
                </div>
              </CardContent>
           </Card>

@@ -519,27 +519,48 @@ export class WorkflowService {
                         name: true,
                     },
                 },
+                stageHistory: {
+                    where: {
+                        completedAt: null,
+                    },
+                    orderBy: {
+                        transitionedAt: 'desc',
+                    },
+                    take: 1,
+                },
             },
         });
 
-        // Calculate days pending for each application
+        // Get SLA rules for all stages to avoid N+1
+        const slaRules = await this.prisma.sLARule.findMany();
+        const slaRuleMap = new Map(slaRules.map(r => [r.stage, r]));
+
+        // Calculate days pending and attach SLA info
         const now = new Date();
-        const applicationsWithPending = applications.map((app) => {
-            const daysPending = app.submittedAt
-                ? Math.floor(
-                    (now.getTime() - app.submittedAt.getTime()) /
-                    (1000 * 60 * 60 * 24),
-                )
-                : 0;
+        const applicationsWithSLA = applications.map((app) => {
+            const activeStage = app.stageHistory[0];
+            const startTime = activeStage?.transitionedAt || app.submittedAt || app.createdAt;
+            
+            const hoursPending = Math.floor(
+                (now.getTime() - startTime.getTime()) / (1000 * 60 * 60),
+            );
+            
+            const slaRule = slaRuleMap.get(app.currentStage);
+            const maxHours = slaRule?.maxDurationHours || 24;
+            const remainingHours = Math.max(0, maxHours - hoursPending);
 
             return {
                 ...app,
-                daysPending,
-                isPendingLong: daysPending > 7,
+                hoursPending,
+                remainingHours,
+                maxHours,
+                slaStatus: hoursPending >= maxHours ? 'OVERDUE' : 
+                          hoursPending >= maxHours * (slaRule?.warningThreshold || 0.8) ? 'WARNING' : 'ON_TIME',
+                activeStageHistory: activeStage,
             };
         });
 
-        return applicationsWithPending;
+        return applicationsWithSLA;
     }
 
     /**

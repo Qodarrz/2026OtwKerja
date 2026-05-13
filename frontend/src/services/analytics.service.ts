@@ -15,4 +15,13 @@ export const analyticsService = {
     const { data } = await api.get('/analytics/staff-performance');
     return data;
   },
+
+  getUserMetrics: async () => {
+    const { data } = await api.get('/analytics/user-dashboard');
+    return data;
+  },
+  getAuditLogs: async (limit: number = 10) => {
+    const { data } = await api.get('/analytics/audit-logs', { params: { limit } });
+    return data;
+  },
 };

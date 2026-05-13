@@ -56,7 +56,7 @@ export default function VerifyKtpPage() {
   };
 
   const startScanning = async () => {
-    if (!file) {
+    if (!file) {  
       setError('Silakan pilih foto KTP terlebih dahulu.');
       return;
     }
@@ -107,7 +107,7 @@ export default function VerifyKtpPage() {
 
       const result = await response.json();
       
-      // Update local storage and auth context with the new token
+      
       if (result.access_token && result.user) {
         login(result.access_token, result.user);
       }
@@ -123,9 +123,8 @@ export default function VerifyKtpPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8 font-sans">
       <div className="max-w-2xl w-full">
-        {/* Header */}
         <div className="text-center mb-10 space-y-3">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-600 rounded-2xl shadow-xl shadow-indigo-200 mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 bjg-indigo-600 rounded-2xl shadow-xl shadow-indigo-200 mb-4">
             <ShieldCheck className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Verifikasi Identitas</h1>
@@ -133,10 +132,7 @@ export default function VerifyKtpPage() {
             Satu langkah lagi untuk mengaktifkan akun Anda secara penuh. Silakan verifikasi KTP Anda.
           </p>
         </div>
-
-        {/* Card */}
         <div className="bg-white rounded-3xl shadow-2xl shadow-gray-200/50 overflow-hidden border border-gray-100">
-          {/* Progress Bar */}
           <div className="h-1.5 w-full bg-gray-100 flex">
             <div className={`h-full transition-all duration-500 bg-indigo-600 ${step === 'upload' ? 'w-1/3' : step === 'scanning' ? 'w-2/3' : 'w-full'}`} />
           </div>

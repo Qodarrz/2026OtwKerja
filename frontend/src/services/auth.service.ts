@@ -27,6 +27,10 @@ export const authService = {
     return data;
   },
 
+  async logout(): Promise<void> {
+    await api.post('/auth/logout');
+  },
+
   googleLogin(): void { 
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
     window.location.href = `${backendUrl}/auth/google`;

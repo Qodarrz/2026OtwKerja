@@ -4,6 +4,7 @@ import {
     Query,
     UseGuards,
     ParseIntPipe,
+    Req,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
@@ -74,5 +75,25 @@ export class AnalyticsController {
         @Query('month', ParseIntPipe) month: number,
     ) {
         return this.analyticsService.getMonthlyReport(year, month);
+    }
+
+    /**
+     * Get user dashboard metrics
+     * Regular users can access their own metrics
+     */
+    @Get('user-dashboard')
+    @Roles(Role.USER, Role.ADMIN)
+    async getUserDashboard(@Req() req: any) {
+        return this.analyticsService.getUserDashboardMetrics(req.user.userId);
+    }
+
+    /**
+     * Get recent audit logs
+     * Admin only
+     */
+    @Get('audit-logs')
+    @Roles(Role.ADMIN)
+    async getRecentAuditLogs(@Query('limit', ParseIntPipe) limit: number = 10) {
+        return this.analyticsService.getRecentAuditLogs(limit);
     }
 }

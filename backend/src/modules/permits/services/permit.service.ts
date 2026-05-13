@@ -5,7 +5,7 @@ import {
     BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { PermitType, WorkflowStage, Prisma } from '@prisma/client';
+import { PermitType, WorkflowStage, Prisma, Role } from '@prisma/client';
 import {
     CreateApplicationDto,
     UpdateApplicationDto,
@@ -38,7 +38,7 @@ export class PermitService {
         }
 
         return user.roles.some((role) =>
-            ['ADMIN', 'DOCUMENT_VALIDATOR', 'FIELD_INSPECTOR', 'LEGALIZER'].includes(
+            ([Role.ADMIN, Role.DOCUMENT_VALIDATOR, Role.FIELD_INSPECTOR, Role.LEGALIZER] as Role[]).includes(
                 role,
             ),
         );

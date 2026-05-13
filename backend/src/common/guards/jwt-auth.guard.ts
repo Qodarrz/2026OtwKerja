@@ -20,7 +20,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     }
 
     const request = context.switchToHttp().getRequest();
-    const token = request.headers.authorization?.split(' ')[1];
+    const token = request.cookies?.['access_token'] || request.headers.authorization?.split(' ')[1];
 
     if (!token) {
       throw new UnauthorizedException('Token not provided');

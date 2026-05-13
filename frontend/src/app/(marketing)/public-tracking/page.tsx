@@ -12,7 +12,6 @@ import {
   MapPin,
   ShieldCheck
 } from "lucide-react";
-import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -49,8 +48,7 @@ export default function PublicTracking() {
   };
 
   return (
-    <main className="min-h-screen bg-background">
-      <Navbar />
+    <div className="space-y-10">
       
       {/* Hero Search */}
       <section className="pt-40 pb-20 px-6 relative overflow-hidden">
@@ -209,6 +207,6 @@ export default function PublicTracking() {
           </AnimatePresence>
         </div>
       </section>
-    </main>
+    </div>
   );
 }

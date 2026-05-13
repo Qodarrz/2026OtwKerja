@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, AuthState, Role } from '@/types/auth';
 import { useRouter } from 'next/navigation';
+import { authService } from '@/services/auth.service';
 
 interface AuthContextType extends AuthState {
   login: (token: string, user: User) => void;
@@ -18,50 +19,67 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
-    token: null,
     isAuthenticated: false,
     isLoading: true,
   });
   const router = useRouter();
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const userJson = localStorage.getItem('user');
-
-    if (token && userJson) {
+    // 1. Initial optimistic hydration from session hint
+    const storedUser = typeof window !== 'undefined' ? localStorage.getItem('user_hint') : null;
+    if (storedUser) {
       try {
+        const user = JSON.parse(storedUser);
         setAuthState({
-          token,
-          user: JSON.parse(userJson),
+          user,
+          isAuthenticated: true,
+          isLoading: false, // Optimistically assume valid
+        });
+      } catch (e) {
+        localStorage.removeItem('user_hint');
+      }
+    }
+
+    // 2. Full background validation with the server
+    const initAuth = async () => {
+      try {
+        const userProfile = await authService.getProfile();
+        localStorage.setItem('user_hint', JSON.stringify(userProfile));
+        setAuthState({
+          user: userProfile,
           isAuthenticated: true,
           isLoading: false,
         });
       } catch (err) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        setAuthState(prev => ({ ...prev, isLoading: false }));
+        localStorage.removeItem('user_hint');
+        setAuthState({
+          user: null,
+          isAuthenticated: false,
+          isLoading: false,
+        });
       }
-    } else {
-      setAuthState(prev => ({ ...prev, isLoading: false }));
-    }
+    };
+
+    initAuth();
   }, []);
 
   const login = (token: string, user: User) => {
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(user));
+    localStorage.setItem('user_hint', JSON.stringify(user));
     setAuthState({
-      token,
       user,
       isAuthenticated: true,
       isLoading: false,
     });
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+  const logout = async () => {
+    try {
+      await authService.logout();
+    } catch (err) {
+      console.error('[AuthContext] Logout error:', err);
+    }
+    localStorage.removeItem('user_hint');
     setAuthState({
-      token: null,
       user: null,
       isAuthenticated: false,
       isLoading: false,
@@ -91,7 +109,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return authState.user?.verify_gmail || false;
   };
 
-  // Fallback to OTP or KTP if authenticated but not fully verified
+  // Centralized redirection logic
   useEffect(() => {
     if (authState.isAuthenticated && authState.user && !authState.isLoading) {
       const pathname = window.location.pathname;
@@ -100,36 +118,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const isKtpPage = pathname.includes('/verify-ktp');
       const isInternalUser = isInternal();
 
-      // 1. If on Login/Register but already logged in
-      if (isAuthPage) {
-        if (!authState.user.verify_gmail) {
-          router.push(`/verify-otp?email=${encodeURIComponent(authState.user.email)}`);
-        } else if (!authState.user.isKtpVerified && !isInternalUser) {
-          router.push('/verify-ktp');
-        } else {
-          router.push(isInternalUser ? '/dashboard' : '/submit');
-        }
-        return;
-      }
-
-      // 2. If already verified but on OTP page
-      if (isOtpPage && authState.user.verify_gmail) {
-        if (!authState.user.isKtpVerified && !isInternalUser) {
-          router.push('/verify-ktp');
-        } else {
-          router.push(isInternalUser ? '/dashboard' : '/submit');
-        }
-        return;
-      }
-
-      // 3. Global redirect for unverified users on protected routes
-      // Don't redirect on root, profile, or the pages themselves
-      const isExcluded = pathname === '/' || pathname.includes('/profile') || isOtpPage || isKtpPage;
+      // Skip redirection for certain pages
+      const isExcluded = pathname === '/' || pathname.includes('/profile');
       
-      if (!authState.user.verify_gmail && !isExcluded) {
-        router.push(`/verify-otp?email=${encodeURIComponent(authState.user.email)}`);
-      } else if (authState.user.verify_gmail && !authState.user.isKtpVerified && !isInternalUser && !isExcluded) {
-        router.push('/verify-ktp');
+      if (isExcluded) return;
+
+      // 1. Check Gmail Verification
+      if (!authState.user.verify_gmail) {
+        if (!isOtpPage) {
+          router.push(`/verify-otp?email=${encodeURIComponent(authState.user.email)}`);
+        }
+        return;
+      }
+
+      // 2. Check KTP Verification (only for non-internal users)
+      if (!isInternalUser && !authState.user.isKtpVerified) {
+        if (!isKtpPage) {
+          router.push('/verify-ktp');
+        }
+        return;
+      }
+
+      // 3. Handle Login/Register/OTP/KTP page redirects if already fully verified
+      const isVerificationPage = isOtpPage || isKtpPage;
+      if (isAuthPage || isVerificationPage) {
+        router.push(isInternalUser ? '/dashboard' : '/submit');
       }
     }
   }, [authState.isAuthenticated, authState.user?.verify_gmail, authState.user?.isKtpVerified, authState.isLoading, router]);

@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Navbar } from "@/components/layout/Navbar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { authService } from "@/services/auth.service";
 import { 
   User as UserIcon, 
   Mail, 
@@ -25,16 +25,8 @@ export default function ProfilePage() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/auth/profile`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setProfile(data);
-        }
+        const response = await authService.getProfile();
+        setProfile(response);
       } catch (error) {
         console.error('Failed to fetch profile', error);
       } finally {
@@ -54,8 +46,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <main className="min-h-screen bg-background pt-32 pb-20 px-6">
-      <Navbar />
+    <div className="space-y-10">
       
       <div className="max-w-4xl mx-auto">
         <header className="mb-10">
@@ -123,7 +114,7 @@ export default function ProfilePage() {
                     <label className="text-xs font-bold text-muted-foreground uppercase">Nama Lengkap</label>
                     <div className="relative">
                       <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input disabled={!isEditing} value={profile?.userDetail?.ktpFullName || profile?.name || ""} className="pl-10" />
+                      <Input disabled={true} value={profile?.name || "kosong"} className="pl-10 bg-muted/30" />
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -131,20 +122,6 @@ export default function ProfilePage() {
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input disabled={true} value={profile?.email || ""} className="pl-10 bg-muted/30" />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-muted-foreground uppercase">Nomor Telepon</label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input disabled={!isEditing} defaultValue="+62 812 3456 7890" className="pl-10" />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-muted-foreground uppercase">NIK</label>
-                    <div className="relative">
-                      <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input disabled={true} value={profile?.userDetail?.nik || "-"} className="pl-10 bg-muted/30" />
                     </div>
                   </div>
                 </div>
@@ -156,7 +133,8 @@ export default function ProfilePage() {
                     <textarea 
                       disabled={!isEditing} 
                       className="w-full min-h-[100px] bg-background border border-border rounded-xl p-3 pl-10 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all disabled:opacity-50"
-                      value={profile?.userDetail?.ktpAddress || ""}
+                      value={profile?.userDetail?.address || ""}
+                      readOnly={!isEditing}
                     />
                   </div>
                 </div>
@@ -185,6 +163,6 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

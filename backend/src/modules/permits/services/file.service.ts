@@ -5,7 +5,7 @@ import {
     ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { WorkflowStage } from '@prisma/client';
+import { WorkflowStage, Role } from '@prisma/client';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { createReadStream } from 'fs';
@@ -42,7 +42,7 @@ export class FileService {
         }
 
         return user.roles.some((role) =>
-            ['ADMIN', 'DOCUMENT_VALIDATOR', 'FIELD_INSPECTOR', 'LEGALIZER'].includes(
+            ([Role.ADMIN, Role.DOCUMENT_VALIDATOR, Role.FIELD_INSPECTOR, Role.LEGALIZER] as Role[]).includes(
                 role,
             ),
         );

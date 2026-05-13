@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Navbar } from "@/components/layout/Navbar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
@@ -80,17 +79,7 @@ export default function AdminDashboardPage() {
   ];
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-10 h-10 animate-spin text-indigo-600" />
-      </div>
-    );
-  }
-
-  return (
-    <main className="min-h-screen bg-background pt-32 pb-20 px-6">
-      <Navbar />
-      
+    <div className="space-y-10">
       <div className="max-w-7xl mx-auto">
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
           <div>
@@ -178,28 +167,6 @@ export default function AdminDashboardPage() {
                     </div>
                   </div>
                 ))}
-                {bottlenecks.length === 0 && (
-                  <div className="py-10 text-center text-muted-foreground">
-                    Belum ada data historis untuk analisis bottleneck.
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Distribusi Geografis</CardTitle>
-                <CardDescription>Konsentrasi permohonan berdasarkan wilayah.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[250px] bg-muted/50 rounded-2xl flex items-center justify-center border-2 border-dashed border-border overflow-hidden relative">
-                   <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent" />
-                  <div className="text-center relative z-10">
-                    <BarChart3 className="w-10 h-10 mx-auto text-indigo-500/50 mb-2" />
-                    <p className="text-sm text-muted-foreground font-medium">Peta Heatmap Wilayah (Proprietary Data)</p>
-                    <p className="text-[10px] text-muted-foreground/60 mt-1 uppercase tracking-widest">Jakarta Metropolitan Area</p>
-                  </div>
-                </div>
               </CardContent>
             </Card>
           </div>
@@ -233,43 +200,11 @@ export default function AdminDashboardPage() {
                     </div>
                   ))}
                 </div>
-
-                <div className="pt-4 border-t border-border">
-                  <div className="flex items-center gap-2 mb-2">
-                    <AlertCircle className="w-4 h-4 text-indigo-500" />
-                    <span className="text-xs font-bold uppercase tracking-wider text-indigo-600">AI Recommendation</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    Berdasarkan analisis bottleneck, tahap **{bottlenecks[0]?.stage || 'Verifikasi'}** mengalami keterlambatan rata-rata tertinggi. 
-                    Disarankan alokasi sumber daya tambahan pada unit kerja terkait.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-indigo-600 text-white border-none shadow-2xl shadow-indigo-200">
-               <CardHeader>
-                <CardTitle className="text-white text-lg">Governance Audit</CardTitle>
-                <CardDescription className="text-indigo-100">Jejak aktivitas terverifikasi.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                 <div className="flex items-center gap-4 mb-4">
-                    <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
-                       <Check className="w-6 h-6" />
-                    </div>
-                    <div>
-                       <p className="text-2xl font-bold">100%</p>
-                       <p className="text-xs text-indigo-100">Audit Immutability</p>
-                    </div>
-                 </div>
-                 <p className="text-[10px] text-indigo-100/80 leading-relaxed uppercase tracking-widest font-bold">
-                    Seluruh log aktivitas diproteksi oleh enkripsi satu arah dan tidak dapat dimodifikasi.
-                 </p>
               </CardContent>
             </Card>
           </div>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

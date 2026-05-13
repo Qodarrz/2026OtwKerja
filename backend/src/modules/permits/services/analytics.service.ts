@@ -161,6 +161,26 @@ export class AnalyticsService {
             averageDurationHours: data.count > 0 ? data.totalDuration / data.count : 0,
         }));
 
+        // Calculate Composite Impact Score (I = 0.4E + 0.3S + 0.2B + 0.1(1-Vn))
+        // E: Efficiency (Based on target average duration)
+        const targetAvgHours = 24; 
+        const efficiency = Math.max(0, 1 - (averageProcessingTimeHours / (targetAvgHours * 2)));
+        
+        // S: SLA Compliance
+        const slaCompliance = onTimePercentage / 100;
+
+        // B: Bottleneck Reduction (Calculated separately, but we can estimate)
+        const bottlenecks = await this.getStageBottlenecks();
+        const bottleneckScore = bottlenecks.length > 0 ? 
+            Math.max(0, 1 - (bottlenecks.filter(b => b.overdueCount > 0).length / bottlenecks.length)) : 1;
+
+        // Vn: Variance (normalized)
+        const variance = completedStages.length > 1 ? 
+            completedStages.reduce((sum, s) => sum + Math.pow((s.durationHours || 0) - averageProcessingTimeHours, 2), 0) / completedStages.length : 0;
+        const normalizedVariance = Math.min(1, variance / 100);
+
+        const compositeImpactScore = (0.4 * efficiency) + (0.3 * slaCompliance) + (0.2 * bottleneckScore) + (0.1 * (1 - normalizedVariance));
+
         return {
             activeApplications,
             averageProcessingTimeHours: Math.round(averageProcessingTimeHours * 10) / 10,
@@ -170,6 +190,9 @@ export class AnalyticsService {
             totalProcessedThisMonth,
             byStage,
             byPermitType,
+            impactScore: Math.round(compositeImpactScore * 100),
+            efficiency: Math.round(efficiency * 100),
+            slaCompliance: Math.round(slaCompliance * 100),
         };
     }
 
@@ -453,5 +476,50 @@ export class AnalyticsService {
             overduePercentage: Math.round(overduePercentage * 10) / 10,
             byPermitType: byPermitTypeArray,
         };
+    }
+    /**
+     * Get dashboard metrics for a specific user
+     */
+    async getUserDashboardMetrics(userId: string) {
+        const applications = await this.prisma.permitApplication.findMany({
+            where: { applicantId: userId },
+            select: {
+                status: true,
+                totalCost: true,
+                referenceNumber: true,
+            },
+        });
+
+        const activeCount = applications.filter(a => 
+            !([WorkflowStage.APPROVED, WorkflowStage.REJECTED, WorkflowStage.DRAFT] as WorkflowStage[]).includes(a.status)
+        ).length;
+
+        const approvedCount = applications.filter(a => a.status === WorkflowStage.APPROVED).length;
+        
+        const waitingCount = applications.filter(a => 
+            ([WorkflowStage.DOCUMENT_CHECK, WorkflowStage.FIELD_INSPECTION, WorkflowStage.LEGALIZATION] as WorkflowStage[]).includes(a.status)
+        ).length;
+
+        const draftCount = applications.filter(a => a.status === WorkflowStage.DRAFT).length;
+
+        const totalCost = applications.reduce((acc, app) => acc + (app.totalCost || 0), 0);
+
+        return {
+            activeCount,
+            approvedCount,
+            waitingCount,
+            draftCount,
+            totalCost,
+        };
+    }
+
+    /**
+     * Get recent audit logs
+     */
+    async getRecentAuditLogs(limit: number = 10) {
+        return this.prisma.auditLog.findMany({
+            take: limit,
+            orderBy: { createdAt: 'desc' },
+        });
     }
 }

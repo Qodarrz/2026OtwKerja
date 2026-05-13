@@ -23,13 +23,37 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
-  async register(@Body() dto: RegisterDto) {
-    return this.authService.register(dto);
+  async register(
+    @Body() dto: RegisterDto,
+    @Res({ passthrough: true }) res: Response
+  ) {
+    const result = (await this.authService.register(dto)) as any;
+    if (result && result.access_token) {
+      res.cookie('access_token', result.access_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      });
+    }
+    return result;
   }
 
   @Post('verify-otp')
-  async verifyOtp(@Body() dto: VerifyOtpDto) {
-    return this.authService.verifyOtp(dto);
+  async verifyOtp(
+    @Body() dto: VerifyOtpDto,
+    @Res({ passthrough: true }) res: Response
+  ) {
+    const result = (await this.authService.verifyOtp(dto)) as any;
+    if (result && result.access_token) {
+      res.cookie('access_token', result.access_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      });
+    }
+    return result;
   }
 
   @Post('resend-otp')
@@ -38,8 +62,18 @@ export class AuthController {
   }
 
   @Post('login')
-  async login(@Body() dto: LoginDto) {
-    return this.authService.login(dto);
+  async login(
+    @Body() dto: LoginDto,
+    @Res({ passthrough: true }) res: Response
+  ) {
+    const result = await this.authService.login(dto);
+    res.cookie('access_token', result.access_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+    return result;
   }
 
   @Get('google')
@@ -54,9 +88,16 @@ export class AuthController {
     // req.user contains the validated user from GoogleStrategy
     const { access_token } = req.user;
 
-    // Redirect to frontend with token (or set as cookie)
+    res.cookie('access_token', access_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
+    // Redirect to frontend without token in URL
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    return res.redirect(`${frontendUrl}/auth/callback?token=${access_token}`);
+    return res.redirect(`${frontendUrl}/auth/callback`);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -69,9 +110,18 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Post('logout')
-  async logout(@Request() req: any) {
-    // req contains token from header thanks to standard extraction
-    const token = req.headers.authorization?.split(' ')[1];
+  async logout(
+    @Request() req: any,
+    @Res({ passthrough: true }) res: Response
+  ) {
+    const token = req.cookies?.['access_token'] || req.headers.authorization?.split(' ')[1];
+    
+    res.clearCookie('access_token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+    });
+
     return this.authService.logout(token);
   }
 }
