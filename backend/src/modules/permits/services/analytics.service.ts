@@ -19,6 +19,9 @@ export interface DashboardMetrics {
         count: number;
         averageDurationHours: number;
     }[];
+    impactScore: number;
+    efficiency: number;
+    slaCompliance: number;
 }
 
 export interface StaffPerformance {
