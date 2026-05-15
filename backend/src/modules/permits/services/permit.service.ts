@@ -11,6 +11,7 @@ import {
     UpdateApplicationDto,
     ListApplicationsQuery,
 } from '../dto/permit.dto';
+import { WORKFLOW_CONFIG } from '../constants/workflow.config';
 
 export interface PaginatedResult<T> {
     data: T[];
@@ -129,17 +130,55 @@ export class PermitService {
         }
 
         // Check access: applicant can view their own, staff can view applications at their assigned stages
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: { roles: true },
+        });
+
         if (application.applicantId !== userId) {
-            const isStaff = await this.hasStaffRole(userId);
+            const isStaff = user?.roles.some((role) =>
+                ([Role.ADMIN, Role.DOCUMENT_VALIDATOR, Role.FIELD_INSPECTOR, Role.LEGALIZER] as Role[]).includes(role)
+            );
 
             if (!isStaff) {
                 throw new ForbiddenException(
                     'You can only view your own applications',
                 );
             }
+        }   
+
+        // Calculate SLA metrics
+        const config = WORKFLOW_CONFIG[application.permitType];
+        const stageSla = config?.sla?.[application.currentStage] || 24;
+        
+        // Find latest stage transition or submission
+        const lastTransition = application.stageHistory[0]?.transitionedAt || application.submittedAt || application.createdAt;
+        const hoursElapsed = (new Date().getTime() - new Date(lastTransition).getTime()) / (1000 * 3600);
+        const remainingHours = Math.max(0, stageSla - hoursElapsed);
+        
+        let slaStatus: 'ON_TIME' | 'WARNING' | 'OVERDUE' = 'ON_TIME';
+        if (remainingHours <= 0) slaStatus = 'OVERDUE';
+        else if (remainingHours <= stageSla * 0.25) slaStatus = 'WARNING';
+
+        // Add canAction flag for UI
+        let canAction = false;
+        if (user && user.roles) {
+            if (user.roles.includes(Role.ADMIN)) {
+                canAction = true;
+            } else {
+                if (config && config.roles) {
+                    const requiredRoles = config.roles[application.currentStage] || [];
+                    canAction = requiredRoles.some(role => user.roles.includes(role));
+                }
+            }
         }
 
-        return application;
+        return Object.assign(application, { 
+            canAction,
+            remainingHours,
+            maxHours: stageSla,
+            slaStatus
+        });
     }
 
     /**

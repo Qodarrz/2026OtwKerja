@@ -61,7 +61,7 @@ export function Navbar() {
       className={cn(
         "fixed top-0 left-0 right-0 z-50 transition-all duration-300 px-6 py-4",
         isScrolled 
-          ? "bg-background/80 backdrop-blur-lg border-b border-border shadow-sm py-3" 
+          ? "bg-background/80 backdrop-blur-lg border-b border-border shadow-sm py-3"
           : "bg-transparent"
       )}
     >
@@ -140,7 +140,7 @@ export function Navbar() {
                 </Button>
               </Link>
               <Link href="/register">
-                <Button size="sm" className="rounded-xl shadow-lg shadow-primary/20">
+                <Button size="sm" className="rounded-xl shadow-lg shadow-sm">
                   Daftar
                 </Button>
               </Link>
@@ -164,7 +164,7 @@ export function Navbar() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="absolute top-full left-0 right-0 bg-background/95 backdrop-blur-xl border-b border-border p-6 md:hidden flex flex-col gap-4 shadow-2xl"
+            className="absolute top-full left-0 right-0 bg-background/95 backdrop-blur-xl border-b border-border p-6 md:hidden flex flex-col gap-4 shadow-lg"
           >
             {navItems.map((item) => (
               <Link

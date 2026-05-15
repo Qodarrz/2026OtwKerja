@@ -52,7 +52,7 @@ export function SLACountdown({ remainingHours, maxHours, status }: SLACountdownP
           {formatTime(timeLeft)}
         </span>
       </div>
-      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+      <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
         <div 
           className={cn(
             "h-full transition-all duration-1000 rounded-full",

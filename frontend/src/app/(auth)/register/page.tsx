@@ -134,7 +134,7 @@ export default function RegisterPage() {
                 type="submit"
                 disabled={isLoading}
                 variant="premium"
-                className="w-full h-12 shadow-primary/20"
+                className="w-full h-12 shadow-sm"
               >
                 {isLoading ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
@@ -170,14 +170,14 @@ export default function RegisterPage() {
             className="absolute inset-0 w-full h-full object-cover"
             src="https://images.unsplash.com/photo-1541746972996-4e0b0f43e02a?q=80&w=2070&auto=format&fit=crop"
           />
-          <div className="absolute bottom-16 left-16 right-16 text-white space-y-6 z-20">
-            <div className="inline-flex items-center space-x-2 px-3 py-1.5 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
+          <div className="absolute bottom-16 left-16 right-16 text-primary-foreground space-y-6 z-20">
+            <div className="inline-flex items-center space-x-2 px-3 py-1.5 bg-card/10 backdrop-blur-md rounded-full border border-white/20">
               <span className="text-[10px] xl:text-xs font-bold uppercase tracking-wider">Registrasi Mandiri</span>
             </div>
             <h2 className="text-4xl xl:text-5xl font-bold leading-tight">
               Kemudahan Akses <br/>Dalam Genggaman.
             </h2>
-            <p className="text-base xl:text-lg text-white/80 font-sans max-w-lg">Satu akun untuk semua kebutuhan perizinan dan layanan publik Anda.</p>
+            <p className="text-base xl:text-lg text-primary-foreground/80 font-sans max-w-lg">Satu akun untuk semua kebutuhan perizinan dan layanan publik Anda.</p>
           </div>
         </div>
       </div>

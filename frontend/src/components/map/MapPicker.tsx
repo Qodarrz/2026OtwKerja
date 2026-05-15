@@ -113,13 +113,13 @@ export default function MapPicker({ onAreaChange }: MapPickerProps) {
       </div>
 
       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[400] w-[90%] max-w-md">
-        <div className="bg-primary/90 backdrop-blur-md text-white p-4 rounded-2xl shadow-2xl flex items-center justify-between border border-white/10">
+        <div className="bg-primary/90 backdrop-blur-md text-primary-foreground p-4 rounded-2xl shadow-lg flex items-center justify-between border border-white/10">
           <div className="flex flex-col">
             <span className="text-[10px] uppercase font-bold opacity-80">Instruksi</span>
             <span className="text-sm font-medium">Klik pada peta untuk menentukan batas lahan</span>
           </div>
           {points.length >= 3 && (
-            <div className="px-3 py-1 bg-white/20 rounded-lg text-xs font-bold">
+            <div className="px-3 py-1 bg-card/20 rounded-lg text-xs font-bold">
               Siap
             </div>
           )}

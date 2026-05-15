@@ -46,6 +46,7 @@ model User {
   applications    PermitApplication[]
   validationActions ValidationAction[]
   notifications   Notification[]
+  feedbacks       Feedback[]
   
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
@@ -186,6 +187,7 @@ model PermitApplication {
   validationActions ValidationAction[]
   stageHistory      StageHistory[]
   notifications     Notification[]
+  feedbacks         Feedback[]
   
   // Resubmission tracking
   originalApplicationId String?
@@ -307,4 +309,30 @@ model SLARule {
   updatedAt         DateTime         @updatedAt
   
   @@index([stage])
+}
+
+// Feedback Model for Citizen Engagement
+model Feedback {
+  id                String           @id @default(uuid())
+  rating            Int              // 1-5
+  comment           String?
+  type              FeedbackType     @default(GENERAL)
+  
+  application       PermitApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  applicationId     String
+  
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId            String
+  
+  createdAt         DateTime         @default(now())
+  
+  @@index([applicationId])
+  @@index([userId])
+}
+
+enum FeedbackType {
+  GENERAL
+  BOTTLENECK_REPORT
+  APPRECIATION
+  COMPLAINT
 }

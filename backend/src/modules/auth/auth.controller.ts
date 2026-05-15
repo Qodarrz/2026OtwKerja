@@ -108,7 +108,6 @@ export class AuthController {
     return user;
   }
 
-  @UseGuards(JwtAuthGuard)
   @Post('logout')
   async logout(
     @Request() req: any,

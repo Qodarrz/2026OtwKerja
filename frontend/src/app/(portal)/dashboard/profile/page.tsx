@@ -69,7 +69,7 @@ export default function ProfilePage() {
                       )}
                     </div>
                   </div>
-                  <div className="absolute bottom-0 right-0 p-2 bg-primary text-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="absolute bottom-0 right-0 p-2 bg-primary text-primary-foreground rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
                     <Camera className="w-4 h-4" />
                   </div>
                 </div>

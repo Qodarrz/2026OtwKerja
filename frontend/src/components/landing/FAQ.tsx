@@ -38,7 +38,7 @@ export function FAQ() {
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/10 rounded-full text-[10px] font-black uppercase tracking-widest text-primary mb-4">
               <HelpCircle className="w-3 h-3" /> Bantuan & FAQ
             </div>
-            <h2 className="text-4xl font-black tracking-tight text-slate-900 mb-4">Pertanyaan Sering Diajukan</h2>
+            <h2 className="text-4xl font-black tracking-tight text-foreground mb-4">Pertanyaan Sering Diajukan</h2>
             <p className="text-muted-foreground font-medium max-w-lg mx-auto">
               Temukan jawaban cepat untuk pertanyaan umum seputar layanan FlowGov.
             </p>
@@ -52,8 +52,8 @@ export function FAQ() {
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.1 }}
                 className={cn(
-                  "border rounded-3xl transition-all duration-300 overflow-hidden bg-white",
-                  openIndex === i ? "border-primary/30 shadow-xl shadow-primary/5" : "border-slate-100"
+                  "border rounded-3xl transition-all duration-300 overflow-hidden bg-card",
+                  openIndex === i ? "border-primary/30 shadow-md shadow-sm" : "border-border"
                 )}
               >
                 <button
@@ -62,13 +62,13 @@ export function FAQ() {
                 >
                   <span className={cn(
                     "text-lg font-bold transition-colors",
-                    openIndex === i ? "text-primary" : "text-slate-900"
+                    openIndex === i ? "text-primary" : "text-foreground"
                   )}>
                     {faq.question}
                   </span>
                   <div className={cn(
                     "w-10 h-10 rounded-2xl flex items-center justify-center transition-all",
-                    openIndex === i ? "bg-primary text-white rotate-180" : "bg-slate-50 text-slate-400 group-hover:bg-slate-100"
+                    openIndex === i ? "bg-primary text-primary-foreground rotate-180" : "bg-muted text-muted-foreground group-hover:bg-secondary"
                   )}>
                     <ChevronDown className="w-5 h-5" />
                   </div>

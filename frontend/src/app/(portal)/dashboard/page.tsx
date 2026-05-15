@@ -5,6 +5,7 @@ import { Role } from "@/types/auth";
 import { UserDashboard } from "@/components/dashboard/UserDashboard";
 import { AdminDashboardView } from "@/components/dashboard/AdminDashboardView";
 import { InternalDashboard } from "@/components/dashboard/InternalDashboard";
+import { SmartOnboarding } from "@/components/dashboard/SmartOnboarding";
 import { Loader2 } from "lucide-react";
 
 export default function DashboardPage() {
@@ -17,7 +18,13 @@ export default function DashboardPage() {
     [Role.DOCUMENT_VALIDATOR, Role.FIELD_INSPECTOR, Role.LEGALIZER].includes(role)
   );
 
-  if (isAdmin) return <AdminDashboardView />;
-  if (isStaff) return <InternalDashboard />;
-  return <UserDashboard />;
+  return (
+    <div className="container mx-auto py-6">
+      <SmartOnboarding />
+      
+      {isAdmin && <AdminDashboardView />}
+      {isStaff && <InternalDashboard />}
+      {!isAdmin && !isStaff && <UserDashboard />}
+    </div>
+  );
 }

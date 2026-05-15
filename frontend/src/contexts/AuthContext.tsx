@@ -37,7 +37,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       } catch (e) {
         localStorage.removeItem('user_hint');
+        fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
       }
+    } else {
+      // Force clear cookie if user_hint is missing so middleware doesn't redirect loop
+      fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
     }
 
     // 2. Full background validation with the server
@@ -52,6 +56,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       } catch (err) {
         localStorage.removeItem('user_hint');
+        try {
+          // Force clear local cookie
+          await fetch('/api/auth/logout', { method: 'POST' });
+          // Attempt to logout from backend
+          await authService.logout();
+        } catch (e) {
+          // Ignore errors during cleanup
+        }
         setAuthState({
           user: null,
           isAuthenticated: false,
@@ -74,6 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
+      await fetch('/api/auth/logout', { method: 'POST' });
       await authService.logout();
     } catch (err) {
       console.error('[AuthContext] Logout error:', err);

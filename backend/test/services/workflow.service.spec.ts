@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { WorkflowService } from '../../src/modules/permits/services/workflow.service';
 import { SLAService } from '../../src/modules/permits/services/sla.service';
+import { NotificationService } from '../../src/modules/permits/services/notification.service';
 import { PrismaService } from '../../src/prisma/prisma.service';
 import { WorkflowStage, ActionType, Role, PermitType, SLAStatus } from '@prisma/client';
 import {
@@ -13,6 +14,7 @@ describe('WorkflowService', () => {
     let service: WorkflowService;
     let prisma: PrismaService;
     let slaService: SLAService;
+    let notificationService: NotificationService;
 
     const mockPrismaService = {
         permitApplication: {
@@ -26,6 +28,7 @@ describe('WorkflowService', () => {
         },
         validationAction: {
             create: jest.fn(),
+            findMany: jest.fn(),
         },
         stageHistory: {
             create: jest.fn(),
@@ -39,6 +42,10 @@ describe('WorkflowService', () => {
         notification: {
             create: jest.fn(),
         },
+        sLARule: {
+            findMany: jest.fn().mockResolvedValue([]),
+        },
+        $transaction: jest.fn((callback) => callback(mockPrismaService)),
     };
 
     const mockSLAService = {
@@ -58,6 +65,13 @@ describe('WorkflowService', () => {
         updateActiveSLAStatuses: jest.fn(),
     };
 
+    const mockNotificationService = {
+        notifyApplicationApproved: jest.fn(),
+        notifyStageAdvanced: jest.fn(),
+        notifyApplicationRejected: jest.fn(),
+        notifyNewApplication: jest.fn(),
+    };
+
     beforeEach(async () => {
         const module: TestingModule = await Test.createTestingModule({
             providers: [
@@ -70,12 +84,17 @@ describe('WorkflowService', () => {
                     provide: SLAService,
                     useValue: mockSLAService,
                 },
+                {
+                    provide: NotificationService,
+                    useValue: mockNotificationService,
+                },
             ],
         }).compile();
 
         service = module.get<WorkflowService>(WorkflowService);
         prisma = module.get<PrismaService>(PrismaService);
         slaService = module.get<SLAService>(SLAService);
+        notificationService = module.get<NotificationService>(NotificationService);
 
         // Clear all mocks before each test
         jest.clearAllMocks();
@@ -87,35 +106,35 @@ describe('WorkflowService', () => {
 
     describe('getNextStage', () => {
         it('should return DOCUMENT_CHECK for DRAFT', () => {
-            expect(service.getNextStage(WorkflowStage.DRAFT)).toBe(
+            expect(service.getNextStage(WorkflowStage.DRAFT, PermitType.BUILDING_PERMIT)).toBe(
                 WorkflowStage.DOCUMENT_CHECK,
             );
         });
 
         it('should return FIELD_INSPECTION for DOCUMENT_CHECK', () => {
-            expect(service.getNextStage(WorkflowStage.DOCUMENT_CHECK)).toBe(
+            expect(service.getNextStage(WorkflowStage.DOCUMENT_CHECK, PermitType.BUILDING_PERMIT)).toBe(
                 WorkflowStage.FIELD_INSPECTION,
             );
         });
 
         it('should return LEGALIZATION for FIELD_INSPECTION', () => {
-            expect(service.getNextStage(WorkflowStage.FIELD_INSPECTION)).toBe(
+            expect(service.getNextStage(WorkflowStage.FIELD_INSPECTION, PermitType.BUILDING_PERMIT)).toBe(
                 WorkflowStage.LEGALIZATION,
             );
         });
 
         it('should return APPROVED for LEGALIZATION', () => {
-            expect(service.getNextStage(WorkflowStage.LEGALIZATION)).toBe(
+            expect(service.getNextStage(WorkflowStage.LEGALIZATION, PermitType.BUILDING_PERMIT)).toBe(
                 WorkflowStage.APPROVED,
             );
         });
 
         it('should return null for APPROVED', () => {
-            expect(service.getNextStage(WorkflowStage.APPROVED)).toBeNull();
+            expect(service.getNextStage(WorkflowStage.APPROVED, PermitType.BUILDING_PERMIT)).toBeNull();
         });
 
         it('should return null for REJECTED', () => {
-            expect(service.getNextStage(WorkflowStage.REJECTED)).toBeNull();
+            expect(service.getNextStage(WorkflowStage.REJECTED, PermitType.BUILDING_PERMIT)).toBeNull();
         });
     });
 
@@ -130,18 +149,21 @@ describe('WorkflowService', () => {
                 await service.canUserAccessStage(
                     'user-1',
                     WorkflowStage.DOCUMENT_CHECK,
+                    PermitType.BUILDING_PERMIT,
                 ),
             ).toBe(true);
             expect(
                 await service.canUserAccessStage(
                     'user-1',
                     WorkflowStage.FIELD_INSPECTION,
+                    PermitType.BUILDING_PERMIT,
                 ),
             ).toBe(true);
             expect(
                 await service.canUserAccessStage(
                     'user-1',
                     WorkflowStage.LEGALIZATION,
+                    PermitType.BUILDING_PERMIT,
                 ),
             ).toBe(true);
         });
@@ -156,6 +178,7 @@ describe('WorkflowService', () => {
                 await service.canUserAccessStage(
                     'user-1',
                     WorkflowStage.DOCUMENT_CHECK,
+                    PermitType.BUILDING_PERMIT,
                 ),
             ).toBe(true);
         });
@@ -170,6 +193,7 @@ describe('WorkflowService', () => {
                 await service.canUserAccessStage(
                     'user-1',
                     WorkflowStage.FIELD_INSPECTION,
+                    PermitType.BUILDING_PERMIT,
                 ),
             ).toBe(false);
         });
@@ -184,6 +208,7 @@ describe('WorkflowService', () => {
                 await service.canUserAccessStage(
                     'user-1',
                     WorkflowStage.FIELD_INSPECTION,
+                    PermitType.BUILDING_PERMIT,
                 ),
             ).toBe(true);
         });
@@ -198,6 +223,7 @@ describe('WorkflowService', () => {
                 await service.canUserAccessStage(
                     'user-1',
                     WorkflowStage.LEGALIZATION,
+                    PermitType.BUILDING_PERMIT,
                 ),
             ).toBe(true);
         });
@@ -209,6 +235,7 @@ describe('WorkflowService', () => {
                 await service.canUserAccessStage(
                     'user-1',
                     WorkflowStage.DOCUMENT_CHECK,
+                    PermitType.BUILDING_PERMIT,
                 ),
             ).toBe(false);
         });
@@ -219,6 +246,7 @@ describe('WorkflowService', () => {
             id: 'app-1',
             referenceNumber: 'BP/2026/04/00001',
             currentStage: WorkflowStage.DOCUMENT_CHECK,
+            permitType: PermitType.BUILDING_PERMIT,
             applicantId: 'applicant-1',
         };
 
@@ -252,7 +280,7 @@ describe('WorkflowService', () => {
             );
             expect(mockPrismaService.stageHistory.create).toHaveBeenCalled();
             expect(mockPrismaService.auditLog.create).toHaveBeenCalled();
-            expect(mockPrismaService.notification.create).toHaveBeenCalled();
+            expect(notificationService.notifyStageAdvanced).toHaveBeenCalled();
         });
 
         it('should throw NotFoundException if application not found', async () => {
@@ -327,6 +355,7 @@ describe('WorkflowService', () => {
             id: 'app-1',
             referenceNumber: 'BP/2026/04/00001',
             currentStage: WorkflowStage.DOCUMENT_CHECK,
+            permitType: PermitType.BUILDING_PERMIT,
             applicantId: 'applicant-1',
         };
 
@@ -361,7 +390,7 @@ describe('WorkflowService', () => {
             );
             expect(mockPrismaService.stageHistory.create).toHaveBeenCalled();
             expect(mockPrismaService.auditLog.create).toHaveBeenCalled();
-            expect(mockPrismaService.notification.create).toHaveBeenCalled();
+            expect(notificationService.notifyApplicationRejected).toHaveBeenCalled();
         });
 
         it('should throw BadRequestException if reason is empty', async () => {
@@ -410,6 +439,7 @@ describe('WorkflowService', () => {
                     currentStage: WorkflowStage.DOCUMENT_CHECK,
                     submittedAt: new Date('2026-04-01'),
                     applicant: { id: 'applicant-1', name: 'John Doe' },
+                    stageHistory: [],
                 },
             ];
 
@@ -421,8 +451,8 @@ describe('WorkflowService', () => {
 
             expect(result.length).toBe(1);
             expect(result[0].currentStage).toBe(WorkflowStage.DOCUMENT_CHECK);
-            expect(result[0]).toHaveProperty('daysPending');
-            expect(result[0]).toHaveProperty('isPendingLong');
+            expect(result[0]).toHaveProperty('hoursPending');
+            expect(result[0]).toHaveProperty('slaStatus');
         });
 
         it('should return applications for multiple roles', async () => {
@@ -556,9 +586,7 @@ describe('WorkflowService', () => {
                 },
             ];
 
-            mockPrismaService.validationAction.findMany = jest
-                .fn()
-                .mockResolvedValue(mockActions);
+            mockPrismaService.validationAction.findMany.mockResolvedValue(mockActions);
 
             const result = await service.getValidationActions('app-1');
 

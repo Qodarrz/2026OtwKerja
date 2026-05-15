@@ -16,7 +16,8 @@ import {
   Inbox,
   LayoutGrid,
   List,
-  MoreVertical
+  MoreVertical,
+  AlertCircle
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -28,8 +29,7 @@ import {
   FileSearch, 
   MapPin, 
   Gavel, 
-  ShieldCheck,
-  MoreVertical 
+  ShieldCheck
 } from "lucide-react";
 
 export function InternalDashboard() {
@@ -53,10 +53,10 @@ export function InternalDashboard() {
   }, []);
 
   const getRoleInfo = () => {
-    if (user?.roles.includes(Role.DOCUMENT_VALIDATOR)) return { label: "Document Validator", icon: FileSearch, color: "text-blue-600", bg: "bg-blue-50" };
-    if (user?.roles.includes(Role.FIELD_INSPECTOR)) return { label: "Field Inspector", icon: MapPin, color: "text-indigo-600", bg: "bg-indigo-50" };
+    if (user?.roles.includes(Role.DOCUMENT_VALIDATOR)) return { label: "Document Validator", icon: FileSearch, color: "text-primary", bg: "bg-blue-50" };
+    if (user?.roles.includes(Role.FIELD_INSPECTOR)) return { label: "Field Inspector", icon: MapPin, color: "text-primary", bg: "bg-indigo-50" };
     if (user?.roles.includes(Role.LEGALIZER)) return { label: "Legalizer", icon: Gavel, color: "text-purple-600", bg: "bg-purple-50" };
-    return { label: "Staff", icon: Inbox, color: "text-slate-600", bg: "bg-slate-50" };
+    return { label: "Staff", icon: Inbox, color: "text-muted-foreground", bg: "bg-muted" };
   };
 
   const roleInfo = getRoleInfo();
@@ -79,34 +79,34 @@ export function InternalDashboard() {
              </div>
              <span className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-muted-foreground">{roleInfo.label} Portal</span>
           </div>
-          <h1 className="text-4xl font-extrabold tracking-tight text-slate-900">Antrean Berkas</h1>
+          <h1 className="text-4xl font-extrabold tracking-tight text-foreground">Antrean Berkas</h1>
           <p className="text-muted-foreground font-medium">Prioritaskan pengajuan perizinan berdasarkan tenggat waktu SLA.</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative hidden lg:block">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input 
               type="text" 
               placeholder="Cari ID atau Pemohon..." 
-              className="pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-4 focus:ring-primary/5 w-72 transition-all"
+              className="pl-11 pr-4 py-3 bg-card border border-border rounded-xl text-sm font-bold focus:outline-none focus:ring-4 focus:ring-primary/5 w-72 transition-all"
             />
           </div>
-          <div className="flex bg-white border border-slate-200 rounded-xl p-1 shadow-sm">
+          <div className="flex bg-card border border-border rounded-xl p-1 shadow-sm">
             <button 
               onClick={() => setViewMode('list')}
-              className={cn("p-2 rounded-lg transition-all", viewMode === 'list' ? "bg-slate-100 text-slate-900 shadow-inner" : "text-slate-400 hover:text-slate-600")}
+              className={cn("p-2 rounded-lg transition-all", viewMode === 'list' ? "bg-secondary text-foreground shadow-inner" : "text-muted-foreground hover:text-muted-foreground")}
             >
               <List className="w-4 h-4" />
             </button>
             <button 
               onClick={() => setViewMode('grid')}
-              className={cn("p-2 rounded-lg transition-all", viewMode === 'grid' ? "bg-slate-100 text-slate-900 shadow-inner" : "text-slate-400 hover:text-slate-600")}
+              className={cn("p-2 rounded-lg transition-all", viewMode === 'grid' ? "bg-secondary text-foreground shadow-inner" : "text-muted-foreground hover:text-muted-foreground")}
             >
               <LayoutGrid className="w-4 h-4" />
             </button>
           </div>
-          <Button variant="outline" className="rounded-xl border-slate-200 bg-white font-bold h-11 px-6 hover:bg-slate-50 transition-all">
-            <Filter className="w-4 h-4 mr-2 text-slate-400" /> Filter
+          <Button variant="outline" className="rounded-xl border-border bg-card font-bold h-11 px-6 hover:bg-accent transition-all">
+            <Filter className="w-4 h-4 mr-2 text-muted-foreground" /> Filter
           </Button>
         </div>
       </header>
@@ -117,12 +117,12 @@ export function InternalDashboard() {
           { label: "SLA Warning", value: tasks.filter(t => t.slaStatus === 'WARNING').length, icon: Clock, color: "bg-amber-500", text: "text-amber-600", bg: "bg-amber-50/50" },
           { label: "SLA Overdue", value: tasks.filter(t => t.slaStatus === 'OVERDUE').length, icon: AlertCircle, color: "bg-rose-500", text: "text-rose-600", bg: "bg-rose-50/50" },
         ].map((stat, i) => (
-          <Card key={stat.label} className="border-none shadow-sm overflow-hidden bg-white">
+          <Card key={stat.label} className="border-none shadow-sm overflow-hidden bg-card">
             <CardContent className="p-6">
               <div className="flex justify-between items-start">
                 <div className="space-y-1">
-                  <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">{stat.label}</p>
-                  <h3 className="text-3xl font-black text-slate-900">{stat.value}</h3>
+                  <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">{stat.label}</p>
+                  <h3 className="text-3xl font-black text-foreground">{stat.value}</h3>
                 </div>
                 <div className={cn("p-3 rounded-2xl", stat.bg)}>
                   <stat.icon className={cn("w-6 h-6", stat.text)} />
@@ -133,10 +133,10 @@ export function InternalDashboard() {
         ))}
       </div>
 
-      <Card className="border-none shadow-sm bg-white overflow-hidden">
+      <Card className="border-none shadow-sm bg-card overflow-hidden">
         <div className="p-8 border-b border-slate-50 flex items-center justify-between">
            <div>
-              <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Tugas Yang Perlu Diproses</h2>
+              <h2 className="text-xl font-extrabold text-foreground tracking-tight">Tugas Yang Perlu Diproses</h2>
               <p className="text-sm text-muted-foreground font-medium">Daftar berkas yang berada pada tahap <span className="text-primary font-bold">{roleInfo.label}</span>.</p>
            </div>
         </div>
@@ -144,7 +144,7 @@ export function InternalDashboard() {
           {viewMode === 'list' ? (
             <div className="overflow-x-auto">
               <table className="w-full text-left">
-                <thead className="bg-slate-50/50 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 border-b border-slate-100">
+                <thead className="bg-muted/50 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground border-b border-border">
                   <tr>
                     <th className="px-8 py-5">Pemohon & No. Ref</th>
                     <th className="px-8 py-5">Tipe Izin</th>
@@ -156,19 +156,19 @@ export function InternalDashboard() {
                 <tbody className="divide-y divide-slate-50">
                   {tasks.length > 0 ? (
                     tasks.map((task) => (
-                      <tr key={task.id} className="hover:bg-slate-50/80 transition-colors group">
+                      <tr key={task.id} className="hover:bg-accent/80 transition-colors group">
                         <td className="px-8 py-6">
                           <div className="flex flex-col gap-1">
-                            <span className="font-extrabold text-slate-900 tracking-tight">{task.applicant?.name || 'Unknown User'}</span>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{task.referenceNumber}</span>
+                            <span className="font-extrabold text-foreground tracking-tight">{task.applicant?.name || 'Unknown User'}</span>
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{task.referenceNumber}</span>
                           </div>
                         </td>
                         <td className="px-8 py-6">
-                          <span className="inline-flex items-center px-3 py-1 bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-widest rounded-lg border border-slate-200">
+                          <span className="inline-flex items-center px-3 py-1 bg-secondary text-muted-foreground text-[10px] font-black uppercase tracking-widest rounded-lg border border-border">
                             {task.permitType.replace('_', ' ')}
                           </span>
                         </td>
-                        <td className="px-8 py-6 text-sm font-bold text-slate-500">
+                        <td className="px-8 py-6 text-sm font-bold text-muted-foreground">
                           <div className="flex items-center gap-2">
                             <Calendar className="w-4 h-4 text-slate-300" />
                             {new Date(task.submittedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
@@ -183,7 +183,7 @@ export function InternalDashboard() {
                         </td>
                         <td className="px-8 py-6 text-right">
                           <Link href={`/dashboard/validate/${task.id}`}>
-                            <Button size="sm" className="rounded-xl bg-primary hover:bg-primary/90 font-extrabold h-9 px-5 transition-all shadow-md shadow-primary/10">
+                            <Button size="sm" className="rounded-xl bg-primary hover:bg-primary/90 font-extrabold h-9 px-5 transition-all shadow-md shadow-sm">
                               Proses <ArrowUpRight className="ml-2 w-3.5 h-3.5" />
                             </Button>
                           </Link>
@@ -198,7 +198,7 @@ export function InternalDashboard() {
                             <CheckCircle2 className="w-10 h-10 text-emerald-500" />
                           </div>
                           <div className="space-y-1">
-                            <p className="text-lg font-black text-slate-900 tracking-tight">Antrean Bersih!</p>
+                            <p className="text-lg font-black text-foreground tracking-tight">Antrean Bersih!</p>
                             <p className="text-sm font-medium text-muted-foreground">Tidak ada berkas yang perlu divalidasi saat ini.</p>
                           </div>
                         </div>
@@ -211,22 +211,22 @@ export function InternalDashboard() {
           ) : (
             <div className="p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                {tasks.map(task => (
-                 <div key={task.id} className="p-6 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-white hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 group relative overflow-hidden">
+                 <div key={task.id} className="p-6 rounded-2xl border border-border bg-muted/50 hover:bg-card hover:shadow-md hover:shadow-sm transition-all duration-300 group relative overflow-hidden">
                     {task.isPendingLong && <div className="absolute top-0 right-0 w-16 h-16 bg-rose-500/10 rotate-45 translate-x-8 -translate-y-8" />}
                     <div className="flex justify-between items-start mb-6">
-                      <div className="p-2 bg-white rounded-xl shadow-sm border border-slate-100 group-hover:scale-110 transition-transform">
+                      <div className="p-2 bg-card rounded-xl shadow-sm border border-border group-hover:scale-110 transition-transform">
                         <FileText className="w-5 h-5 text-primary" />
                       </div>
-                      <button className="text-slate-300 hover:text-slate-600 transition-colors">
+                      <button className="text-slate-300 hover:text-muted-foreground transition-colors">
                         <MoreVertical className="w-5 h-5" />
                       </button>
                     </div>
                     <div className="space-y-4">
                       <div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">{task.referenceNumber}</p>
-                        <h4 className="font-extrabold text-slate-900 truncate tracking-tight">{task.applicant?.name || 'Unknown User'}</h4>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">{task.referenceNumber}</p>
+                        <h4 className="font-extrabold text-foreground truncate tracking-tight">{task.applicant?.name || 'Unknown User'}</h4>
                       </div>
-                      <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+                      <div className="flex items-center justify-between pt-4 border-t border-border">
                         <div className="w-full">
                           <SLACountdown 
                             remainingHours={task.remainingHours} 
@@ -236,7 +236,7 @@ export function InternalDashboard() {
                         </div>
                       </div>
                       <Link href={`/dashboard/validate/${task.id}`} className="block">
-                        <Button className="w-full bg-primary hover:bg-primary/90 rounded-xl font-extrabold h-11 shadow-lg shadow-primary/10">
+                        <Button className="w-full bg-primary hover:bg-primary/90 rounded-xl font-extrabold h-11 shadow-lg shadow-sm">
                           Mulai Validasi
                         </Button>
                       </Link>

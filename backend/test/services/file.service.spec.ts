@@ -9,17 +9,25 @@ import {
 import { WorkflowStage, PermitType } from '@prisma/client';
 
 // Mock fs modules before any imports that use them
-jest.mock('fs/promises', () => ({
-    mkdir: jest.fn(),
-    writeFile: jest.fn(),
-    access: jest.fn(),
-    unlink: jest.fn(),
-}));
+jest.mock('fs/promises', () => {
+    const actual = jest.requireActual('fs/promises');
+    return {
+        ...actual,
+        mkdir: jest.fn(),
+        writeFile: jest.fn(),
+        access: jest.fn(),
+        unlink: jest.fn(),
+    };
+});
 
-jest.mock('fs', () => ({
-    createReadStream: jest.fn(),
-    existsSync: jest.fn(() => true),
-}));
+jest.mock('fs', () => {
+    const actual = jest.requireActual('fs');
+    return {
+        ...actual,
+        createReadStream: jest.fn(),
+        existsSync: jest.fn(() => true),
+    };
+});
 
 import * as fs from 'fs/promises';
 import * as path from 'path';
@@ -387,11 +395,17 @@ describe('FileService', () => {
             mockPrismaService.document.findUnique.mockResolvedValue(mockDocument);
             mockPrismaService.document.delete.mockResolvedValue(mockDocument);
             (fs.unlink as jest.Mock).mockRejectedValue(new Error('File not found'));
+            const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
             const result = await service.deleteDocument('doc-123', 'user-123');
 
             expect(result.message).toBe('Document deleted successfully');
             expect(mockPrismaService.document.delete).toHaveBeenCalled();
+            expect(consoleSpy).toHaveBeenCalledWith(
+                'Error deleting file from disk:',
+                expect.any(Error),
+            );
+            consoleSpy.mockRestore();
         });
     });
 

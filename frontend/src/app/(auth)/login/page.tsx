@@ -190,7 +190,7 @@ function LoginForm() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full h-11 xl:h-12 bg-primary hover:bg-primary/90 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 group active:scale-[0.98] shadow-lg shadow-primary/20"
+                className="w-full h-11 xl:h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl transition-all flex items-center justify-center gap-2 group active:scale-[0.98] shadow-lg shadow-sm"
               >
                 {isLoading ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
@@ -226,14 +226,14 @@ function LoginForm() {
             className="absolute inset-0 w-full h-full object-cover opacity-80" 
             src="https://images.unsplash.com/photo-1449824913935-59a10b8d2000?q=80&w=2070&auto=format&fit=crop"
           />
-          <div className="absolute bottom-16 left-16 right-16 text-white space-y-6 z-20">
-            <div className="inline-flex items-center space-x-2 px-3 py-1.5 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
+          <div className="absolute bottom-16 left-16 right-16 text-primary-foreground space-y-6 z-20">
+            <div className="inline-flex items-center space-x-2 px-3 py-1.5 bg-card/10 backdrop-blur-md rounded-full border border-white/20">
               <span className="text-[10px] xl:text-xs font-bold uppercase tracking-wider">Pelayanan Publik Prima</span>
             </div>
             <h2 className="text-4xl xl:text-5xl font-bold leading-tight">
               Solusi Perizinan <br/>Cepat & Terpercaya.
             </h2>
-            <p className="text-base xl:text-lg text-white/80 font-sans max-w-lg">Membangun masa depan layanan publik yang lebih efisien bagi seluruh masyarakat.</p>
+            <p className="text-base xl:text-lg text-primary-foreground/80 font-sans max-w-lg">Membangun masa depan layanan publik yang lebih efisien bagi seluruh masyarakat.</p>
           </div>
         </div>
       </div>
@@ -244,8 +244,8 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      <div className="min-h-screen flex items-center justify-center bg-card">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     }>
       <LoginForm />

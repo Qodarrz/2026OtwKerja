@@ -13,28 +13,28 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    // Basic Passport-JWT check
-    const isValid = await super.canActivate(context);
-    if (!isValid) {
-      throw new UnauthorizedException();
+    try {
+      // Basic Passport-JWT check
+      const isValid = await super.canActivate(context);
+      if (!isValid) return false;
+
+      const request = context.switchToHttp().getRequest();
+      const token = request.cookies?.['access_token'] || request.headers.authorization?.split(' ')[1];
+
+      if (!token) return false;
+
+      // Strict validation against Database Session Table
+      const session = await this.prisma.session.findUnique({
+        where: { token },
+      });
+
+      if (!session || new Date() > session.expiresAt) {
+        return false;
+      }
+
+      return true;
+    } catch (e) {
+      return false;
     }
-
-    const request = context.switchToHttp().getRequest();
-    const token = request.cookies?.['access_token'] || request.headers.authorization?.split(' ')[1];
-
-    if (!token) {
-      throw new UnauthorizedException('Token not provided');
-    }
-
-    // Strict validation against Database Session Table
-    const session = await this.prisma.session.findUnique({
-      where: { token },
-    });
-
-    if (!session || new Date() > session.expiresAt) {
-      throw new UnauthorizedException('Session expired or invalid');
-    }
-
-    return true;
   }
 }

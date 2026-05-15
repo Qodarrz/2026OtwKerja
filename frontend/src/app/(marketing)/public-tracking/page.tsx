@@ -64,7 +64,7 @@ export default function PublicTracking() {
               Portal Transparansi Publik
             </span>
             <h1 className="text-4xl md:text-6xl font-black mb-8 tracking-tight">
-              Pantau Status <span className="gradient-text">Izin Anda.</span>
+              Pantau Status <span className="text-primary">Izin Anda.</span>
             </h1>
             <p className="text-lg text-muted-foreground mb-12 max-w-2xl mx-auto">
               Akses real-time untuk setiap tahapan permohonan Anda. Masukkan nomor referensi di bawah ini.
@@ -77,13 +77,13 @@ export default function PublicTracking() {
                 placeholder="Masukkan ID Permohonan (Contoh: PBG-2024-001)"
                 value={searchId}
                 onChange={(e) => setSearchId(e.target.value)}
-                className="w-full h-20 bg-card border-2 border-border rounded-[2rem] pl-16 pr-44 text-xl font-bold focus:border-primary outline-none transition-all shadow-2xl shadow-primary/5"
+                className="w-full h-20 bg-card border-2 border-border rounded-[2rem] pl-16 pr-44 text-xl font-bold focus:border-primary outline-none transition-all shadow-lg shadow-sm"
               />
               <Button 
                 type="submit"
                 disabled={isSearching}
                 size="lg"
-                className="absolute right-3 top-3 bottom-3 px-10 rounded-[1.5rem] shadow-xl"
+                className="absolute right-3 top-3 bottom-3 px-10 rounded-[1.5rem] shadow-md"
               >
                 {isSearching ? "Mencari..." : "Lacak Berkas"}
                 {!isSearching && <ArrowRight className="ml-2 w-5 h-5" />}
@@ -145,9 +145,9 @@ export default function PublicTracking() {
                       <span className="text-sm font-bold">{result.submittedAt}</span>
                     </div>
                     
-                    <div className="mt-8 p-4 bg-primary rounded-2xl text-white shadow-xl shadow-primary/20">
+                    <div className="mt-8 p-4 bg-primary rounded-2xl text-primary-foreground shadow-md shadow-sm">
                       <div className="flex gap-3">
-                        <ShieldCheck className="w-5 h-5 text-white/80" />
+                        <ShieldCheck className="w-5 h-5 text-primary-foreground/80" />
                         <div>
                           <p className="text-[10px] font-bold uppercase opacity-80">Jaminan FlowGov</p>
                           <p className="text-xs font-medium mt-1 leading-relaxed">Status Anda dipantau 24/7 oleh sistem audit internal kami.</p>
@@ -171,7 +171,7 @@ export default function PublicTracking() {
                         className={cn(
                           "relative p-8 rounded-3xl border transition-all duration-500",
                           stage.completed ? "bg-emerald-500/5 border-emerald-500/20" : 
-                          stage.active ? "bg-card border-primary shadow-2xl shadow-primary/5 scale-[1.02]" : 
+                          stage.active ? "bg-card border-primary shadow-lg shadow-sm scale-[1.02]" : 
                           "bg-muted/30 border-border opacity-50"
                         )}
                       >
@@ -179,8 +179,8 @@ export default function PublicTracking() {
                           <div className="flex items-center gap-6">
                             <div className={cn(
                               "w-12 h-12 rounded-2xl flex items-center justify-center border-2 shrink-0 transition-colors",
-                              stage.completed ? "bg-emerald-500 border-emerald-500 text-white" :
-                              stage.active ? "bg-primary border-primary text-white" :
+                              stage.completed ? "bg-emerald-500 border-emerald-500 text-primary-foreground" :
+                              stage.active ? "bg-primary border-primary text-primary-foreground" :
                               "bg-background border-border text-muted-foreground"
                             )}>
                               {stage.completed ? <CheckCircle2 className="w-6 h-6" /> : <span className="font-bold">{i + 1}</span>}

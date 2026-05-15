@@ -57,7 +57,7 @@ export function UserDashboard() {
     { 
       label: "Izin Aktif", 
       value: metrics.activeCount.toString(), 
-      icon: Activity, color: "text-sky-600", bg: "bg-sky-50" 
+      icon: Activity, color: "text-primary", bg: "bg-sky-50" 
     },
     { 
       label: "Selesai", 
@@ -72,7 +72,7 @@ export function UserDashboard() {
     { 
       label: "Draft", 
       value: metrics.draftCount.toString(), 
-      icon: FileText, color: "text-slate-500", bg: "bg-slate-50" 
+      icon: FileText, color: "text-muted-foreground", bg: "bg-muted" 
     },
   ];
 
@@ -94,11 +94,11 @@ export function UserDashboard() {
              </div>
              <span className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-muted-foreground">Portal Publik</span>
           </div>
-          <h1 className="text-4xl font-extrabold tracking-tight text-slate-900">Halo, {user?.name?.split(' ')[0]}!</h1>
+          <h1 className="text-4xl font-extrabold tracking-tight text-foreground">Halo, {user?.name?.split(' ')[0]}!</h1>
           <p className="text-muted-foreground font-medium">Pantau progres perizinan dan kewajiban administrasi Anda di sini.</p>
         </div>
         <Link href="/submit">
-          <Button className="rounded-xl bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 font-extrabold h-11 px-8 transition-all active:scale-95">
+          <Button className="rounded-xl bg-primary hover:bg-primary/90 shadow-lg shadow-sm font-extrabold h-11 px-8 transition-all active:scale-95">
             <Plus className="w-5 h-5 mr-2" />
             Buat Pengajuan Baru
           </Button>
@@ -113,7 +113,7 @@ export function UserDashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
           >
-            <Card className="border-none shadow-sm bg-white overflow-hidden group hover:shadow-md transition-all">
+            <Card className="border-none shadow-sm bg-card overflow-hidden group hover:shadow-md transition-all">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className={cn("p-3 rounded-2xl transition-transform group-hover:scale-110 duration-300", stat.bg)}>
@@ -121,7 +121,7 @@ export function UserDashboard() {
                   </div>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-3xl font-black tracking-tight text-slate-900">{stat.value}</span>
+                  <span className="text-3xl font-black tracking-tight text-foreground">{stat.value}</span>
                   <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mt-1">{stat.label}</span>
                 </div>
               </CardContent>
@@ -132,10 +132,10 @@ export function UserDashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
-          <Card className="border-none shadow-sm bg-white overflow-hidden">
+          <Card className="border-none shadow-sm bg-card overflow-hidden">
             <div className="p-8 border-b border-slate-50 flex items-center justify-between">
                <div>
-                  <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Pengajuan Terkini</h2>
+                  <h2 className="text-xl font-extrabold text-foreground tracking-tight">Pengajuan Terkini</h2>
                   <p className="text-sm text-muted-foreground font-medium">Daftar pengajuan terbaru yang sedang diproses.</p>
                </div>
                <Link href="/dashboard/applications">
@@ -149,25 +149,25 @@ export function UserDashboard() {
                     <Link 
                       key={sub.id} 
                       href={`/dashboard/applications/${sub.id}`}
-                      className="flex items-center justify-between p-6 hover:bg-slate-50/50 transition-colors group cursor-pointer"
+                      className="flex items-center justify-between p-6 hover:bg-accent/50 transition-colors group cursor-pointer"
                     >
                       <div className="flex items-center gap-5">
-                        <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center group-hover:bg-white group-hover:shadow-sm transition-all">
-                          <FileText className="w-6 h-6 text-slate-400 group-hover:text-primary transition-colors" />
+                        <div className="w-12 h-12 rounded-2xl bg-muted border border-border flex items-center justify-center group-hover:bg-card group-hover:shadow-sm transition-all">
+                          <FileText className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors" />
                         </div>
                         <div>
                           <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">{sub.referenceNumber || 'DRAFT'}</p>
-                          <p className="font-extrabold text-slate-900 tracking-tight">{sub.permitType.replace('_', ' ')}</p>
+                          <p className="font-extrabold text-foreground tracking-tight">{sub.permitType.replace('_', ' ')}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-8">
                         <div className="hidden md:flex flex-col items-end">
-                          <p className="text-xs font-bold text-slate-400">{new Date(sub.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</p>
+                          <p className="text-xs font-bold text-muted-foreground">{new Date(sub.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</p>
                           <span className={cn(
                             "text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg mt-1.5 border",
                             ['APPROVED'].includes(sub.status) ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
                             ['REJECTED'].includes(sub.status) ? "bg-rose-50 text-rose-600 border-rose-100" :
-                            ['DRAFT'].includes(sub.status) ? "bg-slate-100 text-slate-600 border-slate-200" :
+                            ['DRAFT'].includes(sub.status) ? "bg-secondary text-muted-foreground border-border" :
                             "bg-amber-50 text-amber-600 border-amber-100"
                           )}>
                             {sub.status.replace('_', ' ')}
@@ -180,31 +180,31 @@ export function UserDashboard() {
                 </div>
               ) : (
                 <div className="py-24 text-center">
-                  <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
                      <FileText className="w-8 h-8 text-slate-200" />
                   </div>
-                  <p className="font-extrabold text-slate-900 tracking-tight">Belum Ada Pengajuan</p>
+                  <p className="font-extrabold text-foreground tracking-tight">Belum Ada Pengajuan</p>
                   <p className="text-sm text-muted-foreground mt-1 mb-8">Mulai perizinan pertama Anda hari ini.</p>
                   <Link href="/submit">
-                    <Button variant="outline" className="rounded-xl border-slate-200 font-bold">Mulai Sekarang</Button>
+                    <Button variant="outline" className="rounded-xl border-border font-bold">Mulai Sekarang</Button>
                   </Link>
                 </div>
               )}
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-primary to-blue-700 text-white overflow-hidden relative border-none shadow-2xl shadow-primary/20">
-            <div className="absolute top-0 right-0 w-80 h-80 bg-white/10 rounded-full -mr-32 -mt-32 blur-3xl opacity-50" />
+          <Card className="bg-gradient-to-br from-primary to-blue-700 text-primary-foreground overflow-hidden relative border-none shadow-lg shadow-sm">
+            <div className="absolute top-0 right-0 w-80 h-80 bg-card/10 rounded-full -mr-32 -mt-32 blur-3xl opacity-50" />
             <CardContent className="p-12 relative z-10">
               <div className="max-w-md space-y-6">
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 rounded-full text-[10px] font-black uppercase tracking-widest">
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-card/20 rounded-full text-[10px] font-black uppercase tracking-widest">
                   Layanan Bantuan
                 </div>
                 <h3 className="text-3xl font-black leading-tight tracking-tight">Butuh Konsultasi Terkait Tata Ruang?</h3>
                 <p className="text-blue-100 font-medium leading-relaxed">
                   Tim ahli kami siap membantu Anda memverifikasi dokumen teknis dan zonasi lahan sebelum diajukan ke sistem.
                 </p>
-                <Button className="bg-white text-primary hover:bg-white/90 rounded-xl font-black px-8 h-12 shadow-xl shadow-black/10 transition-all active:scale-95">
+                <Button className="bg-card text-primary hover:bg-card/90 rounded-xl font-black px-8 h-12 shadow-md shadow-black/10 transition-all active:scale-95">
                   Hubungi Konsultan Ahli
                 </Button>
               </div>
@@ -213,26 +213,26 @@ export function UserDashboard() {
         </div>
 
         <div className="space-y-8">
-          <Card className="border-none shadow-sm bg-white overflow-hidden">
+          <Card className="border-none shadow-sm bg-card overflow-hidden">
             <div className="p-8 border-b border-slate-50">
-               <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Kewajiban Pembayaran</h2>
+               <h2 className="text-xl font-extrabold text-foreground tracking-tight">Kewajiban Pembayaran</h2>
                <p className="text-sm text-muted-foreground font-medium">Tagihan retribusi perizinan aktif.</p>
             </div>
             <CardContent className="p-8 space-y-8">
-              <div className="p-6 rounded-2xl bg-slate-50 border border-slate-100 space-y-4">
+              <div className="p-6 rounded-2xl bg-muted border border-border space-y-4">
                 <div className="flex justify-between items-start">
-                   <div className="p-2.5 bg-white rounded-xl shadow-sm border border-slate-100 text-primary">
+                   <div className="p-2.5 bg-card rounded-xl shadow-sm border border-border text-primary">
                       <CreditCard className="w-5 h-5" />
                    </div>
                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">Tagihan Aktif</span>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-3xl font-black text-slate-900 tracking-tighter leading-none">
+                  <p className="text-3xl font-black text-foreground tracking-tighter leading-none">
                     {formatCurrency(metrics.totalCost)}
                   </p>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Akumulatif</p>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Total Akumulatif</p>
                 </div>
-                <Button size="sm" className="w-full rounded-xl bg-primary hover:bg-primary/90 font-black h-10 mt-4 shadow-md shadow-primary/10 transition-all">
+                <Button size="sm" className="w-full rounded-xl bg-primary hover:bg-primary/90 font-black h-10 mt-4 shadow-md shadow-sm transition-all">
                   Bayar Sekarang
                 </Button>
               </div>
@@ -250,10 +250,10 @@ export function UserDashboard() {
                     "Masa berlaku izin usaha"
                   ].map((guide, i) => (
                     <div key={i} className="flex gap-4 group cursor-pointer">
-                      <div className="w-6 h-6 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0 group-hover:bg-primary/5 group-hover:border-primary/20 transition-all duration-300">
+                      <div className="w-6 h-6 rounded-lg bg-muted border border-border flex items-center justify-center shrink-0 group-hover:bg-primary/5 group-hover:border-primary/20 transition-all duration-300">
                         <History className="w-3 h-3 text-slate-300 group-hover:text-primary transition-colors" />
                       </div>
-                      <p className="text-sm font-bold text-slate-600 group-hover:text-slate-900 transition-colors leading-tight">{guide}</p>
+                      <p className="text-sm font-bold text-muted-foreground group-hover:text-foreground transition-colors leading-tight">{guide}</p>
                     </div>
                   ))}
                 </div>
@@ -262,13 +262,13 @@ export function UserDashboard() {
           </Card>
 
           <Card className={cn(
-            "border-none overflow-hidden shadow-2xl shadow-primary/20",
-            user?.isKtpVerified ? "bg-primary text-white" : "bg-amber-500 text-white"
+            "border-none overflow-hidden shadow-lg shadow-sm",
+            user?.isKtpVerified ? "bg-primary text-primary-foreground" : "bg-amber-500 text-primary-foreground"
           )}>
              <CardContent className="p-8">
                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
-                    <Sparkles className="w-5 h-5 text-white" />
+                  <div className="w-10 h-10 rounded-xl bg-card/20 flex items-center justify-center">
+                    <Sparkles className="w-5 h-5 text-primary-foreground" />
                   </div>
                   <p className="text-sm font-black uppercase tracking-widest leading-none">Status KTP</p>
                </div>
@@ -283,7 +283,7 @@ export function UserDashboard() {
                   </p>
                   {!user?.isKtpVerified && (
                     <Link href="/dashboard/profile">
-                      <Button className="w-full bg-white text-amber-600 hover:bg-white/90 rounded-xl font-bold mt-4">
+                      <Button className="w-full bg-card text-amber-600 hover:bg-card/90 rounded-xl font-bold mt-4">
                         Verifikasi Sekarang
                       </Button>
                     </Link>

@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { NotificationType, Prisma } from '@prisma/client';
+import { NotificationType, Prisma, Role } from '@prisma/client';
 import { NotificationGateway } from '../gateways/notification.gateway';
 
 export interface ListNotificationsQuery {
@@ -46,7 +46,21 @@ export class NotificationService {
             },
         });
 
-        this.gateway.sendNotification(application.applicantId, notification);
+        try {
+            this.gateway.sendToUser(application.applicantId, 'notification:application_submitted', {
+                id: notification.id,
+                type: notification.type,
+                title: notification.title,
+                message: notification.message,
+                timestamp: notification.createdAt.toISOString(),
+                metadata: {
+                    applicationId,
+                    referenceNumber: application.referenceNumber,
+                },
+            });
+        } catch (error) {
+            console.error('WebSocket delivery failed:', error);
+        }
     }
 
     /**
@@ -74,7 +88,22 @@ export class NotificationService {
             },
         });
 
-        this.gateway.sendNotification(application.applicantId, notification);
+        try {
+            this.gateway.sendToUser(application.applicantId, 'notification:stage_advanced', {
+                id: notification.id,
+                type: notification.type,
+                title: notification.title,
+                message: notification.message,
+                timestamp: notification.createdAt.toISOString(),
+                metadata: {
+                    applicationId,
+                    referenceNumber: application.referenceNumber,
+                    stage: newStage,
+                },
+            });
+        } catch (error) {
+            console.error('WebSocket delivery failed:', error);
+        }
     }
 
     /**
@@ -99,7 +128,21 @@ export class NotificationService {
             },
         });
 
-        this.gateway.sendNotification(application.applicantId, notification);
+        try {
+            this.gateway.sendToUser(application.applicantId, 'notification:application_approved', {
+                id: notification.id,
+                type: notification.type,
+                title: notification.title,
+                message: notification.message,
+                timestamp: notification.createdAt.toISOString(),
+                metadata: {
+                    applicationId,
+                    referenceNumber: application.referenceNumber,
+                },
+            });
+        } catch (error) {
+            console.error('WebSocket delivery failed:', error);
+        }
     }
 
     /**
@@ -127,7 +170,22 @@ export class NotificationService {
             },
         });
 
-        this.gateway.sendNotification(application.applicantId, notification);
+        try {
+            this.gateway.sendToUser(application.applicantId, 'notification:application_rejected', {
+                id: notification.id,
+                type: notification.type,
+                title: notification.title,
+                message: notification.message,
+                timestamp: notification.createdAt.toISOString(),
+                metadata: {
+                    applicationId,
+                    referenceNumber: application.referenceNumber,
+                    rejectionReason: reason,
+                },
+            });
+        } catch (error) {
+            console.error('WebSocket delivery failed:', error);
+        }
     }
 
     /**
@@ -138,9 +196,14 @@ export class NotificationService {
         staffId: string,
         stage: string,
     ): Promise<void> {
-        const application = await this.prisma.permitApplication.findUnique({
-            where: { id: applicationId },
-        });
+        const [application, staff] = await Promise.all([
+            this.prisma.permitApplication.findUnique({
+                where: { id: applicationId },
+            }),
+            this.prisma.user.findUnique({
+                where: { id: staffId },
+            }),
+        ]);
 
         if (!application) return;
 
@@ -154,7 +217,37 @@ export class NotificationService {
             },
         });
 
-        this.gateway.sendNotification(staffId, notification);
+        const payload = {
+            id: notification.id,
+            type: 'SLA_WARNING',
+            title: 'SLA Warning',
+            message: notification.message,
+            timestamp: notification.createdAt.toISOString(),
+            metadata: {
+                applicationId,
+                referenceNumber: application.referenceNumber,
+                stage,
+                urgencyLevel: 'high',
+                assignedStaffName: staff?.name || 'Unknown',
+                timeRemaining: 3600, // Mock value
+            },
+        };
+
+        try {
+            this.gateway.sendToUser(staffId, 'notification:sla_warning', payload);
+            
+            // Broadcast to relevant role
+            let roleToNotify: Role | null = null;
+            if (stage === 'DOCUMENT_CHECK') roleToNotify = Role.DOCUMENT_VALIDATOR;
+            else if (stage === 'FIELD_INSPECTION') roleToNotify = Role.FIELD_INSPECTOR;
+            else if (stage === 'LEGALIZATION') roleToNotify = Role.LEGALIZER;
+
+            if (roleToNotify) {
+                this.gateway.sendToRole(roleToNotify, 'notification:sla_warning', payload);
+            }
+        } catch (error) {
+            console.error('WebSocket delivery failed:', error);
+        }
     }
 
     /**
@@ -182,7 +275,28 @@ export class NotificationService {
             },
         });
 
-        this.gateway.sendNotification(supervisorId, notification);
+        const payload = {
+            id: notification.id,
+            type: 'SLA_ESCALATION',
+            title: 'SLA Escalation Alert',
+            message: notification.message,
+            timestamp: notification.createdAt.toISOString(),
+            metadata: {
+                applicationId,
+                referenceNumber: application.referenceNumber,
+                stage,
+                urgencyLevel: 'critical',
+                assignedStaffName: staffName,
+                overdueDuration: 7200, // Mock value
+            },
+        };
+
+        try {
+            this.gateway.sendToUser(supervisorId, 'notification:sla_overdue', payload);
+            this.gateway.sendToRole(Role.ADMIN, 'notification:sla_overdue', payload);
+        } catch (error) {
+            console.error('WebSocket delivery failed:', error);
+        }
     }
 
     /**

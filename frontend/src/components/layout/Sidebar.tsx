@@ -92,10 +92,10 @@ export function Sidebar() {
   );
 
   return (
-    <div className="w-72 h-screen bg-white border-r border-border flex flex-col fixed left-0 top-0 z-50 shadow-sm font-sans">
+    <div className="w-72 h-screen bg-card border-r border-border flex flex-col fixed left-0 top-0 z-50 shadow-sm font-sans">
       <div className="p-8 pb-4 flex items-center gap-3">
         <div>
-          <h2 className="font-extrabold text-xl leading-tight tracking-tight text-slate-900">
+          <h2 className="font-extrabold text-xl leading-tight tracking-tight text-foreground">
             Flow<span className="text-primary">Gov</span>
           </h2>
           <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Internal Portal</p>
@@ -117,12 +117,12 @@ export function Sidebar() {
                     "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group",
                     pathname === item.href 
                       ? "bg-primary/10 text-primary" 
-                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
                   )}
                 >
                   <item.icon className={cn(
                     "w-5 h-5",
-                    pathname === item.href ? "text-primary" : "text-slate-400 group-hover:text-slate-600"
+                    pathname === item.href ? "text-primary" : "text-muted-foreground group-hover:text-muted-foreground"
                   )} />
                   <span className="font-bold text-sm tracking-tight">{item.title}</span>
                 </Link>
@@ -133,18 +133,18 @@ export function Sidebar() {
                     "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group",
                     isActive && !isOpen
                       ? "bg-primary/5 text-primary" 
-                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
                   )}
                 >
                   <item.icon className={cn(
                     "w-5 h-5",
-                    isActive ? "text-primary" : "text-slate-400 group-hover:text-slate-600"
+                    isActive ? "text-primary" : "text-muted-foreground group-hover:text-muted-foreground"
                   )} />
                   <span className="font-bold text-sm tracking-tight">{item.title}</span>
                   {isOpen ? (
-                    <ChevronDown className="ml-auto w-4 h-4 text-slate-400" />
+                    <ChevronDown className="ml-auto w-4 h-4 text-muted-foreground" />
                   ) : (
-                    <ChevronRight className="ml-auto w-4 h-4 text-slate-400" />
+                    <ChevronRight className="ml-auto w-4 h-4 text-muted-foreground" />
                   )}
                 </button>
               )}
@@ -165,7 +165,7 @@ export function Sidebar() {
                           "flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-all duration-200",
                           pathname === sub.href
                             ? "text-primary font-bold bg-primary/5"
-                            : "text-slate-500 hover:text-slate-900 hover:translate-x-1"
+                            : "text-muted-foreground hover:text-foreground hover:translate-x-1"
                         )}
                       >
                         <sub.icon className={cn(
@@ -183,20 +183,20 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="p-6 border-t border-slate-100">
-        <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 mb-4">
+      <div className="p-6 border-t border-border">
+        <div className="bg-muted border border-border rounded-2xl p-4 mb-4">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center font-bold text-primary">
               {user?.name?.charAt(0)}
             </div>
             <div className="overflow-hidden">
-              <p className="text-sm font-extrabold text-slate-900 truncate tracking-tight">{user?.name}</p>
+              <p className="text-sm font-extrabold text-foreground truncate tracking-tight">{user?.name}</p>
               <p className="text-[10px] text-muted-foreground truncate uppercase font-bold tracking-widest">{user?.roles[0]}</p>
             </div>
           </div>
           <button 
             onClick={logout}
-            className="w-full flex items-center justify-center gap-2 py-2.5 text-xs font-extrabold text-slate-600 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all duration-200 border border-slate-200 hover:border-rose-100"
+            className="w-full flex items-center justify-center gap-2 py-2.5 text-xs font-extrabold text-muted-foreground hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all duration-200 border border-border hover:border-rose-100"
           >
             <LogOut className="w-4 h-4" /> Keluar Sistem
           </button>

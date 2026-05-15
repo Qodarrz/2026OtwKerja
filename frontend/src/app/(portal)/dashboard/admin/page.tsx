@@ -48,8 +48,8 @@ export default function AdminDashboardPage() {
       label: "Total Pengajuan", 
       value: metrics?.totalApplications || "0", 
       icon: BarChart3, 
-      color: "text-indigo-500", 
-      bg: "bg-indigo-500/10",
+      color: "text-primary", 
+      bg: "bg-primary/10",
       change: "+12%" 
     },
     { 
@@ -79,12 +79,20 @@ export default function AdminDashboardPage() {
   ];
 
   if (loading) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return (
     <div className="space-y-10">
       <div className="max-w-7xl mx-auto">
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="px-2 py-0.5 bg-indigo-100 text-indigo-600 text-[10px] font-bold rounded uppercase tracking-wider">Internal Portal</span>
+              <span className="px-2 py-0.5 bg-indigo-100 text-primary text-[10px] font-bold rounded uppercase tracking-wider">Internal Portal</span>
             </div>
             <h1 className="text-3xl font-bold tracking-tight">Admin Console</h1>
             <p className="text-muted-foreground mt-1">Monitoring dan validasi perizinan FlowGov secara real-time.</p>
@@ -93,7 +101,7 @@ export default function AdminDashboardPage() {
             <Button variant="outline" className="rounded-xl">
               <Filter className="w-4 h-4 mr-2" /> Filter
             </Button>
-            <Button className="rounded-xl bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-200">
+            <Button className="rounded-xl bg-primary hover:bg-primary/90 shadow-lg shadow-sm">
               Generate Report
             </Button>
           </div>
@@ -161,7 +169,7 @@ export default function AdminDashboardPage() {
                         className={cn(
                           "h-full rounded-full",
                           item.avgDurationHours > 24 ? "bg-rose-500" : 
-                          item.avgDurationHours > 12 ? "bg-amber-500" : "bg-indigo-500"
+                          item.avgDurationHours > 12 ? "bg-amber-500" : "bg-primary"
                         )} 
                       />
                     </div>
@@ -173,7 +181,7 @@ export default function AdminDashboardPage() {
 
           {/* Sidebar Stats */}
           <div className="space-y-6">
-            <Card className="border-indigo-500/20 shadow-xl shadow-indigo-500/5">
+            <Card className="border-primary/20 shadow-md shadow-sm">
               <CardHeader>
                 <CardTitle className="text-lg">Kepatuhan SLA</CardTitle>
                 <CardDescription>Status kecepatan pelayanan kumulatif.</CardDescription>

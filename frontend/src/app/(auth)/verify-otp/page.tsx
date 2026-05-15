@@ -24,7 +24,7 @@ function VerifyOtpForm() {
   const [success, setSuccess] = useState("");
   const [countdown, setCountdown] = useState(0);
   
-  const { user, login, token } = useAuth();
+  const { user, login } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const emailParam = searchParams.get("email") || user?.email || "";
@@ -142,7 +142,7 @@ function VerifyOtpForm() {
                 type="submit"
                 disabled={isLoading || otp.length < 6}
                 variant="premium"
-                className="w-full h-12 shadow-primary/20"
+                className="w-full h-12 shadow-sm"
               >
                 {isLoading ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
@@ -190,14 +190,14 @@ function VerifyOtpForm() {
           className="absolute inset-0 w-full h-full object-cover" 
           src="https://images.unsplash.com/photo-1563986768609-322da13575f3?q=80&w=2070&auto=format&fit=crop"
         />
-        <div className="absolute bottom-16 left-16 right-16 text-white space-y-6 z-20">
-          <div className="inline-flex items-center space-x-2 px-3 py-1.5 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
+        <div className="absolute bottom-16 left-16 right-16 text-primary-foreground space-y-6 z-20">
+          <div className="inline-flex items-center space-x-2 px-3 py-1.5 bg-card/10 backdrop-blur-md rounded-full border border-white/20">
             <span className="text-[10px] xl:text-xs font-bold uppercase tracking-wider">Keamanan Akun</span>
           </div>
           <h2 className="text-4xl xl:text-5xl font-bold leading-tight">
             Langkah Terakhir <br/>Verifikasi Anda.
           </h2>
-          <p className="text-base xl:text-lg text-white/80 font-sans max-w-lg">Kami menjaga keamanan data Anda dengan verifikasi dua langkah yang mudah dan cepat.</p>
+          <p className="text-base xl:text-lg text-primary-foreground/80 font-sans max-w-lg">Kami menjaga keamanan data Anda dengan verifikasi dua langkah yang mudah dan cepat.</p>
         </div>
       </div>
     </div>
@@ -207,8 +207,8 @@ function VerifyOtpForm() {
 export default function VerifyOtpPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      <div className="min-h-screen flex items-center justify-center bg-card">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     }>
       <VerifyOtpForm />

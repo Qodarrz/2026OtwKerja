@@ -52,8 +52,11 @@ describe('NotificationService', () => {
         prisma = module.get<PrismaService>(PrismaService);
         gateway = module.get<NotificationGateway>(NotificationGateway);
 
-        // Clear all mocks before each test
+        // Clear all mocks and reset implementations before each test
         jest.clearAllMocks();
+        mockNotificationGateway.sendToUser.mockImplementation(() => undefined);
+        mockNotificationGateway.sendToRole.mockImplementation(() => undefined);
+        mockNotificationGateway.sendNotification.mockImplementation(() => undefined);
     });
 
     describe('notifyApplicationSubmitted', () => {
@@ -168,11 +171,18 @@ describe('NotificationService', () => {
             mockNotificationGateway.sendToUser.mockImplementation(() => {
                 throw new Error('WebSocket connection failed');
             });
+            const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
             // Should not throw error - graceful failure
             await expect(
                 service.notifyApplicationSubmitted(applicationId)
             ).resolves.not.toThrow();
+
+            expect(consoleSpy).toHaveBeenCalledWith(
+                'WebSocket delivery failed:',
+                expect.any(Error),
+            );
+            consoleSpy.mockRestore();
 
             // Notification should still be created in database
             expect(mockPrismaService.notification.create).toHaveBeenCalled();
@@ -294,11 +304,18 @@ describe('NotificationService', () => {
             mockNotificationGateway.sendToUser.mockImplementation(() => {
                 throw new Error('WebSocket connection failed');
             });
+            const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
             // Should not throw error - graceful failure
             await expect(
                 service.notifyStageAdvanced(applicationId, newStage)
             ).resolves.not.toThrow();
+
+            expect(consoleSpy).toHaveBeenCalledWith(
+                'WebSocket delivery failed:',
+                expect.any(Error),
+            );
+            consoleSpy.mockRestore();
 
             // Notification should still be created in database
             expect(mockPrismaService.notification.create).toHaveBeenCalled();
@@ -416,11 +433,18 @@ describe('NotificationService', () => {
             mockNotificationGateway.sendToUser.mockImplementation(() => {
                 throw new Error('WebSocket connection failed');
             });
+            const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
             // Should not throw error - graceful failure
             await expect(
                 service.notifyApplicationApproved(applicationId)
             ).resolves.not.toThrow();
+
+            expect(consoleSpy).toHaveBeenCalledWith(
+                'WebSocket delivery failed:',
+                expect.any(Error),
+            );
+            consoleSpy.mockRestore();
 
             // Notification should still be created in database
             expect(mockPrismaService.notification.create).toHaveBeenCalled();
@@ -542,11 +566,18 @@ describe('NotificationService', () => {
             mockNotificationGateway.sendToUser.mockImplementation(() => {
                 throw new Error('WebSocket connection failed');
             });
+            const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
             // Should not throw error - graceful failure
             await expect(
                 service.notifyApplicationRejected(applicationId, reason)
             ).resolves.not.toThrow();
+
+            expect(consoleSpy).toHaveBeenCalledWith(
+                'WebSocket delivery failed:',
+                expect.any(Error),
+            );
+            consoleSpy.mockRestore();
 
             // Notification should still be created in database
             expect(mockPrismaService.notification.create).toHaveBeenCalled();
@@ -829,11 +860,18 @@ describe('NotificationService', () => {
             mockNotificationGateway.sendToUser.mockImplementation(() => {
                 throw new Error('WebSocket connection failed');
             });
+            const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
             // Should not throw error - graceful failure
             await expect(
                 service.notifySLAWarning(applicationId, staffId, stage)
             ).resolves.not.toThrow();
+
+            expect(consoleSpy).toHaveBeenCalledWith(
+                'WebSocket delivery failed:',
+                expect.any(Error),
+            );
+            consoleSpy.mockRestore();
 
             // Notification should still be created in database
             expect(mockPrismaService.notification.create).toHaveBeenCalled();
@@ -1053,11 +1091,18 @@ describe('NotificationService', () => {
             mockNotificationGateway.sendToUser.mockImplementation(() => {
                 throw new Error('WebSocket connection failed');
             });
+            const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
             // Should not throw error - graceful failure
             await expect(
                 service.notifySLAEscalation(applicationId, supervisorId, stage, staffName)
             ).resolves.not.toThrow();
+
+            expect(consoleSpy).toHaveBeenCalledWith(
+                'WebSocket delivery failed:',
+                expect.any(Error),
+            );
+            consoleSpy.mockRestore();
 
             // Notification should still be created in database
             expect(mockPrismaService.notification.create).toHaveBeenCalled();

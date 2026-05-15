@@ -63,8 +63,8 @@ export default function SubmitPermitPage() {
                 <div 
                   className={cn(
                     "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 border-2",
-                    isActive ? "bg-primary border-primary text-white scale-110 shadow-lg shadow-primary/20" : 
-                    isCompleted ? "bg-emerald-500 border-emerald-500 text-white" : 
+                    isActive ? "bg-primary border-primary text-primary-foreground scale-110 shadow-lg shadow-sm" : 
+                    isCompleted ? "bg-emerald-500 border-emerald-500 text-primary-foreground" : 
                     "bg-background border-muted text-muted-foreground"
                   )}
                 >
@@ -227,7 +227,7 @@ export default function SubmitPermitPage() {
               <ChevronRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Button>
           ) : (
-            <Button variant="premium" className="rounded-xl shadow-xl" disabled={hasOverlap}>
+            <Button variant="premium" className="rounded-xl shadow-md" disabled={hasOverlap}>
               Kirim Pengajuan Sekarang
             </Button>
           )}

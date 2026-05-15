@@ -5,9 +5,10 @@ import {
     BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { WorkflowStage, ActionType, Role, Prisma } from '@prisma/client';
+import { WorkflowStage, ActionType, Role, Prisma, PermitType } from '@prisma/client';
 import { SLAService } from './sla.service';
 import { NotificationService } from './notification.service';
+import { WORKFLOW_CONFIG } from '../constants/workflow.config';
 
 export interface ApproveApplicationDto {
     notes?: string;
@@ -24,6 +25,7 @@ export interface StaffDashboardFilters {
     search?: string;
     page?: number;
     limit?: number;
+    status?: 'PENDING' | 'COMPLETED' | 'EXPIRED';
 }
 
 @Injectable()
@@ -64,16 +66,17 @@ export class WorkflowService {
         const canAccess = await this.canUserAccessStage(
             userId,
             application.currentStage,
+            application.permitType,
         );
 
         if (!canAccess) {
             throw new ForbiddenException(
-                `You do not have permission to approve applications at ${application.currentStage} stage`,
+                `You do not have permission to approve applications at ${application.currentStage} stage for ${application.permitType}`,
             );
         }
 
         // Get next stage
-        const nextStage = this.getNextStage(application.currentStage);
+        const nextStage = this.getNextStage(application.currentStage, application.permitType);
 
         if (!nextStage) {
             throw new BadRequestException('Cannot advance from current stage');
@@ -91,7 +94,7 @@ export class WorkflowService {
         }
 
         // Execute atomic transaction
-        return this.prisma.$transaction(async (tx) => {
+        const updated = await this.prisma.$transaction(async (tx) => {
             // 1. Update application status
             const updateData: Prisma.PermitApplicationUpdateInput = {
                 status: nextStage,
@@ -102,7 +105,7 @@ export class WorkflowService {
                 updateData.inspectionNotes = dto.inspectionNotes;
             }
 
-            const updated = await tx.permitApplication.update({
+            const applicationUpdate = await tx.permitApplication.update({
                 where: { id: applicationId },
                 data: updateData,
                 include: {
@@ -146,7 +149,6 @@ export class WorkflowService {
                     completedAt,
                 );
 
-                // Note: checkSLACompliance uses findUnique on SLARule, which is fine inside tx
                 const slaCheck = await this.slaService.checkSLACompliance(
                     previousStageHistory.transitionedAt,
                     application.currentStage,
@@ -189,15 +191,21 @@ export class WorkflowService {
                 },
             });
 
-            // 6. Trigger notifications (outside transaction context but within the method)
+            return applicationUpdate;
+        });
+
+        // 6. Trigger notifications (STRICTLY OUTSIDE TRANSACTION to prevent timeouts)
+        try {
             if (nextStage === WorkflowStage.APPROVED) {
                 await this.notificationService.notifyApplicationApproved(applicationId);
             } else {
                 await this.notificationService.notifyStageAdvanced(applicationId, nextStage);
             }
+        } catch (error) {
+            console.error('Notification failed but transaction succeeded:', error);
+        }
 
-            return updated;
-        });
+        return updated;
     }
 
     /**
@@ -235,6 +243,7 @@ export class WorkflowService {
         const canAccess = await this.canUserAccessStage(
             userId,
             application.currentStage,
+            application.permitType,
         );
 
         if (!canAccess) {
@@ -244,7 +253,7 @@ export class WorkflowService {
         }
 
         // Execute atomic transaction
-        return this.prisma.$transaction(async (tx) => {
+        const updated = await this.prisma.$transaction(async (tx) => {
             // 1. Update application status to REJECTED
             const updated = await tx.permitApplication.update({
                 where: { id: applicationId },
@@ -338,14 +347,20 @@ export class WorkflowService {
                 },
             });
 
-            // 6. Trigger notification
+            return updated;
+        });
+
+        // 6. Trigger notification (OUTSIDE TRANSACTION)
+        try {
             await this.notificationService.notifyApplicationRejected(
                 applicationId,
                 dto.reason,
             );
+        } catch (error) {
+            console.error('Notification failed but rejection succeeded:', error);
+        }
 
-            return updated;
-        });
+        return updated;
     }
 
     /**
@@ -355,6 +370,7 @@ export class WorkflowService {
     async canUserAccessStage(
         userId: string,
         stage: WorkflowStage,
+        permitType: PermitType,
     ): Promise<boolean> {
         const user = await this.prisma.user.findUnique({
             where: { id: userId },
@@ -369,37 +385,29 @@ export class WorkflowService {
             return true;
         }
 
-        // Role-stage mapping
-        const roleStageMap: Record<WorkflowStage, Role[]> = {
-            [WorkflowStage.DRAFT]: [], // No staff access needed
-            [WorkflowStage.DOCUMENT_CHECK]: [Role.DOCUMENT_VALIDATOR],
-            [WorkflowStage.FIELD_INSPECTION]: [Role.FIELD_INSPECTOR],
-            [WorkflowStage.LEGALIZATION]: [Role.LEGALIZER],
-            [WorkflowStage.APPROVED]: [], // No further validation needed
-            [WorkflowStage.REJECTED]: [], // No further validation needed
-        };
+        const config = WORKFLOW_CONFIG[permitType];
+        if (!config) return false;
 
-        const requiredRoles = roleStageMap[stage] || [];
+        const requiredRoles = config.roles[stage] || [];
 
         // Check if user has any of the required roles
         return requiredRoles.some((role) => user.roles.includes(role));
     }
 
     /**
-     * Get next workflow stage based on current stage
-     * Returns null if no next stage exists
+     * Get next workflow stage based on current stage and permit type
      */
-    getNextStage(currentStage: WorkflowStage): WorkflowStage | null {
-        const stageFlow: Record<WorkflowStage, WorkflowStage | null> = {
-            [WorkflowStage.DRAFT]: WorkflowStage.DOCUMENT_CHECK,
-            [WorkflowStage.DOCUMENT_CHECK]: WorkflowStage.FIELD_INSPECTION,
-            [WorkflowStage.FIELD_INSPECTION]: WorkflowStage.LEGALIZATION,
-            [WorkflowStage.LEGALIZATION]: WorkflowStage.APPROVED,
-            [WorkflowStage.APPROVED]: null,
-            [WorkflowStage.REJECTED]: null,
-        };
+    getNextStage(currentStage: WorkflowStage, permitType: PermitType): WorkflowStage | null {
+        const config = WORKFLOW_CONFIG[permitType];
+        if (!config) return null;
 
-        return stageFlow[currentStage] || null;
+        const currentIndex = config.stages.indexOf(currentStage);
+        if (currentIndex === -1 || currentIndex === config.stages.length - 1) {
+            // Either stage not found or it's the last stage
+            return null;
+        }
+
+        return config.stages[currentIndex + 1];
     }
 
     /**
@@ -439,46 +447,57 @@ export class WorkflowService {
         userId: string,
         filters: StaffDashboardFilters,
     ) {
-        const user = await this.prisma.user.findUnique({
-            where: { id: userId },
-        });
+        // Fetch user and SLA rules in parallel
+        const [user, slaRules] = await Promise.all([
+            this.prisma.user.findUnique({
+                where: { id: userId },
+            }),
+            this.prisma.sLARule.findMany()
+        ]);
 
         if (!user) {
             throw new NotFoundException('User not found');
         }
 
-        // Determine which stages user can access
-        const accessibleStages: WorkflowStage[] = [];
+        // Determine which stages user can access across all permit types
+        const accessibleStages = new Set<WorkflowStage>();
 
         if (user.roles.includes(Role.ADMIN)) {
-            // Admin can see all stages
-            accessibleStages.push(
-                WorkflowStage.DOCUMENT_CHECK,
-                WorkflowStage.FIELD_INSPECTION,
-                WorkflowStage.LEGALIZATION,
-            );
+            // Admin can see all processing stages
+            accessibleStages.add(WorkflowStage.DOCUMENT_CHECK);
+            accessibleStages.add(WorkflowStage.FIELD_INSPECTION);
+            accessibleStages.add(WorkflowStage.LEGALIZATION);
         } else {
-            if (user.roles.includes(Role.DOCUMENT_VALIDATOR)) {
-                accessibleStages.push(WorkflowStage.DOCUMENT_CHECK);
-            }
-            if (user.roles.includes(Role.FIELD_INSPECTOR)) {
-                accessibleStages.push(WorkflowStage.FIELD_INSPECTION);
-            }
-            if (user.roles.includes(Role.LEGALIZER)) {
-                accessibleStages.push(WorkflowStage.LEGALIZATION);
+            // Collect stages user can access based on their roles and WORKFLOW_CONFIG
+            for (const type in WORKFLOW_CONFIG) {
+                const config = WORKFLOW_CONFIG[type as PermitType];
+                for (const stage in config.roles) {
+                    const roles = config.roles[stage as WorkflowStage];
+                    if (roles?.some(role => user.roles.includes(role))) {
+                        accessibleStages.add(stage as WorkflowStage);
+                    }
+                }
             }
         }
 
-        if (accessibleStages.length === 0) {
+        if (accessibleStages.size === 0) {
             return [];
         }
 
+        const stagesArray = Array.from(accessibleStages);
+
         // Build query
-        const where: Prisma.PermitApplicationWhereInput = {
-            currentStage: {
-                in: accessibleStages,
-            },
-        };
+        const where: Prisma.PermitApplicationWhereInput = {};
+
+        if (filters.status === 'COMPLETED') {
+            where.status = { in: [WorkflowStage.APPROVED, WorkflowStage.REJECTED] };
+        } else if (filters.status === 'EXPIRED') {
+            where.currentStage = { in: stagesArray };
+        } else {
+            // Default: PENDING
+            where.currentStage = { in: stagesArray };
+            where.status = { notIn: [WorkflowStage.APPROVED, WorkflowStage.REJECTED, WorkflowStage.DRAFT] };
+        }
 
         if (filters.permitType) {
             where.permitType = filters.permitType as any;
@@ -531,8 +550,6 @@ export class WorkflowService {
             },
         });
 
-        // Get SLA rules for all stages to avoid N+1
-        const slaRules = await this.prisma.sLARule.findMany();
         const slaRuleMap = new Map(slaRules.map(r => [r.stage, r]));
 
         // Calculate days pending and attach SLA info
@@ -560,6 +577,10 @@ export class WorkflowService {
             };
         });
 
+        if (filters.status === 'EXPIRED') {
+            return applicationsWithSLA.filter(app => app.slaStatus === 'OVERDUE');
+        }
+
         return applicationsWithSLA;
     }
 
@@ -575,35 +596,33 @@ export class WorkflowService {
             return 0;
         }
 
-        // Determine which stages user can access
-        const accessibleStages: WorkflowStage[] = [];
+        // Determine accessible stages
+        const accessibleStages = new Set<WorkflowStage>();
 
         if (user.roles.includes(Role.ADMIN)) {
-            accessibleStages.push(
-                WorkflowStage.DOCUMENT_CHECK,
-                WorkflowStage.FIELD_INSPECTION,
-                WorkflowStage.LEGALIZATION,
-            );
+            accessibleStages.add(WorkflowStage.DOCUMENT_CHECK);
+            accessibleStages.add(WorkflowStage.FIELD_INSPECTION);
+            accessibleStages.add(WorkflowStage.LEGALIZATION);
         } else {
-            if (user.roles.includes(Role.DOCUMENT_VALIDATOR)) {
-                accessibleStages.push(WorkflowStage.DOCUMENT_CHECK);
-            }
-            if (user.roles.includes(Role.FIELD_INSPECTOR)) {
-                accessibleStages.push(WorkflowStage.FIELD_INSPECTION);
-            }
-            if (user.roles.includes(Role.LEGALIZER)) {
-                accessibleStages.push(WorkflowStage.LEGALIZATION);
+            for (const type in WORKFLOW_CONFIG) {
+                const config = WORKFLOW_CONFIG[type as PermitType];
+                for (const stage in config.roles) {
+                    const roles = config.roles[stage as WorkflowStage];
+                    if (roles?.some(role => user.roles.includes(role))) {
+                        accessibleStages.add(stage as WorkflowStage);
+                    }
+                }
             }
         }
 
-        if (accessibleStages.length === 0) {
+        if (accessibleStages.size === 0) {
             return 0;
         }
 
         return this.prisma.permitApplication.count({
             where: {
                 currentStage: {
-                    in: accessibleStages,
+                    in: Array.from(accessibleStages),
                 },
             },
         });

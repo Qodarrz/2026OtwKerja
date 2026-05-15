@@ -11,6 +11,7 @@ import { UsersModule } from './modules/users/users.module';
 import { PermitModule } from './modules/permits/permit.module';
 import { WorkflowModule } from './modules/permits/workflow.module';
 import { NotificationModule } from './modules/permits/notification.module';
+import { FeedbackModule } from './modules/feedback/feedback.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { NotificationModule } from './modules/permits/notification.module';
     PermitModule,
     WorkflowModule,
     NotificationModule,
+    FeedbackModule,
   ],
   controllers: [AppController],
   providers: [

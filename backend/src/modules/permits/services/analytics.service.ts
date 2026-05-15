@@ -9,6 +9,9 @@ export interface DashboardMetrics {
     onTimePercentage: number;
     totalProcessedToday: number;
     totalProcessedThisMonth: number;
+    impactScore: number;
+    efficiency: number;
+    slaCompliance: number;
     byStage: {
         stage: WorkflowStage;
         count: number;
@@ -62,33 +65,49 @@ export class AnalyticsService {
         const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-        // Active applications (not APPROVED or REJECTED)
-        const activeApplications = await this.prisma.permitApplication.count({
-            where: {
-                status: {
-                    notIn: [WorkflowStage.APPROVED, WorkflowStage.REJECTED, WorkflowStage.DRAFT],
-                },
-            },
-        });
-
-        // Get completed stage histories for average processing time
-        const completedStages = await this.prisma.stageHistory.findMany({
-            where: {
-                completedAt: { not: null },
-                ...(startDate && { transitionedAt: { gte: startDate } }),
-                ...(endDate && { transitionedAt: { lte: endDate } }),
-            },
-            select: {
-                durationHours: true,
-                slaStatus: true,
-                toStage: true,
-                application: {
-                    select: {
-                        permitType: true,
+        // Execute initial counts in parallel
+        const [activeApplications, totalProcessedToday, totalProcessedThisMonth, completedStages] = await Promise.all([
+            // Active applications (not APPROVED or REJECTED)
+            this.prisma.permitApplication.count({
+                where: {
+                    status: {
+                        notIn: [WorkflowStage.APPROVED, WorkflowStage.REJECTED, WorkflowStage.DRAFT],
                     },
                 },
-            },
-        });
+            }),
+            // Total processed today
+            this.prisma.permitApplication.count({
+                where: {
+                    status: WorkflowStage.APPROVED,
+                    updatedAt: { gte: todayStart },
+                },
+            }),
+            // Total processed this month
+            this.prisma.permitApplication.count({
+                where: {
+                    status: WorkflowStage.APPROVED,
+                    updatedAt: { gte: monthStart },
+                },
+            }),
+            // Get completed stage histories for average processing time
+            this.prisma.stageHistory.findMany({
+                where: {
+                    completedAt: { not: null },
+                    ...(startDate && { transitionedAt: { gte: startDate } }),
+                    ...(endDate && { transitionedAt: { lte: endDate } }),
+                },
+                select: {
+                    durationHours: true,
+                    slaStatus: true,
+                    toStage: true,
+                    application: {
+                        select: {
+                            permitType: true,
+                        },
+                    },
+                },
+            }),
+        ]);
 
         // Calculate average processing time
         const totalDuration = completedStages.reduce(
@@ -111,22 +130,6 @@ export class AnalyticsService {
             completedStages.length > 0
                 ? (onTimeCount / completedStages.length) * 100
                 : 0;
-
-        // Total processed today
-        const totalProcessedToday = await this.prisma.permitApplication.count({
-            where: {
-                status: WorkflowStage.APPROVED,
-                updatedAt: { gte: todayStart },
-            },
-        });
-
-        // Total processed this month
-        const totalProcessedThisMonth = await this.prisma.permitApplication.count({
-            where: {
-                status: WorkflowStage.APPROVED,
-                updatedAt: { gte: monthStart },
-            },
-        });
 
         // Group by stage
         const byStageMap = new Map<WorkflowStage, { count: number; totalDuration: number }>();
@@ -306,32 +309,48 @@ export class AnalyticsService {
             WorkflowStage.LEGALIZATION,
         ];
 
-        const bottlenecks: StageBottleneck[] = [];
-
-        for (const stage of stages) {
-            // Get SLA rule for this stage
-            const slaRule = await this.prisma.sLARule.findUnique({
-                where: { stage },
-            });
-
-            if (!slaRule) continue;
-
-            // Get active applications at this stage
-            const activeCount = await this.prisma.permitApplication.count({
-                where: { currentStage: stage },
-            });
-
-            // Get completed stage histories
-            const completedStages = await this.prisma.stageHistory.findMany({
+        // Fetch all necessary data in parallel to avoid N+1 issues
+        const [slaRules, activeCounts, allCompletedStages, allStaff] = await Promise.all([
+            this.prisma.sLARule.findMany({
+                where: { stage: { in: stages } }
+            }),
+            this.prisma.permitApplication.groupBy({
+                by: ['currentStage'],
+                where: { currentStage: { in: stages } },
+                _count: true
+            }),
+            this.prisma.stageHistory.findMany({
                 where: {
-                    toStage: stage,
+                    toStage: { in: stages },
                     completedAt: { not: null },
                 },
                 select: {
+                    toStage: true,
                     durationHours: true,
                     slaStatus: true,
                 },
-            });
+            }),
+            this.prisma.user.findMany({
+                where: {
+                    roles: {
+                        hasSome: [Role.DOCUMENT_VALIDATOR, Role.FIELD_INSPECTOR, Role.LEGALIZER]
+                    }
+                },
+                select: { roles: true }
+            })
+        ]);
+
+        const slaRuleMap = new Map(slaRules.map(r => [r.stage, r]));
+        const activeCountMap = new Map(activeCounts.map(c => [c.currentStage, c._count]));
+        
+        const bottlenecks: StageBottleneck[] = [];
+
+        for (const stage of stages) {
+            const slaRule = slaRuleMap.get(stage);
+            if (!slaRule) continue;
+
+            const activeCount = activeCountMap.get(stage) || 0;
+            const completedStages = allCompletedStages.filter(s => s.toStage === stage);
 
             const totalDuration = completedStages.reduce(
                 (sum, s) => sum + (s.durationHours || 0),
@@ -348,18 +367,14 @@ export class AnalyticsService {
                 (s) => s.slaStatus === SLAStatus.WARNING,
             ).length;
 
-            // Count staff members who can handle this stage
+            // Count staff members who can handle this stage from pre-fetched list
             const roleMap = {
                 [WorkflowStage.DOCUMENT_CHECK]: Role.DOCUMENT_VALIDATOR,
                 [WorkflowStage.FIELD_INSPECTION]: Role.FIELD_INSPECTOR,
                 [WorkflowStage.LEGALIZATION]: Role.LEGALIZER,
             };
 
-            const staffCount = await this.prisma.user.count({
-                where: {
-                    roles: { has: roleMap[stage] },
-                },
-            });
+            const staffCount = allStaff.filter(s => s.roles.includes(roleMap[stage])).length;
 
             // Calculate utilization (active apps per staff member)
             const utilizationPercentage =
