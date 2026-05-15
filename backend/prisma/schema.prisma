@@ -294,6 +294,29 @@ model AuditLog {
   @@index([entityType, entityId])
   @@index([performedBy])
   @@index([createdAt])
+  @@index([entityType, action, createdAt])
+  @@index([performedBy, createdAt])
+}
+
+// Audit Log Archive Model (for logs older than 90 days)
+model AuditLogArchive {
+  id                String           @id @default(uuid())
+  entityType        String
+  entityId          String
+  action            String
+  changes           Json?
+  performedBy       String?
+  ipAddress         String?
+  userAgent         String?
+  createdAt         DateTime
+  archivedAt        DateTime         @default(now())
+  
+  @@index([entityType, entityId])
+  @@index([performedBy])
+  @@index([createdAt])
+  @@index([archivedAt])
+  @@index([entityType, action, createdAt])
+  @@index([performedBy, createdAt])
 }
 
 // SLA Rules Model
