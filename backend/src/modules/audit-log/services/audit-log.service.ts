@@ -1,4 +1,6 @@
-import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger, Inject, forwardRef } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bull';
+import type { Queue } from 'bull';
 import { PrismaService } from '../../../prisma/prisma.service';
 import {
     CreateAuditLogDto,
@@ -10,8 +12,19 @@ import {
 @Injectable()
 export class AuditLogService {
     private readonly logger = new Logger(AuditLogService.name);
+    private gateway: any; // Will be set by gateway after initialization
 
-    constructor(private prisma: PrismaService) { }
+    constructor(
+        private prisma: PrismaService,
+        @InjectQueue('audit-logs') private auditQueue: Queue,
+    ) { }
+
+    /**
+     * Set gateway reference (called by gateway after initialization)
+     */
+    setGateway(gateway: any) {
+        this.gateway = gateway;
+    }
 
     /**
      * Create audit log entry
@@ -25,8 +38,20 @@ export class AuditLogService {
             // Sanitize sensitive fields
             const sanitized = this.sanitizeSensitiveFields(dto);
 
-            // For now, create synchronously (queue will be added in Task 7)
-            await this.createAuditLogSync(sanitized);
+            // Try async queue first
+            try {
+                await this.auditQueue.add('create-audit-log', sanitized, {
+                    attempts: 3,
+                    backoff: {
+                        type: 'exponential',
+                        delay: 1000,
+                    },
+                });
+            } catch (queueError) {
+                // Fallback to synchronous creation if queue fails
+                this.logger.warn('Queue unavailable, falling back to sync creation');
+                await this.createAuditLogSync(sanitized);
+            }
         } catch (error) {
             // Log error but don't throw (fail-safe)
             this.logger.error('Failed to create audit log:', error);

@@ -8,6 +8,11 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { WorkflowStage, ActionType, Role, Prisma } from '@prisma/client';
 import { SLAService } from './sla.service';
 import { NotificationService } from './notification.service';
+import { AuditLogService } from '../../audit-log/services/audit-log.service';
+import {
+    AuditEntityType,
+    AuditActionType,
+} from '../../audit-log/dto/audit-log.dto';
 
 export interface ApproveApplicationDto {
     notes?: string;
@@ -32,6 +37,7 @@ export class WorkflowService {
         private prisma: PrismaService,
         private slaService: SLAService,
         private notificationService: NotificationService,
+        private auditLogService: AuditLogService,
     ) { }
 
     /**
@@ -91,7 +97,7 @@ export class WorkflowService {
         }
 
         // Execute atomic transaction
-        return this.prisma.$transaction(async (tx) => {
+        const result = await this.prisma.$transaction(async (tx) => {
             // 1. Update application status
             const updateData: Prisma.PermitApplicationUpdateInput = {
                 status: nextStage,
@@ -172,32 +178,31 @@ export class WorkflowService {
                 },
             });
 
-            // 5. Create audit log
-            await tx.auditLog.create({
-                data: {
-                    entityType: 'PermitApplication',
-                    entityId: applicationId,
-                    action: 'APPROVE',
-                    changes: {
-                        from: application.currentStage,
-                        to: nextStage,
-                        approvedBy: userId,
-                        notes: dto.notes,
-                        inspectionNotes: dto.inspectionNotes,
-                    },
-                    performedBy: userId,
-                },
-            });
-
-            // 6. Trigger notifications (outside transaction context but within the method)
-            if (nextStage === WorkflowStage.APPROVED) {
-                await this.notificationService.notifyApplicationApproved(applicationId);
-            } else {
-                await this.notificationService.notifyStageAdvanced(applicationId, nextStage);
-            }
-
             return updated;
         });
+
+        // 5. Create audit log (after transaction)
+        await this.auditLogService.createAuditLog({
+            entityType: AuditEntityType.PERMIT_APPLICATION,
+            entityId: applicationId,
+            action: AuditActionType.APPROVE,
+            performedBy: userId,
+            changes: {
+                fromStage: application.currentStage,
+                toStage: nextStage,
+                notes: dto.notes,
+                inspectionNotes: dto.inspectionNotes,
+            },
+        });
+
+        // 6. Trigger notifications
+        if (nextStage === WorkflowStage.APPROVED) {
+            await this.notificationService.notifyApplicationApproved(applicationId);
+        } else {
+            await this.notificationService.notifyStageAdvanced(applicationId, nextStage);
+        }
+
+        return result;
     }
 
     /**
@@ -244,7 +249,7 @@ export class WorkflowService {
         }
 
         // Execute atomic transaction
-        return this.prisma.$transaction(async (tx) => {
+        const result = await this.prisma.$transaction(async (tx) => {
             // 1. Update application status to REJECTED
             const updated = await tx.permitApplication.update({
                 where: { id: applicationId },
@@ -321,31 +326,30 @@ export class WorkflowService {
                 },
             });
 
-            // 5. Create audit log
-            await tx.auditLog.create({
-                data: {
-                    entityType: 'PermitApplication',
-                    entityId: applicationId,
-                    action: 'REJECT',
-                    changes: {
-                        from: application.currentStage,
-                        to: WorkflowStage.REJECTED,
-                        rejectedBy: userId,
-                        reason: dto.reason,
-                        notes: dto.notes,
-                    },
-                    performedBy: userId,
-                },
-            });
-
-            // 6. Trigger notification
-            await this.notificationService.notifyApplicationRejected(
-                applicationId,
-                dto.reason,
-            );
-
             return updated;
         });
+
+        // 5. Create audit log (after transaction)
+        await this.auditLogService.createAuditLog({
+            entityType: AuditEntityType.PERMIT_APPLICATION,
+            entityId: applicationId,
+            action: AuditActionType.REJECT,
+            performedBy: userId,
+            changes: {
+                fromStage: application.currentStage,
+                toStage: WorkflowStage.REJECTED,
+                reason: dto.reason,
+                notes: dto.notes,
+            },
+        });
+
+        // 6. Trigger notification
+        await this.notificationService.notifyApplicationRejected(
+            applicationId,
+            dto.reason,
+        );
+
+        return result;
     }
 
     /**

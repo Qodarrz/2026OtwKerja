@@ -2,6 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { WorkflowStage, SLAStatus, Role } from '@prisma/client';
 import { NotificationService } from './notification.service';
+import { AuditLogService } from '../../audit-log/services/audit-log.service';
+import {
+    AuditEntityType,
+    AuditActionType,
+} from '../../audit-log/dto/audit-log.dto';
 
 export interface SLACheckResult {
     status: SLAStatus;
@@ -26,6 +31,7 @@ export class SLAService {
     constructor(
         private prisma: PrismaService,
         private notificationService: NotificationService,
+        private auditLogService: AuditLogService,
     ) { }
 
     /**
@@ -243,14 +249,44 @@ export class SLAService {
         stage: WorkflowStage,
         maxDurationHours: number,
         warningThreshold?: number,
+        userId?: string,
     ) {
-        return this.prisma.sLARule.update({
+        // Get current SLA rule for before state
+        const currentRule = await this.prisma.sLARule.findUnique({
+            where: { stage },
+        });
+
+        const updated = await this.prisma.sLARule.update({
             where: { stage },
             data: {
                 maxDurationHours,
                 ...(warningThreshold !== undefined && { warningThreshold }),
             },
         });
+
+        // Create audit log if userId is provided
+        if (userId && currentRule) {
+            await this.auditLogService.createAuditLog({
+                entityType: AuditEntityType.SLA_RULE,
+                entityId: stage,
+                action: AuditActionType.UPDATE,
+                performedBy: userId,
+                changes: {
+                    before: {
+                        stage: currentRule.stage,
+                        maxDurationHours: currentRule.maxDurationHours,
+                        warningThreshold: currentRule.warningThreshold,
+                    },
+                    after: {
+                        stage: updated.stage,
+                        maxDurationHours: updated.maxDurationHours,
+                        warningThreshold: updated.warningThreshold,
+                    },
+                },
+            });
+        }
+
+        return updated;
     }
 
     /**

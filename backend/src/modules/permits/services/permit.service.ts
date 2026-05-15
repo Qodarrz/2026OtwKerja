@@ -11,6 +11,11 @@ import {
     UpdateApplicationDto,
     ListApplicationsQuery,
 } from '../dto/permit.dto';
+import { AuditLogService } from '../../audit-log/services/audit-log.service';
+import {
+    AuditEntityType,
+    AuditActionType,
+} from '../../audit-log/dto/audit-log.dto';
 
 export interface PaginatedResult<T> {
     data: T[];
@@ -22,7 +27,10 @@ export interface PaginatedResult<T> {
 
 @Injectable()
 export class PermitService {
-    constructor(private prisma: PrismaService) { }
+    constructor(
+        private prisma: PrismaService,
+        private auditLogService: AuditLogService,
+    ) { }
 
     /**
      * Check if user has staff role (can access any application)
@@ -80,6 +88,23 @@ export class PermitService {
                         email: true,
                         name: true,
                     },
+                },
+            },
+        });
+
+        // Create audit log
+        await this.auditLogService.createAuditLog({
+            entityType: AuditEntityType.PERMIT_APPLICATION,
+            entityId: application.id,
+            action: AuditActionType.CREATE,
+            performedBy: userId,
+            changes: {
+                after: {
+                    permitType: application.permitType,
+                    status: application.status,
+                    locationAddress: application.locationAddress,
+                    landSize: application.landSize,
+                    businessName: application.businessName,
                 },
             },
         });
@@ -237,6 +262,20 @@ export class PermitService {
             );
         }
 
+        // Capture before state for audit log
+        const beforeState = {
+            locationAddress: application.locationAddress,
+            landSize: application.landSize,
+            landType: application.landType,
+            buildingHeight: application.buildingHeight,
+            njopValue: application.njopValue,
+            isStrategicLocation: application.isStrategicLocation,
+            businessName: application.businessName,
+            businessType: application.businessType,
+            businessLocation: application.businessLocation,
+            estimatedEmployees: application.estimatedEmployees,
+        };
+
         const updated = await this.prisma.permitApplication.update({
             where: { id },
             data: {
@@ -258,6 +297,29 @@ export class PermitService {
                         email: true,
                         name: true,
                     },
+                },
+            },
+        });
+
+        // Create audit log with before/after states
+        await this.auditLogService.createAuditLog({
+            entityType: AuditEntityType.PERMIT_APPLICATION,
+            entityId: id,
+            action: AuditActionType.UPDATE,
+            performedBy: userId,
+            changes: {
+                before: beforeState,
+                after: {
+                    locationAddress: updated.locationAddress,
+                    landSize: updated.landSize,
+                    landType: updated.landType,
+                    buildingHeight: updated.buildingHeight,
+                    njopValue: updated.njopValue,
+                    isStrategicLocation: updated.isStrategicLocation,
+                    businessName: updated.businessName,
+                    businessType: updated.businessType,
+                    businessLocation: updated.businessLocation,
+                    estimatedEmployees: updated.estimatedEmployees,
                 },
             },
         });
@@ -289,8 +351,28 @@ export class PermitService {
             );
         }
 
+        // Capture before state for audit log
+        const beforeState = {
+            permitType: application.permitType,
+            status: application.status,
+            referenceNumber: application.referenceNumber,
+            locationAddress: application.locationAddress,
+            businessName: application.businessName,
+        };
+
         await this.prisma.permitApplication.delete({
             where: { id },
+        });
+
+        // Create audit log
+        await this.auditLogService.createAuditLog({
+            entityType: AuditEntityType.PERMIT_APPLICATION,
+            entityId: id,
+            action: AuditActionType.DELETE,
+            performedBy: userId,
+            changes: {
+                before: beforeState,
+            },
         });
 
         return { message: 'Application deleted successfully' };
@@ -379,6 +461,25 @@ export class PermitService {
                 title: 'Application Submitted',
                 message: `Your application ${referenceNumber} has been submitted for document check`,
                 applicationId: id,
+            },
+        });
+
+        // Create audit log
+        await this.auditLogService.createAuditLog({
+            entityType: AuditEntityType.PERMIT_APPLICATION,
+            entityId: id,
+            action: AuditActionType.SUBMIT,
+            performedBy: userId,
+            changes: {
+                before: {
+                    status: WorkflowStage.DRAFT,
+                    referenceNumber: '',
+                },
+                after: {
+                    status: WorkflowStage.DOCUMENT_CHECK,
+                    referenceNumber: updated.referenceNumber,
+                    submittedAt: updated.submittedAt,
+                },
             },
         });
 
