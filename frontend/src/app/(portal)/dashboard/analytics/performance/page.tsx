@@ -45,7 +45,7 @@ export default function PerformancePage() {
         </header>{" "}
         <Card className="border-border shadow-sm">
           {" "}
-          <CardHeader className="border-b border-border bg-muted/50">
+          <CardHeader className="border-b border-border bg-background">
             {" "}
             <div className="h-6 w-40 bg-secondary rounded-md animate-pulse mb-2" />{" "}
             <div className="h-4 w-72 bg-secondary rounded-md animate-pulse" />{" "}
@@ -82,7 +82,7 @@ export default function PerformancePage() {
         {" "}
         <Card className="shadow-sm overflow-hidden">
           {" "}
-          <CardHeader className="border-b border-slate-50 bg-muted/50">
+          <CardHeader className="border-b border-slate-50 bg-background">
             {" "}
             <CardTitle className="text-xl">Leaderboard Kinerja</CardTitle>{" "}
             <CardDescription>

@@ -19,11 +19,7 @@ import { WorkflowTemplateService } from '../workflow-template/services/workflow-
 import { AuditLogModule } from '../audit-log/audit-log.module';
 
 @Module({
-<<<<<<< HEAD
-  imports: [PrismaModule, PermitModule, NotificationModule, WorkflowTemplateModule],
-=======
-  imports: [PrismaModule, PermitModule, NotificationModule, AuditLogModule],
->>>>>>> ee59e0a (workflow fix)
+  imports: [PrismaModule, PermitModule, NotificationModule, WorkflowTemplateModule, AuditLogModule],
   controllers: [
     WorkflowController,
     SLAController,
@@ -43,11 +39,8 @@ import { AuditLogModule } from '../audit-log/audit-log.module';
     AnalyticsService,
     TransparencyService,
     ReportingService,
-<<<<<<< HEAD
-    WorkflowTemplateService,
-=======
+    WorkflowTemplateModule,
     PermitModule,
->>>>>>> ee59e0a (workflow fix)
   ],
 })
 export class WorkflowModule {}

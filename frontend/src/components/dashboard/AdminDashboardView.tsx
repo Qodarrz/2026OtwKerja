@@ -59,7 +59,7 @@ export function AdminDashboardView() {
       value: metrics?.impactScore ? `${metrics.impactScore}%` : "0%", 
       icon: Cpu, 
       color: "text-primary", 
-      bg: "bg-indigo-50",
+      bg: "bg-primary/10",
       change: "+8%",
       description: "Komposit efisiensi" 
     },
@@ -67,8 +67,8 @@ export function AdminDashboardView() {
       label: "On-Time Rate", 
       value: metrics?.onTimePercentage ? `${metrics.onTimePercentage}%` : "0%", 
       icon: Zap, 
-      color: "text-emerald-600", 
-      bg: "bg-emerald-50",
+      color: "text-emerald-500", 
+      bg: "bg-emerald-500/10",
       change: "+3%",
       description: "Kepatuhan SLA"
     },
@@ -76,8 +76,8 @@ export function AdminDashboardView() {
       label: "SLA Overdue", 
       value: metrics?.overdueCount || "0", 
       icon: ShieldAlert, 
-      color: "text-rose-600", 
-      bg: "bg-rose-50",
+      color: "text-rose-500", 
+      bg: "bg-rose-500/10",
       change: "-2%",
       description: "Butuh atensi segera"
     },
@@ -85,8 +85,8 @@ export function AdminDashboardView() {
       label: "Efisiensi", 
       value: metrics?.efficiency ? `${metrics.efficiency}%` : "0%", 
       icon: Activity, 
-      color: "text-primary", 
-      bg: "bg-sky-50",
+      color: "text-sky-500", 
+      bg: "bg-sky-500/10",
       change: "+5%",
       description: "Kecepatan proses"
     },
@@ -94,8 +94,55 @@ export function AdminDashboardView() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="space-y-10">
+        <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div className="space-y-2">
+            <div className="h-4 w-32 bg-muted rounded-md animate-pulse" />
+            <div className="h-10 w-64 bg-muted rounded-md animate-pulse" />
+            <div className="h-4 w-96 bg-muted rounded-md animate-pulse" />
+          </div>
+          <div className="flex gap-3">
+            <div className="h-11 w-32 bg-muted rounded-xl animate-pulse" />
+            <div className="h-11 w-32 bg-muted rounded-xl animate-pulse" />
+          </div>
+        </header>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i} className="border-none shadow-sm h-40">
+              <CardContent className="p-6 space-y-4">
+                <div className="h-12 w-12 bg-muted rounded-2xl animate-pulse" />
+                <div className="space-y-2">
+                  <div className="h-8 w-24 bg-muted rounded-md animate-pulse" />
+                  <div className="h-4 w-32 bg-muted rounded-md animate-pulse" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2">
+            <Card className="border-none shadow-sm h-[500px]">
+              <CardContent className="p-8 space-y-8">
+                <div className="h-8 w-48 bg-muted rounded-md animate-pulse" />
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="space-y-4">
+                    <div className="flex justify-between">
+                      <div className="h-4 w-32 bg-muted rounded-md animate-pulse" />
+                      <div className="h-4 w-16 bg-muted rounded-md animate-pulse" />
+                    </div>
+                    <div className="h-4 w-full bg-muted rounded-full animate-pulse" />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+          <div className="space-y-8">
+            <Card className="border-none shadow-sm h-64 animate-pulse bg-background" />
+            <Card className="border-none shadow-sm h-80 animate-pulse bg-background" />
+          </div>
+        </div>
       </div>
     );
   }
@@ -106,9 +153,9 @@ export function AdminDashboardView() {
         <div className="space-y-1">
           <div className="flex items-center gap-2 mb-2">
              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-             <span className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-muted-foreground">Sistem Aktif & Terpantau</span>
+             <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Sistem Aktif & Terpantau</span>
           </div>
-          <h1 className="text-4xl font-extrabold tracking-tight text-foreground">Admin Console</h1>
+          <h1 className="text-4xl font-bold tracking-tight text-foreground">Admin Console</h1>
           <p className="text-muted-foreground font-medium">Monitoring performa birokrasi dan kendali Service Level Agreement.</p>
         </div>
         <div className="flex items-center gap-3">
@@ -144,7 +191,7 @@ export function AdminDashboardView() {
                   </div>
                 </div>
                 <div className="space-y-1">
-                  <h3 className="text-3xl font-extrabold tracking-tight text-foreground">{stat.value}</h3>
+                  <h3 className="text-3xl font-bold tracking-tight text-foreground">{stat.value}</h3>
                   <p className="text-sm font-bold text-muted-foreground">{stat.label}</p>
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold pt-2 border-t border-slate-50 mt-4">{stat.description}</p>
                 </div>
@@ -157,12 +204,12 @@ export function AdminDashboardView() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
           <Card className="border-none shadow-sm bg-card overflow-hidden">
-            <div className="p-8 border-b border-slate-50 flex items-center justify-between">
+            <div className="p-8 border-b border-border flex items-center justify-between">
                <div>
-                  <h2 className="text-xl font-extrabold text-foreground tracking-tight">Analisis Bottleneck</h2>
+                  <h2 className="text-xl font-bold text-foreground tracking-tight">Analisis Bottleneck</h2>
                   <p className="text-sm text-muted-foreground font-medium">Visualisasi titik hambatan pada alur kerja.</p>
                </div>
-               <div className="p-2 bg-muted rounded-xl">
+               <div className="p-2 bg-background rounded-xl border border-border">
                   <Target className="w-5 h-5 text-muted-foreground" />
                </div>
             </div>
@@ -171,11 +218,11 @@ export function AdminDashboardView() {
                 <div key={item.stage} className="space-y-3 group">
                   <div className="flex justify-between items-end">
                     <div className="space-y-1">
-                      <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-muted-foreground">Unit Kerja</p>
-                      <p className="text-md font-extrabold text-foreground">{item.stage.replace('_', ' ')}</p>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Unit Kerja</p>
+                      <p className="text-md font-bold text-foreground">{item.stage.replace('_', ' ')}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-2xl font-black text-foreground leading-none">{(item.avgDurationHours || 0).toFixed(1)} <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Jam</span></p>
+                      <p className="text-2xl font-bold text-foreground leading-none">{(item.avgDurationHours || 0).toFixed(1)} <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Jam</span></p>
                     </div>
                   </div>
                   <div className="h-4 w-full bg-secondary rounded-full overflow-hidden p-1">
@@ -211,8 +258,8 @@ export function AdminDashboardView() {
         <div className="space-y-8">
           <Card className="border-none shadow-sm bg-card overflow-hidden relative">
             <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16" />
-            <div className="p-8 border-b border-slate-50">
-               <h2 className="text-xl font-extrabold text-foreground tracking-tight">Kepatuhan SLA</h2>
+            <div className="p-8 border-b border-border">
+               <h2 className="text-xl font-bold text-foreground tracking-tight">Kepatuhan SLA</h2>
                <p className="text-sm text-muted-foreground font-medium">Data kumulatif kecepatan layanan.</p>
             </div>
             <CardContent className="p-8 space-y-8">
@@ -224,8 +271,8 @@ export function AdminDashboardView() {
                 ].map((sla) => (
                   <div key={sla.label} className="space-y-2.5">
                     <div className="flex justify-between items-center">
-                      <span className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">{sla.label}</span>
-                      <span className={cn("text-sm font-black", sla.text)}>{sla.isAbsolute ? sla.value : `${sla.value}%`}</span>
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{sla.label}</span>
+                      <span className={cn("text-sm font-bold", sla.text)}>{sla.isAbsolute ? sla.value : `${sla.value}%`}</span>
                     </div>
                     <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
                       <motion.div 
@@ -243,10 +290,10 @@ export function AdminDashboardView() {
                   <div className="p-1.5 bg-primary/10 rounded-lg">
                     <Zap className="w-3.5 h-3.5 text-primary" />
                   </div>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-primary">Rekomendasi Sistem</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-primary">Rekomendasi Sistem</span>
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed font-medium">
-                  Tahap <span className="font-extrabold text-foreground">{bottlenecks[0]?.stage?.replace('_', ' ') || 'Verifikasi'}</span> butuh tambahan sumber daya untuk menjaga kestabilan SLA pekan depan.
+                  Tahap <span className="font-bold text-foreground">{bottlenecks[0]?.stage?.replace('_', ' ') || 'Verifikasi'}</span> butuh tambahan sumber daya untuk menjaga kestabilan SLA pekan depan.
                 </p>
               </div>
             </CardContent>
@@ -260,28 +307,28 @@ export function AdminDashboardView() {
                   </div>
                   <div className="text-right">
                     <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Integritas Log</p>
-                    <p className="text-lg font-black text-emerald-400 leading-none mt-1 uppercase">Aktif</p>
+                    <p className="text-lg font-bold text-emerald-400 leading-none mt-1 uppercase">Aktif</p>
                   </div>
                </div>
                
                <div className="space-y-6">
                  <div className="flex items-center gap-2">
                     <History className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Recent Audit Logs</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Recent Audit Logs</span>
                  </div>
                  
                  <div className="space-y-4">
                     {auditLogs.map((log, i) => (
-                      <div key={log.id} className="flex gap-3 items-start border-l-2 border-slate-700 pl-4 py-1">
+                      <div key={log.id} className="flex gap-3 items-start border-l-2 border-border pl-4 py-1">
                         <div className="space-y-1">
-                          <p className="text-[10px] font-black text-slate-200 uppercase tracking-tight">{log.action}</p>
+                          <p className="text-[10px] font-bold text-foreground uppercase tracking-tight">{log.action}</p>
                           <p className="text-[10px] text-muted-foreground font-medium leading-none">{new Date(log.createdAt).toLocaleTimeString()}</p>
                         </div>
                       </div>
                     ))}
                  </div>
 
-                 <Button className="w-full bg-card text-foreground hover:bg-secondary font-extrabold rounded-xl h-11 mt-4 border-none transition-all active:scale-95 shadow-lg">
+                 <Button className="w-full bg-card text-foreground hover:bg-secondary font-bold rounded-xl h-11 mt-4 border-none transition-all active:scale-95 shadow-lg">
                     Lihat Selengkapnya
                  </Button>
                </div>

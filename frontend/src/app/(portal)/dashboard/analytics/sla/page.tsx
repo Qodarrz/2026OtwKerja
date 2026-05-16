@@ -67,7 +67,7 @@ export default function SLAReportPage() {
           {[1, 2].map((i) => (
             <Card
               key={i}
-              className="shadow-sm h-64 animate-pulse bg-muted/50"
+              className="shadow-sm h-64 animate-pulse bg-background"
             />
           ))}{" "}
         </div>{" "}
@@ -190,7 +190,7 @@ export default function SLAReportPage() {
         {" "}
         <Card className="shadow-sm overflow-hidden">
           {" "}
-          <CardHeader className="border-b border-border bg-muted/50">
+          <CardHeader className="border-b border-border bg-background">
             {" "}
             <CardTitle className="text-xl">
               Distribusi Berdasarkan Tipe
@@ -224,7 +224,7 @@ export default function SLAReportPage() {
         </Card>{" "}
         <Card className="shadow-sm overflow-hidden">
           {" "}
-          <CardHeader className="border-b border-border bg-muted/50">
+          <CardHeader className="border-b border-border bg-background">
             {" "}
             <CardTitle className="text-xl">Efisiensi Tahapan</CardTitle>{" "}
             <CardDescription>

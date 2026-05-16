@@ -42,7 +42,7 @@ export function SLACountdown({ remainingHours, maxHours, status }: SLACountdownP
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
           )}
           <span className={cn(
-            "text-[10px] font-black uppercase tracking-widest",
+            "text-[10px] font-bold uppercase tracking-widest",
             status === 'OVERDUE' ? "text-rose-600" : status === 'WARNING' ? "text-amber-600" : "text-emerald-600"
           )}>
             {status.replace('_', ' ')}

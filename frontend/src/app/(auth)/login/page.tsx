@@ -5,14 +5,14 @@ import { authService } from '@/services/auth.service';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { 
-  LogIn, 
-  Mail, 
-  Lock, 
-  ArrowRight, 
-  Loader2, 
-  Shield, 
-  User as UserIcon, 
+import {
+  LogIn,
+  Mail,
+  Lock,
+  ArrowRight,
+  Loader2,
+  Shield,
+  User as UserIcon,
   Eye,
   Building2,
   ShieldCheck,
@@ -26,7 +26,7 @@ function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  
+
   const { login } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -46,13 +46,13 @@ function LoginForm() {
     try {
       const response = await authService.login(email, password);
       login(response.access_token, response.user);
-      
+
       // Let AuthContext handle the redirection via its useEffect
       // or provide a hint for immediate redirection
-      const isInternal = response.user.roles.some(role => 
+      const isInternal = response.user.roles.some(role =>
         ['ADMIN', 'DOCUMENT_VALIDATOR', 'FIELD_INSPECTOR', 'LEGALIZER'].includes(role)
       );
-      
+
       if (!response.user.verify_gmail) {
         router.push(`/verify-otp?email=${encodeURIComponent(email)}`);
       } else if (isInternal) {
@@ -71,14 +71,6 @@ function LoginForm() {
 
   return (
     <div className="h-screen w-full bg-background flex overflow-hidden font-sans transition-colors duration-300">
-      {/* Back to Home Button */}
-      <Link 
-        href="/" 
-        className="absolute top-8 left-8 z-50 flex items-center gap-2 px-4 py-2 bg-card/80 backdrop-blur-md border border-border rounded-xl text-xs font-bold text-muted-foreground hover:text-primary hover:border-primary transition-all group"
-      >
-        <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-        Kembali ke Beranda
-      </Link>
 
       {/* Left Section: Form */}
       <div className="w-full lg:w-[480px] xl:w-[550px] flex flex-col h-full bg-card relative z-10 border-r border-border">
@@ -86,6 +78,13 @@ function LoginForm() {
           <div className="w-full max-w-sm mx-auto space-y-8">
             {/* Logo and Header */}
             <div className="space-y-4">
+              <Link
+                href="/"
+                className="flex items-center gap-2 rounded-xl text-xs font-bold text-muted-foreground hover:text-primary hover:border-primary transition-all group"
+              >
+                <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+                Kembali
+              </Link>
               <div className="flex items-center gap-2">
                 <span className="font-bold text-2xl tracking-tight text-foreground">Flow<span className="text-primary">Gov</span></span>
               </div>
@@ -111,15 +110,15 @@ function LoginForm() {
               <div className="space-y-3">
                 <label className="text-xs xl:text-sm font-semibold text-muted-foreground">Jenis Akun</label>
                 <div className="grid grid-cols-2 gap-3">
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={() => setAccType('perorangan')}
                     className={`py-2.5 px-4 text-xs xl:text-sm font-medium rounded-xl border transition-all ${accType === 'perorangan' ? 'bg-primary/10 border-primary text-primary' : 'bg-transparent border-border text-muted-foreground hover:bg-muted'}`}
                   >
                     Perorangan
                   </button>
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={() => setAccType('usaha')}
                     className={`py-2.5 px-4 text-xs xl:text-sm font-medium rounded-xl border transition-all ${accType === 'usaha' ? 'bg-primary/10 border-primary text-primary' : 'bg-transparent border-border text-muted-foreground hover:bg-muted'}`}
                   >
@@ -178,10 +177,10 @@ function LoginForm() {
                     5 + 3
                   </div>
                   <div className="w-1/2">
-                    <input 
-                      type="text" 
-                      className="w-full h-11 xl:h-12 bg-transparent border border-border rounded-xl px-4 focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all text-center font-bold" 
-                      placeholder="Hasil" 
+                    <input
+                      type="text"
+                      className="w-full h-11 xl:h-12 bg-transparent border border-border rounded-xl px-4 focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all text-center font-bold"
+                      placeholder="Hasil"
                     />
                   </div>
                 </div>
@@ -219,11 +218,11 @@ function LoginForm() {
       </div>
 
       {/* Right Section: Banner */}
-      <div className="hidden lg:block relative flex-1 h-full bg-muted overflow-hidden pb-10">
+      <div className="hidden lg:block relative flex-1 h-full bg-card overflow-hidden pb-10">
         <div className="relative h-full w-full rounded-bl-[60px] overflow-hidden">
-          <img 
-            alt="Government Banner" 
-            className="absolute inset-0 w-full h-full object-cover opacity-80" 
+          <img
+            alt="Government Banner"
+            className="absolute inset-0 w-full h-full object-cover opacity-80"
             src="https://images.unsplash.com/photo-1449824913935-59a10b8d2000?q=80&w=2070&auto=format&fit=crop"
           />
           <div className="absolute bottom-16 left-16 right-16 text-primary-foreground space-y-6 z-20">
@@ -231,7 +230,7 @@ function LoginForm() {
               <span className="text-[10px] xl:text-xs font-bold uppercase tracking-wider">Pelayanan Publik Prima</span>
             </div>
             <h2 className="text-4xl xl:text-5xl font-bold leading-tight">
-              Solusi Perizinan <br/>Cepat & Terpercaya.
+              Solusi Perizinan <br />Cepat & Terpercaya.
             </h2>
             <p className="text-base xl:text-lg text-primary-foreground/80 font-sans max-w-lg">Membangun masa depan layanan publik yang lebih efisien bagi seluruh masyarakat.</p>
           </div>

@@ -95,7 +95,7 @@ export function Sidebar() {
     <div className="w-72 h-screen bg-card border-r border-border flex flex-col fixed left-0 top-0 z-50 shadow-sm font-sans">
       <div className="p-8 pb-4 flex items-center gap-3">
         <div>
-          <h2 className="font-extrabold text-xl leading-tight tracking-tight text-foreground">
+          <h2 className="font-bold text-xl leading-tight tracking-tight text-foreground">
             Flow<span className="text-primary">Gov</span>
           </h2>
           <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Internal Portal</p>
@@ -184,19 +184,19 @@ export function Sidebar() {
       </nav>
 
       <div className="p-6 border-t border-border">
-        <div className="bg-muted border border-border rounded-2xl p-4 mb-4">
+        <div className="bg-background border border-border rounded-2xl p-4 mb-4">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center font-bold text-primary">
               {user?.name?.charAt(0)}
             </div>
             <div className="overflow-hidden">
-              <p className="text-sm font-extrabold text-foreground truncate tracking-tight">{user?.name}</p>
+              <p className="text-sm font-bold text-foreground truncate tracking-tight">{user?.name}</p>
               <p className="text-[10px] text-muted-foreground truncate uppercase font-bold tracking-widest">{user?.roles[0]}</p>
             </div>
           </div>
           <button 
             onClick={logout}
-            className="w-full flex items-center justify-center gap-2 py-2.5 text-xs font-extrabold text-muted-foreground hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all duration-200 border border-border hover:border-rose-100"
+            className="w-full flex items-center justify-center gap-2 py-2.5 text-xs font-bold text-muted-foreground hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all duration-200 border border-border hover:border-rose-100"
           >
             <LogOut className="w-4 h-4" /> Keluar Sistem
           </button>

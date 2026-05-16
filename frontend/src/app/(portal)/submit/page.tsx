@@ -144,7 +144,7 @@ export default function SubmitPermitPage() {
                   />
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                    <div className="p-4 rounded-2xl bg-muted/50 border border-border">
+                    <div className="p-4 rounded-2xl bg-background border border-border">
                       <span className="text-xs font-bold text-muted-foreground uppercase">Luas Lahan Terdeteksi</span>
                       <p className="text-2xl font-bold">{Math.round(formData.area).toLocaleString()} m²</p>
                     </div>
@@ -195,13 +195,13 @@ export default function SubmitPermitPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="flex justify-between p-4 rounded-2xl bg-muted/30">
+                    <div className="flex justify-between p-4 rounded-2xl bg-background">
                       <span className="text-muted-foreground">Estimasi NJOP Lahan</span>
                       <span className="font-bold">{formatCurrency(estimatedNJOP)}</span>
                     </div>
                     <div className="pt-4 border-t border-dashed flex justify-between items-center">
                       <span className="text-lg font-bold">Total Pembayaran Awal</span>
-                      <span className="text-2xl font-black text-primary">{formatCurrency(estimatedNJOP)}</span>
+                      <span className="text-2xl font-bold text-primary">{formatCurrency(estimatedNJOP)}</span>
                     </div>
                   </CardContent>
                 </Card>

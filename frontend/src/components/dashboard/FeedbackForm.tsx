@@ -64,7 +64,7 @@ export function FeedbackForm({ applicationId, onSuccess }: FeedbackFormProps) {
           {" "}
           <CheckCircle2 className="w-8 h-8" />{" "}
         </div>{" "}
-        <h3 className="text-xl font-extrabold text-foreground">
+        <h3 className="text-xl font-bold text-foreground">
           Terima Kasih!
         </h3>{" "}
         <p className="text-muted-foreground text-sm max-w-xs mx-auto">
@@ -78,7 +78,7 @@ export function FeedbackForm({ applicationId, onSuccess }: FeedbackFormProps) {
   return (
     <Card className="border-none shadow-md overflow-hidden bg-card/80 backdrop-blur-md">
       {" "}
-      <CardHeader className="bg-muted/50 border-b border-border">
+      <CardHeader className="bg-background border-b border-border">
         {" "}
         <div className="flex items-center gap-3">
           {" "}
@@ -88,7 +88,7 @@ export function FeedbackForm({ applicationId, onSuccess }: FeedbackFormProps) {
           </div>{" "}
           <div>
             {" "}
-            <CardTitle className="text-lg font-extrabold tracking-tight">
+            <CardTitle className="text-lg font-bold tracking-tight">
               Kirim Feedback
             </CardTitle>{" "}
             <CardDescription className="text-xs font-medium">
@@ -103,7 +103,7 @@ export function FeedbackForm({ applicationId, onSuccess }: FeedbackFormProps) {
           {" "}
           <div className="space-y-3">
             {" "}
-            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
               Bagaimana Pengalaman Anda?
             </label>{" "}
             <div className="flex gap-2">
@@ -132,7 +132,7 @@ export function FeedbackForm({ applicationId, onSuccess }: FeedbackFormProps) {
           </div>{" "}
           <div className="space-y-3">
             {" "}
-            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
               Kategori Feedback
             </label>{" "}
             <div className="flex flex-wrap gap-2">
@@ -148,7 +148,7 @@ export function FeedbackForm({ applicationId, onSuccess }: FeedbackFormProps) {
                   type="button"
                   onClick={() => setType(t.id as any)}
                   className={cn(
-                    "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all border",
+                    "px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all border",
                     type === t.id
                       ? "bg-primary text-primary-foreground border-primary shadow-lg "
                       : "bg-muted text-muted-foreground border-border hover:bg-card",
@@ -162,14 +162,14 @@ export function FeedbackForm({ applicationId, onSuccess }: FeedbackFormProps) {
           </div>{" "}
           <div className="space-y-3">
             {" "}
-            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
               Komentar Tambahan
             </label>{" "}
             <Textarea
               placeholder="Ceritakan pengalaman Anda atau berikan saran perbaikan..."
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              className="min-h-[100px] rounded-xl border-border focus:ring-primary/20 bg-muted/50"
+              className="min-h-[100px] rounded-xl border-border focus:ring-primary/20 bg-background"
             />{" "}
           </div>{" "}
           {error && (
@@ -181,7 +181,7 @@ export function FeedbackForm({ applicationId, onSuccess }: FeedbackFormProps) {
           <Button
             type="submit"
             disabled={isSubmitting}
-            className="w-full rounded-xl bg-background hover:bg-muted text-primary-foreground font-black h-12 transition-all active:scale-[0.98] shadow-md "
+            className="w-full rounded-xl bg-background hover:bg-muted text-primary-foreground font-bold h-12 transition-all active:scale-[0.98] shadow-md "
           >
             {" "}
             {isSubmitting ? (

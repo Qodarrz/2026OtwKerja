@@ -80,7 +80,7 @@ export default function AuditLogsPage() {
       </header>{" "}
       <Card className="shadow-sm overflow-hidden">
         {" "}
-        <CardHeader className="border-b border-border bg-muted/50 flex flex-row items-center justify-between">
+        <CardHeader className="border-b border-border bg-background flex flex-row items-center justify-between">
           {" "}
           <div className="relative w-72">
             {" "}

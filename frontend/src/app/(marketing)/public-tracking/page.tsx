@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { 
-  Search, 
-  Activity, 
-  Clock, 
-  CheckCircle2, 
+import {
+  Search,
+  Activity,
+  Clock,
+  CheckCircle2,
   FileText,
   ArrowRight,
   Globe,
@@ -49,22 +49,18 @@ export default function PublicTracking() {
 
   return (
     <div className="space-y-10">
-      
+
       {/* Hero Search */}
       <section className="pt-40 pb-20 px-6 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px] -z-10" />
-        
+
         <div className="max-w-4xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-6">
-              <Globe className="w-4 h-4" />
-              Portal Transparansi Publik
-            </span>
-            <h1 className="text-4xl md:text-6xl font-black mb-8 tracking-tight">
-              Pantau Status <span className="text-primary">Izin Anda.</span>
+            <h1 className="text-3xl md:text-5xl font-bold mb-8 tracking-tight">
+              Lacak Status <span className="text-primary">Izin Anda.</span>
             </h1>
             <p className="text-lg text-muted-foreground mb-12 max-w-2xl mx-auto">
               Akses real-time untuk setiap tahapan permohonan Anda. Masukkan nomor referensi di bawah ini.
@@ -72,14 +68,14 @@ export default function PublicTracking() {
 
             <form onSubmit={handleSearch} className="relative max-w-2xl mx-auto group">
               <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-6 h-6 text-muted-foreground group-focus-within:text-primary transition-colors" />
-              <input 
-                type="text" 
+              <input
+                type="text"
                 placeholder="Masukkan ID Permohonan (Contoh: PBG-2024-001)"
                 value={searchId}
                 onChange={(e) => setSearchId(e.target.value)}
-                className="w-full h-20 bg-card border-2 border-border rounded-[2rem] pl-16 pr-44 text-xl font-bold focus:border-primary outline-none transition-all shadow-lg shadow-sm"
+                className="w-full h-20 bg-card border-2 border-border rounded-[2rem] pl-16 pr-44 text-sm font-normal focus:border-primary outline-none transition-all shadow-lg shadow-sm"
               />
-              <Button 
+              <Button
                 type="submit"
                 disabled={isSearching}
                 size="lg"
@@ -98,7 +94,7 @@ export default function PublicTracking() {
         <div className="max-w-6xl mx-auto">
           <AnimatePresence mode="wait">
             {!result && !isSearching && (
-              <motion.div 
+              <motion.div
                 key="empty"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 0.5 }}
@@ -110,7 +106,7 @@ export default function PublicTracking() {
             )}
 
             {result && (
-              <motion.div 
+              <motion.div
                 key="result"
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -125,7 +121,7 @@ export default function PublicTracking() {
                       </div>
                       <div>
                         <p className="text-[10px] font-bold text-muted-foreground uppercase">ID Referensi</p>
-                        <p className="text-xl font-black">{result.id}</p>
+                        <p className="text-xl font-bold">{result.id}</p>
                       </div>
                     </div>
                   </CardHeader>
@@ -144,7 +140,7 @@ export default function PublicTracking() {
                       <span className="text-sm text-muted-foreground">Dikirim</span>
                       <span className="text-sm font-bold">{result.submittedAt}</span>
                     </div>
-                    
+
                     <div className="mt-8 p-4 bg-primary rounded-2xl text-primary-foreground shadow-md shadow-sm">
                       <div className="flex gap-3">
                         <ShieldCheck className="w-5 h-5 text-primary-foreground/80" />
@@ -166,13 +162,13 @@ export default function PublicTracking() {
 
                   <div className="space-y-6">
                     {result.stages.map((stage: any, i: number) => (
-                      <div 
-                        key={i} 
+                      <div
+                        key={i}
                         className={cn(
                           "relative p-8 rounded-3xl border transition-all duration-500",
-                          stage.completed ? "bg-emerald-500/5 border-emerald-500/20" : 
-                          stage.active ? "bg-card border-primary shadow-lg shadow-sm scale-[1.02]" : 
-                          "bg-muted/30 border-border opacity-50"
+                          stage.completed ? "bg-emerald-500/5 border-emerald-500/20" :
+                            stage.active ? "bg-card border-primary shadow-lg shadow-sm scale-[1.02]" :
+                              "bg-background border-border opacity-50"
                         )}
                       >
                         <div className="flex items-center justify-between">
@@ -180,8 +176,8 @@ export default function PublicTracking() {
                             <div className={cn(
                               "w-12 h-12 rounded-2xl flex items-center justify-center border-2 shrink-0 transition-colors",
                               stage.completed ? "bg-emerald-500 border-emerald-500 text-primary-foreground" :
-                              stage.active ? "bg-primary border-primary text-primary-foreground" :
-                              "bg-background border-border text-muted-foreground"
+                                stage.active ? "bg-primary border-primary text-primary-foreground" :
+                                  "bg-background border-border text-muted-foreground"
                             )}>
                               {stage.completed ? <CheckCircle2 className="w-6 h-6" /> : <span className="font-bold">{i + 1}</span>}
                             </div>

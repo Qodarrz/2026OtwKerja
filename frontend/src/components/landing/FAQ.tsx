@@ -33,64 +33,61 @@ export function FAQ() {
 
   return (
     <section className="py-24 px-6 relative overflow-hidden" id="faq">
-       <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/10 rounded-full text-[10px] font-black uppercase tracking-widest text-primary mb-4">
-              <HelpCircle className="w-3 h-3" /> Bantuan & FAQ
-            </div>
-            <h2 className="text-4xl font-black tracking-tight text-foreground mb-4">Pertanyaan Sering Diajukan</h2>
-            <p className="text-muted-foreground font-medium max-w-lg mx-auto">
-              Temukan jawaban cepat untuk pertanyaan umum seputar layanan FlowGov.
-            </p>
-          </div>
+      <div className="max-w-4xl mx-auto">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl font-bold tracking-tight text-foreground mb-4">Pertanyaan Sering Diajukan</h2>
+          <p className="text-muted-foreground font-medium max-w-lg mx-auto">
+            Temukan jawaban cepat untuk pertanyaan umum seputar layanan FlowGov.
+          </p>
+        </div>
 
-          <div className="space-y-4">
-            {faqs.map((faq, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 10 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1 }}
-                className={cn(
-                  "border rounded-3xl transition-all duration-300 overflow-hidden bg-card",
-                  openIndex === i ? "border-primary/30 shadow-md shadow-sm" : "border-border"
-                )}
+        <div className="space-y-4">
+          {faqs.map((faq, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.1 }}
+              className={cn(
+                "border rounded-3xl transition-all duration-300 overflow-hidden bg-card",
+                openIndex === i ? "border-primary/30 shadow-md shadow-sm" : "border-border"
+              )}
+            >
+              <button
+                onClick={() => setOpenIndex(openIndex === i ? null : i)}
+                className="w-full p-6 flex items-center justify-between text-left group"
               >
-                <button
-                  onClick={() => setOpenIndex(openIndex === i ? null : i)}
-                  className="w-full p-6 flex items-center justify-between text-left group"
-                >
-                  <span className={cn(
-                    "text-lg font-bold transition-colors",
-                    openIndex === i ? "text-primary" : "text-foreground"
-                  )}>
-                    {faq.question}
-                  </span>
-                  <div className={cn(
-                    "w-10 h-10 rounded-2xl flex items-center justify-center transition-all",
-                    openIndex === i ? "bg-primary text-primary-foreground rotate-180" : "bg-muted text-muted-foreground group-hover:bg-secondary"
-                  )}>
-                    <ChevronDown className="w-5 h-5" />
-                  </div>
-                </button>
-                <AnimatePresence>
-                  {openIndex === i && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.3 }}
-                    >
-                      <div className="px-6 pb-6 text-muted-foreground font-medium leading-relaxed">
-                        {faq.answer}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-            ))}
-          </div>
-       </div>
+                <span className={cn(
+                  "text-lg font-bold transition-colors",
+                  openIndex === i ? "text-primary" : "text-foreground"
+                )}>
+                  {faq.question}
+                </span>
+                <div className={cn(
+                  "w-10 h-10 rounded-2xl flex items-center justify-center transition-all",
+                  openIndex === i ? "bg-primary text-primary-foreground rotate-180" : "bg-muted text-muted-foreground group-hover:bg-secondary"
+                )}>
+                  <ChevronDown className="w-5 h-5" />
+                </div>
+              </button>
+              <AnimatePresence>
+                {openIndex === i && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <div className="px-6 pb-6 text-muted-foreground font-medium leading-relaxed">
+                      {faq.answer}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          ))}
+        </div>
+      </div>
     </section>
   );
 }

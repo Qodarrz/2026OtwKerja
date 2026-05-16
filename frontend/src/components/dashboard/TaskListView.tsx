@@ -62,11 +62,11 @@ export function TaskListView({
           <div className="flex items-center gap-2 mb-2">
             {" "}
             <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />{" "}
-            <span className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-muted-foreground">
+            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
               Internal Portal
             </span>{" "}
           </div>{" "}
-          <h1 className="text-4xl font-extrabold tracking-tight text-foreground">
+          <h1 className="text-4xl font-bold tracking-tight text-foreground">
             {title}
           </h1>{" "}
           <p className="text-muted-foreground font-medium">
@@ -130,7 +130,7 @@ export function TaskListView({
               {" "}
               <table className="w-full text-left">
                 {" "}
-                <thead className="bg-muted/50 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground border-b border-border">
+                <thead className="bg-background text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground border-b border-border">
                   {" "}
                   <tr>
                     {" "}
@@ -154,7 +154,7 @@ export function TaskListView({
                           {" "}
                           <div className="flex flex-col gap-1">
                             {" "}
-                            <span className="font-extrabold text-foreground tracking-tight">
+                            <span className="font-bold text-foreground tracking-tight">
                               {task.applicant?.name || "Unknown User"}
                             </span>{" "}
                             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
@@ -164,7 +164,7 @@ export function TaskListView({
                         </td>{" "}
                         <td className="px-8 py-6">
                           {" "}
-                          <span className="inline-flex items-center px-3 py-1 bg-secondary text-muted-foreground text-[10px] font-black uppercase tracking-widest rounded-lg border border-border">
+                          <span className="inline-flex items-center px-3 py-1 bg-secondary text-muted-foreground text-[10px] font-bold uppercase tracking-widest rounded-lg border border-border">
                             {" "}
                             {task.permitType.replace("_", " ")}{" "}
                           </span>{" "}
@@ -188,7 +188,7 @@ export function TaskListView({
                           task.status === "REJECTED" ? (
                             <span
                               className={cn(
-                                "inline-flex items-center px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-lg border",
+                                "inline-flex items-center px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-lg border",
                                 task.status === "APPROVED"
                                   ? "bg-emerald-50 text-emerald-600 border-emerald-200"
                                   : "bg-rose-50 text-rose-600 border-rose-200",
@@ -213,7 +213,7 @@ export function TaskListView({
                             {" "}
                             <Button
                               size="sm"
-                              className="rounded-xl bg-primary hover:bg-primary/90 font-extrabold h-9 px-5 transition-all shadow-md "
+                              className="rounded-xl bg-primary hover:bg-primary/90 font-bold h-9 px-5 transition-all shadow-md "
                             >
                               {" "}
                               Detail{" "}
@@ -236,7 +236,7 @@ export function TaskListView({
                           </div>{" "}
                           <div className="space-y-1">
                             {" "}
-                            <p className="text-lg font-black text-foreground tracking-tight">
+                            <p className="text-lg font-bold text-foreground tracking-tight">
                               Tidak Ada Berkas
                             </p>{" "}
                             <p className="text-sm font-medium text-muted-foreground">
@@ -256,7 +256,7 @@ export function TaskListView({
               {tasks.map((task) => (
                 <div
                   key={task.id}
-                  className="p-6 rounded-2xl border border-border bg-muted/50 hover:bg-card hover:shadow-md hover: transition-all duration-300 group"
+                  className="p-6 rounded-2xl border border-border bg-background hover:bg-card hover:shadow-md hover: transition-all duration-300 group"
                 >
                   {" "}
                   <div className="flex justify-between items-start mb-6">
@@ -274,10 +274,10 @@ export function TaskListView({
                     {" "}
                     <div>
                       {" "}
-                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">
                         {task.referenceNumber}
                       </p>{" "}
-                      <h4 className="font-extrabold text-foreground truncate tracking-tight">
+                      <h4 className="font-bold text-foreground truncate tracking-tight">
                         {task.applicant?.name || "Unknown User"}
                       </h4>{" "}
                     </div>{" "}
@@ -287,7 +287,7 @@ export function TaskListView({
                       task.status === "REJECTED" ? (
                         <span
                           className={cn(
-                            "inline-flex items-center px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-lg border",
+                            "inline-flex items-center px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-lg border",
                             task.status === "APPROVED"
                               ? "bg-emerald-50 text-emerald-600 border-emerald-200"
                               : "bg-rose-50 text-rose-600 border-rose-200",
@@ -311,7 +311,7 @@ export function TaskListView({
                       className="block"
                     >
                       {" "}
-                      <Button className="w-full bg-primary hover:bg-primary/90 rounded-xl font-extrabold h-11 shadow-lg ">
+                      <Button className="w-full bg-primary hover:bg-primary/90 rounded-xl font-bold h-11 shadow-lg ">
                         {" "}
                         Lihat Detail{" "}
                       </Button>{" "}

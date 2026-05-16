@@ -50,7 +50,7 @@ export default function BottleneckAnalysisPage() {
               {" "}
               <div className="flex flex-col md:flex-row h-48">
                 {" "}
-                <div className="p-8 md:w-1/3 border-b md:border-b-0 md:border-r border-border bg-muted/50 flex flex-col justify-center gap-4">
+                <div className="p-8 md:w-1/3 border-b md:border-b-0 md:border-r border-border bg-background flex flex-col justify-center gap-4">
                   {" "}
                   <div className="h-4 w-24 bg-slate-200 rounded animate-pulse" />{" "}
                   <div className="h-8 w-40 bg-slate-200 rounded animate-pulse" />{" "}
@@ -105,7 +105,7 @@ export default function BottleneckAnalysisPage() {
                 <div
                   className={cn(
                     "p-8 md:w-1/3 border-b md:border-b-0 md:border-r border-border flex flex-col justify-center relative",
-                    item.overdueCount > 0 ? "bg-rose-50/50" : "bg-muted/50",
+                    item.overdueCount > 0 ? "bg-rose-50/50" : "bg-background",
                   )}
                 >
                   {" "}

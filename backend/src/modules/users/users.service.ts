@@ -72,4 +72,116 @@ export class UsersService {
       },
     });
   }
+
+  /**
+   * List all regular users (role USER only)
+   */
+  async listUsers() {
+    return this.prisma.user.findMany({
+      where: {
+        roles: {
+          equals: [Role.USER],
+        },
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        roles: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
+
+  /**
+   * Update user details (admin only)
+   */
+  async updateUser(id: string, data: Partial<User>) {
+    return this.prisma.user.update({
+      where: { id },
+      data,
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        roles: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+  }
+
+  /**
+   * Delete user (admin only)
+   */
+  async deleteUser(id: string) {
+    return this.prisma.user.delete({
+      where: { id },
+    });
+  }
+
+  /**
+   * Get notification settings
+   */
+  async getNotificationSettings(userId: string) {
+    let settings = await this.prisma.notificationSetting.findUnique({
+      where: { userId },
+    });
+
+    if (!settings) {
+      settings = await this.prisma.notificationSetting.create({
+        data: { userId },
+      });
+    }
+
+    return settings;
+  }
+
+  /**
+   * Update notification settings
+   */
+  async updateNotificationSettings(userId: string, data: any) {
+    return this.prisma.notificationSetting.upsert({
+      where: { userId },
+      update: data,
+      create: { ...data, userId },
+    });
+  }
+
+  /**
+   * Get user profile with details
+   */
+  async getProfile(userId: string) {
+    return this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        roles: true,
+        isKtpVerified: true,
+        createdAt: true,
+        userDetail: true,
+      },
+    });
+  }
+
+  /**
+   * Get user activity history from audit logs
+   */
+  async getActivityHistory(userId: string) {
+    return this.prisma.auditLog.findMany({
+      where: {
+        performedBy: userId,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: 20,
+    });
+  }
 }

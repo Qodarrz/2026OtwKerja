@@ -12,8 +12,36 @@ export const usersService = {
     const { data } = await api.get("/users/staff");
     return data;
   },
+  getUsers: async (): Promise<UserResponse[]> => {
+    const { data } = await api.get("/users");
+    return data;
+  },
   updateRoles: async (userId: string, roles: Role[]) => {
     const { data } = await api.patch(`/users/${userId}/roles`, { roles });
+    return data;
+  },
+  updateUser: async (userId: string, userData: any) => {
+    const { data } = await api.patch(`/users/${userId}`, userData);
+    return data;
+  },
+  deleteUser: async (userId: string) => {
+    const { data } = await api.delete(`/users/${userId}`);
+    return data;
+  },
+  getProfile: async () => {
+    const { data } = await api.get("/users/me/profile");
+    return data;
+  },
+  getActivityHistory: async () => {
+    const { data } = await api.get("/users/me/history");
+    return data;
+  },
+  getSettings: async () => {
+    const { data } = await api.get("/users/me/settings");
+    return data;
+  },
+  updateSettings: async (settingsData: any) => {
+    const { data } = await api.patch("/users/me/settings", settingsData);
     return data;
   },
 };

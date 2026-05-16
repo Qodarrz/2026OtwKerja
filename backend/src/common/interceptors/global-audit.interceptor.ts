@@ -23,12 +23,9 @@ export class GlobalAuditInterceptor implements NestInterceptor {
         const request = context.switchToHttp().getRequest();
         const method = request.method;
 
-        // Only capture POST, PUT, PATCH, DELETE requests
         if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
             return next.handle();
         }
-
-        // Extract context information
         const userId = request.user?.userId || request.user?.sub;
         const ipAddress = this.extractIpAddress(request);
         const userAgent = request.headers['user-agent'] || '';

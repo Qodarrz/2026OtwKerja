@@ -247,6 +247,7 @@ export class AnalyticsService {
                                 select: {
                                     durationHours: true,
                                     slaStatus: true,
+                                    toStage: true,
                                 },
                             },
                         },
@@ -256,9 +257,9 @@ export class AnalyticsService {
 
             const totalProcessed = actions.length;
 
-            // Calculate metrics from stage histories
+            // Calculate metrics from stage histories specifically for the actions this staff performed
             const allStageHistories = actions.flatMap(
-                (action) => action.application.stageHistory,
+                (action) => action.application.stageHistory.filter(sh => sh.toStage === action.stage)
             );
 
             const overdueCount = allStageHistories.filter(
@@ -376,9 +377,10 @@ export class AnalyticsService {
 
             const staffCount = allStaff.filter(s => s.roles.includes(roleMap[stage])).length;
 
-            // Calculate utilization (active apps per staff member)
+            // Calculate utilization based on capacity (default 5 apps per staff)
+            const workloadCapacity = 5;
             const utilizationPercentage =
-                staffCount > 0 ? (activeCount / staffCount) * 100 : 0;
+                staffCount > 0 ? (activeCount / (staffCount * workloadCapacity)) * 100 : 0;
 
             // Determine recommended action
             let recommendedAction = 'No action needed';

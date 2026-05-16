@@ -210,7 +210,7 @@ export class NotificationService {
         const notification = await this.prisma.notification.create({
             data: {
                 userId: staffId,
-                type: 'SLA_WARNING' as any,
+                type: NotificationType.SLA_WARNING,
                 title: 'SLA Warning',
                 message: `Application ${application.referenceNumber} in ${stage} is nearing SLA limit. Please process immediately.`,
                 applicationId,
@@ -268,7 +268,7 @@ export class NotificationService {
         const notification = await this.prisma.notification.create({
             data: {
                 userId: supervisorId,
-                type: 'SLA_ESCALATION' as any,
+                type: NotificationType.SLA_ESCALATION,
                 title: 'SLA Escalation Alert',
                 message: `URGENT: Application ${application.referenceNumber} in ${stage} is OVERDUE. Assigned to: ${staffName}.`,
                 applicationId,

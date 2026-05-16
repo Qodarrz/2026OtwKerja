@@ -92,13 +92,13 @@ export function UserDashboard() {
              <div className="p-1.5 bg-primary/10 rounded-lg">
                 <Sparkles className="w-3.5 h-3.5 text-primary" />
              </div>
-             <span className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-muted-foreground">Portal Publik</span>
+             <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Portal Publik</span>
           </div>
-          <h1 className="text-4xl font-extrabold tracking-tight text-foreground">Halo, {user?.name?.split(' ')[0]}!</h1>
+          <h1 className="text-4xl font-bold tracking-tight text-foreground">Halo, {user?.name?.split(' ')[0]}!</h1>
           <p className="text-muted-foreground font-medium">Pantau progres perizinan dan kewajiban administrasi Anda di sini.</p>
         </div>
         <Link href="/submit">
-          <Button className="rounded-xl bg-primary hover:bg-primary/90 shadow-lg shadow-sm font-extrabold h-11 px-8 transition-all active:scale-95">
+          <Button className="rounded-xl bg-primary hover:bg-primary/90 shadow-lg shadow-sm font-bold h-11 px-8 transition-all active:scale-95">
             <Plus className="w-5 h-5 mr-2" />
             Buat Pengajuan Baru
           </Button>
@@ -121,8 +121,8 @@ export function UserDashboard() {
                   </div>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-3xl font-black tracking-tight text-foreground">{stat.value}</span>
-                  <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mt-1">{stat.label}</span>
+                  <span className="text-3xl font-bold tracking-tight text-foreground">{stat.value}</span>
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">{stat.label}</span>
                 </div>
               </CardContent>
             </Card>
@@ -135,11 +135,11 @@ export function UserDashboard() {
           <Card className="border-none shadow-sm bg-card overflow-hidden">
             <div className="p-8 border-b border-slate-50 flex items-center justify-between">
                <div>
-                  <h2 className="text-xl font-extrabold text-foreground tracking-tight">Pengajuan Terkini</h2>
+                  <h2 className="text-xl font-bold text-foreground tracking-tight">Pengajuan Terkini</h2>
                   <p className="text-sm text-muted-foreground font-medium">Daftar pengajuan terbaru yang sedang diproses.</p>
                </div>
                <Link href="/dashboard/applications">
-                 <Button variant="ghost" size="sm" className="text-primary font-black uppercase text-[10px] tracking-widest hover:bg-primary/5">Lihat Semua</Button>
+                 <Button variant="ghost" size="sm" className="text-primary font-bold uppercase text-[10px] tracking-widest hover:bg-primary/5">Lihat Semua</Button>
                </Link>
             </div>
             <CardContent className="p-0">
@@ -156,15 +156,15 @@ export function UserDashboard() {
                           <FileText className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors" />
                         </div>
                         <div>
-                          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">{sub.referenceNumber || 'DRAFT'}</p>
-                          <p className="font-extrabold text-foreground tracking-tight">{sub.permitType.replace('_', ' ')}</p>
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">{sub.referenceNumber || 'DRAFT'}</p>
+                          <p className="font-bold text-foreground tracking-tight">{sub.permitType.replace('_', ' ')}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-8">
                         <div className="hidden md:flex flex-col items-end">
                           <p className="text-xs font-bold text-muted-foreground">{new Date(sub.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</p>
                           <span className={cn(
-                            "text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg mt-1.5 border",
+                            "text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-lg mt-1.5 border",
                             ['APPROVED'].includes(sub.status) ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
                             ['REJECTED'].includes(sub.status) ? "bg-rose-50 text-rose-600 border-rose-100" :
                             ['DRAFT'].includes(sub.status) ? "bg-secondary text-muted-foreground border-border" :
@@ -183,7 +183,7 @@ export function UserDashboard() {
                   <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
                      <FileText className="w-8 h-8 text-slate-200" />
                   </div>
-                  <p className="font-extrabold text-foreground tracking-tight">Belum Ada Pengajuan</p>
+                  <p className="font-bold text-foreground tracking-tight">Belum Ada Pengajuan</p>
                   <p className="text-sm text-muted-foreground mt-1 mb-8">Mulai perizinan pertama Anda hari ini.</p>
                   <Link href="/submit">
                     <Button variant="outline" className="rounded-xl border-border font-bold">Mulai Sekarang</Button>
@@ -197,14 +197,14 @@ export function UserDashboard() {
             <div className="absolute top-0 right-0 w-80 h-80 bg-card/10 rounded-full -mr-32 -mt-32 blur-3xl opacity-50" />
             <CardContent className="p-12 relative z-10">
               <div className="max-w-md space-y-6">
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-card/20 rounded-full text-[10px] font-black uppercase tracking-widest">
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-card/20 rounded-full text-[10px] font-bold uppercase tracking-widest">
                   Layanan Bantuan
                 </div>
-                <h3 className="text-3xl font-black leading-tight tracking-tight">Butuh Konsultasi Terkait Tata Ruang?</h3>
+                <h3 className="text-3xl font-bold leading-tight tracking-tight">Butuh Konsultasi Terkait Tata Ruang?</h3>
                 <p className="text-blue-100 font-medium leading-relaxed">
                   Tim ahli kami siap membantu Anda memverifikasi dokumen teknis dan zonasi lahan sebelum diajukan ke sistem.
                 </p>
-                <Button className="bg-card text-primary hover:bg-card/90 rounded-xl font-black px-8 h-12 shadow-md shadow-black/10 transition-all active:scale-95">
+                <Button className="bg-card text-primary hover:bg-card/90 rounded-xl font-bold px-8 h-12 shadow-md shadow-black/10 transition-all active:scale-95">
                   Hubungi Konsultan Ahli
                 </Button>
               </div>
@@ -215,7 +215,7 @@ export function UserDashboard() {
         <div className="space-y-8">
           <Card className="border-none shadow-sm bg-card overflow-hidden">
             <div className="p-8 border-b border-slate-50">
-               <h2 className="text-xl font-extrabold text-foreground tracking-tight">Kewajiban Pembayaran</h2>
+               <h2 className="text-xl font-bold text-foreground tracking-tight">Kewajiban Pembayaran</h2>
                <p className="text-sm text-muted-foreground font-medium">Tagihan retribusi perizinan aktif.</p>
             </div>
             <CardContent className="p-8 space-y-8">
@@ -224,22 +224,22 @@ export function UserDashboard() {
                    <div className="p-2.5 bg-card rounded-xl shadow-sm border border-border text-primary">
                       <CreditCard className="w-5 h-5" />
                    </div>
-                   <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">Tagihan Aktif</span>
+                   <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-primary">Tagihan Aktif</span>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-3xl font-black text-foreground tracking-tighter leading-none">
+                  <p className="text-3xl font-bold text-foreground tracking-tighter leading-none">
                     {formatCurrency(metrics.totalCost)}
                   </p>
                   <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Total Akumulatif</p>
                 </div>
-                <Button size="sm" className="w-full rounded-xl bg-primary hover:bg-primary/90 font-black h-10 mt-4 shadow-md shadow-sm transition-all">
+                <Button size="sm" className="w-full rounded-xl bg-primary hover:bg-primary/90 font-bold h-10 mt-4 shadow-md shadow-sm transition-all">
                   Bayar Sekarang
                 </Button>
               </div>
               
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
-                   <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Panduan Cepat</p>
+                   <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Panduan Cepat</p>
                    <HelpCircle className="w-4 h-4 text-slate-300" />
                 </div>
                 <div className="space-y-4">
@@ -270,10 +270,10 @@ export function UserDashboard() {
                   <div className="w-10 h-10 rounded-xl bg-card/20 flex items-center justify-center">
                     <Sparkles className="w-5 h-5 text-primary-foreground" />
                   </div>
-                  <p className="text-sm font-black uppercase tracking-widest leading-none">Status KTP</p>
+                  <p className="text-sm font-bold uppercase tracking-widest leading-none">Status KTP</p>
                </div>
                <div className="space-y-4">
-                  <h4 className="text-2xl font-black leading-tight tracking-tight">
+                  <h4 className="text-2xl font-bold leading-tight tracking-tight">
                     {user?.isKtpVerified ? "KTP Terverifikasi" : "KTP Belum Verifikasi"}
                   </h4>
                   <p className="text-xs text-blue-100 font-medium leading-relaxed">

@@ -126,12 +126,12 @@ export default function ValidatePermitPage() {
         </Button>{" "}
         <div>
           {" "}
-          <h1 className="text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-3">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
             {" "}
             Validasi Berkas{" "}
             <span
               className={cn(
-                "text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-lg border",
+                "text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-lg border",
                 isCompleted
                   ? "bg-secondary text-muted-foreground border-border"
                   : "bg-primary/10 text-primary border-primary/20",
@@ -158,7 +158,7 @@ export default function ValidatePermitPage() {
           {" "}
           <Card className="border-none shadow-sm ">
             {" "}
-            <CardHeader className="border-b border-slate-50 bg-muted/50">
+            <CardHeader className="border-b border-slate-50 bg-background">
               {" "}
               <CardTitle className="text-xl flex items-center gap-2">
                 {" "}
@@ -170,21 +170,21 @@ export default function ValidatePermitPage() {
               {" "}
               <div className="space-y-2">
                 {" "}
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                   {" "}
                   <Building className="w-3.5 h-3.5" /> Tipe Izin{" "}
                 </p>{" "}
-                <p className="font-extrabold text-foreground">
+                <p className="font-bold text-foreground">
                   {application.permitType.replace(/_/g, " ")}
                 </p>{" "}
               </div>{" "}
               <div className="space-y-2">
                 {" "}
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                   {" "}
                   <User className="w-3.5 h-3.5" /> Pemohon{" "}
                 </p>{" "}
-                <p className="font-extrabold text-foreground">
+                <p className="font-bold text-foreground">
                   {application.applicant?.name || "Unknown"}
                 </p>{" "}
                 <p className="text-xs text-muted-foreground font-medium">
@@ -193,7 +193,7 @@ export default function ValidatePermitPage() {
               </div>{" "}
               <div className="space-y-2 md:col-span-2">
                 {" "}
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                   {" "}
                   <MapPin className="w-3.5 h-3.5" /> Lokasi{" "}
                 </p>{" "}
@@ -204,10 +204,10 @@ export default function ValidatePermitPage() {
               {application.landSize && (
                 <div className="space-y-2">
                   {" "}
-                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                     Luas Lahan
                   </p>{" "}
-                  <p className="font-extrabold text-foreground">
+                  <p className="font-bold text-foreground">
                     {application.landSize} m²
                   </p>{" "}
                 </div>
@@ -215,10 +215,10 @@ export default function ValidatePermitPage() {
               {application.njopValue && (
                 <div className="space-y-2">
                   {" "}
-                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                     Nilai NJOP
                   </p>{" "}
-                  <p className="font-extrabold text-foreground">
+                  <p className="font-bold text-foreground">
                     {formatCurrency(application.njopValue)}
                   </p>{" "}
                 </div>
@@ -227,7 +227,7 @@ export default function ValidatePermitPage() {
           </Card>{" "}
           <Card className="border-none shadow-sm ">
             {" "}
-            <CardHeader className="border-b border-slate-50 bg-muted/50">
+            <CardHeader className="border-b border-slate-50 bg-background">
               {" "}
               <CardTitle className="text-xl flex items-center gap-2">
                 {" "}
@@ -257,7 +257,7 @@ export default function ValidatePermitPage() {
                         {" "}
                         <p
                           className={cn(
-                            "font-extrabold text-lg tracking-tight",
+                            "font-bold text-lg tracking-tight",
                             history.completedAt
                               ? "text-foreground"
                               : "text-primary",
@@ -303,7 +303,7 @@ export default function ValidatePermitPage() {
                     {" "}
                     <CheckCircle2 className="w-6 h-6" />{" "}
                   </div>{" "}
-                  <h3 className="font-extrabold text-foreground">
+                  <h3 className="font-bold text-foreground">
                     Proses Selesai
                   </h3>{" "}
                   <p className="text-sm font-medium text-muted-foreground">
@@ -318,7 +318,7 @@ export default function ValidatePermitPage() {
                     {" "}
                     <ShieldCheck className="w-6 h-6" />{" "}
                   </div>{" "}
-                  <h3 className="font-extrabold text-amber-900">
+                  <h3 className="font-bold text-amber-900">
                     Menunggu Validasi
                   </h3>{" "}
                   <p className="text-sm font-medium text-amber-700">
@@ -346,7 +346,7 @@ export default function ValidatePermitPage() {
                     <Button
                       onClick={handleApprove}
                       disabled={isSubmitting}
-                      className="w-full rounded-xl bg-emerald-500 hover:bg-emerald-600 text-primary-foreground font-extrabold h-12 shadow-lg "
+                      className="w-full rounded-xl bg-emerald-500 hover:bg-emerald-600 text-primary-foreground font-bold h-12 shadow-lg "
                     >
                       {" "}
                       {isSubmitting ? (
@@ -360,7 +360,7 @@ export default function ValidatePermitPage() {
                       onClick={handleReject}
                       disabled={isSubmitting}
                       variant="outline"
-                      className="w-full rounded-xl border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700 font-extrabold h-12"
+                      className="w-full rounded-xl border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700 font-bold h-12"
                     >
                       {" "}
                       {isSubmitting ? (

@@ -70,7 +70,7 @@ export function Navbar() {
           </span>
         </Link>
 
-        <div className="hidden md:flex items-center gap-1 bg-muted/30 p-1 rounded-2xl border border-border/50">
+        <div className="hidden md:flex items-center gap-1 bg-background p-1 rounded-2xl border border-border/50">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
             return (

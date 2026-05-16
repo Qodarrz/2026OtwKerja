@@ -78,10 +78,10 @@ export function SmartOnboarding() {
           <CardContent className="p-8 md:p-10">
             <div className="flex flex-col lg:flex-row gap-10 items-center">
               <div className="lg:max-w-sm space-y-4">
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary-foreground/10 rounded-full text-[10px] font-black uppercase tracking-widest">
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary-foreground/10 rounded-full text-[10px] font-bold uppercase tracking-widest">
                   <Lightbulb className="w-3.5 h-3.5" /> Quick Start Guide
                 </div>
-                <h3 className="text-3xl font-black tracking-tight leading-tight">
+                <h3 className="text-3xl font-bold tracking-tight leading-tight">
                   Selamat Datang di Portal Internal FlowGov
                 </h3>
                 <p className="text-primary-foreground/80 font-medium leading-relaxed">
@@ -90,7 +90,7 @@ export function SmartOnboarding() {
                 </p>
                 <Button 
                   onClick={handleClose}
-                  className="rounded-xl bg-background text-foreground hover:bg-secondary font-black px-6 shadow-lg border-none"
+                  className="rounded-xl bg-background text-foreground hover:bg-secondary font-bold px-6 shadow-lg border-none"
                 >
                   Mulai Bekerja
                   <ChevronRight className="ml-2 w-4 h-4" />
@@ -110,7 +110,7 @@ export function SmartOnboarding() {
                     >
                       <guide.icon className={cn("w-5 h-5", guide.color)} />
                     </div>
-                    <h4 className="font-extrabold text-sm mb-1">{guide.title}</h4>
+                    <h4 className="font-bold text-sm mb-1">{guide.title}</h4>
                     <p className="text-xs text-primary-foreground/60 font-medium leading-normal">
                       {guide.desc}
                     </p>

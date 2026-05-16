@@ -120,9 +120,9 @@ export class AuditLogService {
             throw new BadRequestException(`Invalid action: ${dto.action}`);
         }
 
-        // Validate UUID format
-        if (!this.isValidUUID(dto.entityId)) {
-            throw new BadRequestException(`Invalid entity ID format: ${dto.entityId}`);
+        // Validate entity ID (can be UUID or string like email for login)
+        if (!dto.entityId) {
+            throw new BadRequestException('Entity ID is required');
         }
 
         if (dto.performedBy && !this.isValidUUID(dto.performedBy)) {

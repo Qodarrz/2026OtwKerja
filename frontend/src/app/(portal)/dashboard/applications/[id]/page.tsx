@@ -96,7 +96,7 @@ export default function ApplicationDetailPage() {
             {" "}
             <div className="flex items-center gap-2 mb-1">
               {" "}
-              <span className="text-[10px] font-black uppercase tracking-widest text-primary bg-primary/5 px-2 py-0.5 rounded-md">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-primary bg-primary/5 px-2 py-0.5 rounded-md">
                 {" "}
                 {application.referenceNumber}{" "}
               </span>{" "}
@@ -112,7 +112,7 @@ export default function ApplicationDetailPage() {
                 })}{" "}
               </span>{" "}
             </div>{" "}
-            <h1 className="text-3xl font-black tracking-tight text-foreground">
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">
               {" "}
               {application.permitType.replace("_", " ")}{" "}
             </h1>{" "}
@@ -120,7 +120,7 @@ export default function ApplicationDetailPage() {
         </div>{" "}
         <div
           className={cn(
-            "px-6 py-3 rounded-2xl border text-sm font-black uppercase tracking-widest shadow-sm",
+            "px-6 py-3 rounded-2xl border text-sm font-bold uppercase tracking-widest shadow-sm",
             application.status === "APPROVED"
               ? "bg-emerald-50 text-emerald-600 border-emerald-100"
               : application.status === "REJECTED"
@@ -171,7 +171,7 @@ export default function ApplicationDetailPage() {
                     {" "}
                     <span
                       className={cn(
-                        "text-[10px] font-black uppercase tracking-widest",
+                        "text-[10px] font-bold uppercase tracking-widest",
                         isCurrent ? "text-primary" : "text-muted-foreground",
                       )}
                     >
@@ -199,7 +199,7 @@ export default function ApplicationDetailPage() {
             {" "}
             <CardHeader className="border-b border-slate-50">
               {" "}
-              <CardTitle className="text-xl font-extrabold flex items-center gap-3">
+              <CardTitle className="text-xl font-bold flex items-center gap-3">
                 {" "}
                 <Clock className="w-6 h-6 text-primary" /> Estimasi Waktu
                 (SLA){" "}
@@ -236,7 +236,7 @@ export default function ApplicationDetailPage() {
                     {" "}
                     <CheckCircle2 className="w-8 h-8" />{" "}
                   </div>{" "}
-                  <p className="font-extrabold text-foreground">
+                  <p className="font-bold text-foreground">
                     Proses Selesai
                   </p>{" "}
                   <p className="text-sm text-muted-foreground mt-1">
@@ -250,7 +250,7 @@ export default function ApplicationDetailPage() {
             {" "}
             <CardHeader className="border-b border-slate-50">
               {" "}
-              <CardTitle className="text-xl font-extrabold">
+              <CardTitle className="text-xl font-bold">
                 Informasi Pengajuan
               </CardTitle>{" "}
             </CardHeader>{" "}
@@ -258,37 +258,37 @@ export default function ApplicationDetailPage() {
               {" "}
               <div className="space-y-1">
                 {" "}
-                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                   Alamat Lokasi
                 </p>{" "}
-                <p className="font-extrabold text-foreground leading-tight">
+                <p className="font-bold text-foreground leading-tight">
                   {application.locationAddress || "-"}
                 </p>{" "}
               </div>{" "}
               <div className="space-y-1">
                 {" "}
-                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                   Luas Lahan
                 </p>{" "}
-                <p className="font-extrabold text-foreground">
+                <p className="font-bold text-foreground">
                   {application.landSize || 0} m²
                 </p>{" "}
               </div>{" "}
               <div className="space-y-1">
                 {" "}
-                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                   Tipe Lahan
                 </p>{" "}
-                <p className="font-extrabold text-foreground">
+                <p className="font-bold text-foreground">
                   {application.landType || "-"}
                 </p>{" "}
               </div>{" "}
               <div className="space-y-1">
                 {" "}
-                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                   Estimasi Biaya
                 </p>{" "}
-                <p className="font-extrabold text-primary text-lg">
+                <p className="font-bold text-primary text-lg">
                   {formatCurrency(application.totalCost || 0)}
                 </p>{" "}
               </div>{" "}
@@ -306,7 +306,7 @@ export default function ApplicationDetailPage() {
                 {" "}
                 <AlertTriangle className="w-5 h-5 text-amber-400" />{" "}
               </div>{" "}
-              <h3 className="text-lg font-black tracking-tight">
+              <h3 className="text-lg font-bold tracking-tight">
                 Butuh Bantuan?
               </h3>{" "}
               <p className="text-sm text-muted-foreground leading-relaxed">

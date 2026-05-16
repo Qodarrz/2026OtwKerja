@@ -1,31 +1,29 @@
-import { PrismaClient, WorkflowStage, Role, PermitType, LandType, AuthProvider } from '@prisma/client';
+import { PrismaClient, WorkflowStage, Role, PermitType, LandType, AuthProvider, ActionType, SLAStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('--- Starting Seed Process ---');
+  console.log('--- 🚀 Starting Comprehensive Demo Seed Process ---');
 
+  // 1. Clear existing dynamic data to avoid conflicts and ensure clean demo
+  console.log('🧹 Cleaning existing data...');
+  await prisma.validationAction.deleteMany();
+  await prisma.stageHistory.deleteMany();
+  await prisma.notification.deleteMany();
+  await prisma.document.deleteMany();
+  await prisma.feedback.deleteMany();
+  await prisma.permitApplication.deleteMany();
+  // Note: We keep Users, SLA Rules, and Templates but will upsert them
+  console.log('✅ Data cleaned.');
 
-  console.log('Seeding SLA Rules...');
+  // 2. Seed SLA Rules
+  console.log('⏲️ Seeding SLA Rules...');
   const slaRules = [
-    {
-      stage: WorkflowStage.DOCUMENT_CHECK,
-      maxDurationHours: 24, // 1 day
-      warningThreshold: 0.8, // 80% (19.2h)
-    },
-    {
-      stage: WorkflowStage.FIELD_INSPECTION,
-      maxDurationHours: 48, // 2 days
-      warningThreshold: 0.75, // 75% (36h)
-    },
-    {
-      stage: WorkflowStage.LEGALIZATION,
-      maxDurationHours: 24, // 1 day
-      warningThreshold: 0.8, // 80% (19.2h)
-    },
+    { stage: WorkflowStage.DOCUMENT_CHECK, maxDurationHours: 24, warningThreshold: 0.8 },
+    { stage: WorkflowStage.FIELD_INSPECTION, maxDurationHours: 48, warningThreshold: 0.75 },
+    { stage: WorkflowStage.LEGALIZATION, maxDurationHours: 24, warningThreshold: 0.8 },
   ];
-
   for (const rule of slaRules) {
     await prisma.sLARule.upsert({
       where: { stage: rule.stage },
@@ -33,256 +31,310 @@ async function main() {
       create: rule,
     });
   }
-  console.log('✅ SLA Rules seeded.');
 
-  console.log('Seeding Users...');
+  // 3. Seed Users
+  console.log('👥 Seeding Staff and Demo Users...');
   const hashedPassword = await bcrypt.hash('password123', 10);
-
-  const users = [
-    {
-      email: 'admin@flowgov.id',
-      name: 'Super Admin',
-      roles: [Role.ADMIN],
-    },
-    {
-      email: 'validator@flowgov.id',
-      name: 'Andi Validator',
-      roles: [Role.DOCUMENT_VALIDATOR],
-    },
-    {
-      email: 'inspector@flowgov.id',
-      name: 'Budi Inspector',
-      roles: [Role.FIELD_INSPECTOR],
-    },
-    {
-      email: 'legalizer@flowgov.id',
-      name: 'Citra Legalizer',
-      roles: [Role.LEGALIZER],
-    },
-    {
-      email: 'user@flowgov.id',
-      name: 'Heidar Arrizqie',
-      roles: [Role.USER],
-    },
+  
+  const staffData = [
+    { email: 'admin@flowgov.id', name: 'Super Admin', roles: [Role.ADMIN] },
+    { email: 'andi.validator@flowgov.id', name: 'Andi Pratama', roles: [Role.DOCUMENT_VALIDATOR] },
+    { email: 'budi.validator@flowgov.id', name: 'Budi Santoso', roles: [Role.DOCUMENT_VALIDATOR] },
+    { email: 'candra.inspector@flowgov.id', name: 'Candra Wijaya', roles: [Role.FIELD_INSPECTOR] },
+    { email: 'dedi.inspector@flowgov.id', name: 'Dedi Kurniawan', roles: [Role.FIELD_INSPECTOR] },
+    { email: 'eka.legalizer@flowgov.id', name: 'Eka Putri', roles: [Role.LEGALIZER] },
+    { email: 'fani.legalizer@flowgov.id', name: 'Fani Ramadhani', roles: [Role.LEGALIZER] },
   ];
 
-  const seededUsers: Record<string, any> = {};
+  const applicantsData = [
+    { email: 'user@flowgov.id', name: 'Heidar Arrizqie' },
+    { email: 'citizen1@gmail.com', name: 'Siti Aminah' },
+    { email: 'citizen2@gmail.com', name: 'Joko Widodo' },
+    { email: 'citizen3@gmail.com', name: 'Rina Nose' },
+    { email: 'citizen4@gmail.com', name: 'Bambang Pamungkas' },
+  ];
 
-  for (const userData of users) {
+  const allUsers: Record<string, any> = {};
+
+  for (const u of [...staffData, ...applicantsData]) {
     const user = await prisma.user.upsert({
-      where: { email: userData.email },
-      update: {},
+      where: { email: u.email },
+      update: { roles: (u as any).roles || [Role.USER] },
       create: {
-        email: userData.email,
-        name: userData.name,
+        email: u.email,
+        name: u.name,
         password: hashedPassword,
-        roles: userData.roles,
+        roles: (u as any).roles || [Role.USER],
         verify_gmail: true,
         isKtpVerified: true,
-        provider: AuthProvider.LOCAL,
         userDetail: {
           create: {
             nik: '3273' + Math.floor(Math.random() * 1000000000000),
-            phone: '08123456789',
+            phone: '0812' + Math.floor(Math.random() * 100000000),
             address: 'Kota Bogor, Jawa Barat',
           },
         },
       },
     });
-    seededUsers[userData.email] = user;
+    allUsers[u.email] = user;
   }
-  console.log('✅ Users seeded.');
 
-  console.log('Seeding Permit Applications...');
-  const applicant = seededUsers['user@flowgov.id'];
-
-  const applications = [
+  // 4. Seed Workflow Templates
+  console.log('📋 Seeding Workflow Templates...');
+  const templates = [
     {
-      referenceNumber: 'BP/2026/04/00001',
       permitType: PermitType.BUILDING_PERMIT,
-      status: WorkflowStage.APPROVED,
-      currentStage: WorkflowStage.APPROVED,
-      locationAddress: 'Jl. Pajajaran No. 123, Bogor',
-      landSize: 250,
-      landType: LandType.RESIDENTIAL,
-      buildingHeight: 8,
-      njopValue: 5000000,
-      totalCost: 12500000,
-      submittedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
+      name: 'Izin Mendirikan Bangunan (IMB)',
+      stages: [
+        { stage: WorkflowStage.DOCUMENT_CHECK, order: 1, requiredRoles: [Role.DOCUMENT_VALIDATOR], slaDurationHours: 24 },
+        { stage: WorkflowStage.FIELD_INSPECTION, order: 2, requiredRoles: [Role.FIELD_INSPECTOR], slaDurationHours: 48 },
+        { stage: WorkflowStage.LEGALIZATION, order: 3, requiredRoles: [Role.LEGALIZER], slaDurationHours: 24 },
+      ]
     },
     {
-      referenceNumber: 'BL/2026/04/00002',
       permitType: PermitType.BUSINESS_LICENSE,
-      status: WorkflowStage.DOCUMENT_CHECK,
-      currentStage: WorkflowStage.DOCUMENT_CHECK,
-      businessName: 'Coffee Shop OtwKerja',
-      businessType: 'Kuliner',
-      businessLocation: 'Botani Square, Bogor',
-      estimatedEmployees: 5,
-      totalCost: 2500000,
-      submittedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-    },
-    {
-      referenceNumber: 'BP/2026/04/00003',
-      permitType: PermitType.BUILDING_PERMIT,
-      status: WorkflowStage.FIELD_INSPECTION,
-      currentStage: WorkflowStage.FIELD_INSPECTION,
-      locationAddress: 'Jl. Juanda No. 45, Bogor',
-      landSize: 1000,
-      landType: LandType.COMMERCIAL,
-      buildingHeight: 15,
-      njopValue: 12000000,
-      totalCost: 45000000,
-      submittedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
-    },
-    {
-      referenceNumber: 'BP/2026/04/00004',
-      permitType: PermitType.BUILDING_PERMIT,
-      status: WorkflowStage.REJECTED,
-      currentStage: WorkflowStage.REJECTED,
-      locationAddress: 'Area Rawan Longsor, Bogor',
-      landSize: 150,
-      landType: LandType.RESIDENTIAL,
-      buildingHeight: 6,
-      njopValue: 2000000,
-      totalCost: 5000000,
-      rejectionReason: 'Lokasi berada di zona merah rawan bencana alam.',
-      submittedAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000),
-    },
+      name: 'Izin Usaha Mikro (IUMK)',
+      stages: [
+        { stage: WorkflowStage.DOCUMENT_CHECK, order: 1, requiredRoles: [Role.DOCUMENT_VALIDATOR], slaDurationHours: 12 },
+        { stage: WorkflowStage.LEGALIZATION, order: 2, requiredRoles: [Role.LEGALIZER], slaDurationHours: 12 },
+      ]
+    }
   ];
 
-  for (const app of applications) {
-    const existing = await prisma.permitApplication.findUnique({
-      where: { referenceNumber: app.referenceNumber },
+  for (const t of templates) {
+    await prisma.workflowTemplate.upsert({
+      where: { permitType: t.permitType },
+      update: { name: t.name },
+      create: {
+        permitType: t.permitType,
+        name: t.name,
+        isActive: true,
+        stages: { create: t.stages }
+      }
+    });
+  }
+
+  // 5. Seed Logical Applications with History (for Analytics)
+  console.log('📑 Seeding Logical Applications & Performance Data...');
+
+  // Helper to create full application life cycle
+  const createFullApp = async (
+    ref: string,
+    type: PermitType,
+    applicantEmail: string,
+    finalStatus: WorkflowStage,
+    daysAgo: number
+  ) => {
+    const applicant = allUsers[applicantEmail];
+    const submittedAt = new Date();
+    submittedAt.setDate(submittedAt.getDate() - daysAgo);
+
+    const app = await prisma.permitApplication.create({
+      data: {
+        referenceNumber: ref,
+        permitType: type,
+        applicantId: applicant.id,
+        status: finalStatus,
+        currentStage: finalStatus,
+        locationAddress: 'Jl. Ahmad Yani No. ' + Math.floor(Math.random() * 100),
+        landSize: 150,
+        landType: LandType.RESIDENTIAL,
+        totalCost: type === PermitType.BUILDING_PERMIT ? 15000000 : 2500000,
+        submittedAt: submittedAt,
+      }
     });
 
-    if (!existing) {
-      const createdApp = await prisma.permitApplication.create({
-        data: {
-          ...app,
-          applicantId: applicant.id,
-        },
-      });
+    // Create Histories & Actions
+    // Stage 1: Document Check
+    const docCheckStart = new Date(submittedAt);
+    const docCheckEnd = new Date(docCheckStart);
+    docCheckEnd.setHours(docCheckEnd.getHours() + 4); // Fast check
 
-      // Create initial stage history
-      await prisma.stageHistory.create({
-        data: {
-          applicationId: createdApp.id,
-          toStage: app.currentStage,
-          transitionedAt: app.submittedAt,
-        },
-      });
-    }
-  }
-  console.log('✅ Permit Applications seeded.');
-
-  console.log('Seeding Workflow Templates...');
-
-  const workflowTemplates = [
-    {
-      name: 'Building Permit Workflow',
-      description: 'Default workflow for building permit applications',
-      permitType: PermitType.BUILDING_PERMIT,
-      stages: [
-        {
-          stage: WorkflowStage.DOCUMENT_CHECK,
-          order: 0,
-          requiredRoles: [Role.DOCUMENT_VALIDATOR],
-          slaDurationHours: 48,
-          slaWarningPercent: 0.8,
-          isRequired: true,
-        },
-        {
-          stage: WorkflowStage.FIELD_INSPECTION,
-          order: 1,
-          requiredRoles: [Role.FIELD_INSPECTOR],
-          slaDurationHours: 72,
-          slaWarningPercent: 0.8,
-          isRequired: true,
-        },
-        {
-          stage: WorkflowStage.LEGALIZATION,
-          order: 2,
-          requiredRoles: [Role.LEGALIZER],
-          slaDurationHours: 24,
-          slaWarningPercent: 0.8,
-          isRequired: true,
-        },
-      ],
-    },
-    {
-      name: 'Business License Workflow',
-      description: 'Default workflow for business license applications',
-      permitType: PermitType.BUSINESS_LICENSE,
-      stages: [
-        {
-          stage: WorkflowStage.DOCUMENT_CHECK,
-          order: 0,
-          requiredRoles: [Role.DOCUMENT_VALIDATOR],
-          slaDurationHours: 24,
-          slaWarningPercent: 0.8,
-          isRequired: true,
-        },
-        {
-          stage: WorkflowStage.LEGALIZATION,
-          order: 1,
-          requiredRoles: [Role.LEGALIZER],
-          slaDurationHours: 12,
-          slaWarningPercent: 0.8,
-          isRequired: true,
-        },
-      ],
-    },
-  ];
-
-  for (const templateData of workflowTemplates) {
-    const existing = await prisma.workflowTemplate.findUnique({
-      where: { permitType: templateData.permitType },
+    await prisma.stageHistory.create({
+      data: {
+        applicationId: app.id,
+        fromStage: WorkflowStage.DRAFT,
+        toStage: WorkflowStage.DOCUMENT_CHECK,
+        transitionedAt: docCheckStart,
+        completedAt: docCheckEnd,
+        durationHours: 4,
+        slaStatus: SLAStatus.ON_TIME,
+        transitionedBy: applicant.id
+      }
     });
 
-    if (!existing) {
-      const created = await prisma.workflowTemplate.create({
-        data: {
-          name: templateData.name,
-          description: templateData.description,
-          permitType: templateData.permitType,
-          isActive: true,
-          stages: {
-            create: templateData.stages,
-          },
-        },
-      });
-      console.log(`✅ Workflow Template seeded: ${created.name}`);
-    } else {
-      console.log(`✅ Workflow Template already exists: ${templateData.name}`);
-    }
-  }
-  console.log('✅ Workflow Templates seeded.');
+    await prisma.validationAction.create({
+      data: {
+        applicationId: app.id,
+        actionType: ActionType.APPROVE,
+        stage: WorkflowStage.DOCUMENT_CHECK,
+        performedById: allUsers['andi.validator@flowgov.id'].id,
+        performedAt: docCheckEnd,
+        notes: 'Dokumen lengkap dan valid.'
+      }
+    });
 
-  console.log('Seeding Bottleneck Thresholds...');
-  // Create default global threshold configuration
-  // Check if global default already exists
+    if (finalStatus === WorkflowStage.REJECTED && daysAgo > 10) {
+        // If rejected at doc check
+        await prisma.permitApplication.update({
+            where: { id: app.id },
+            data: { status: WorkflowStage.REJECTED, currentStage: WorkflowStage.REJECTED, rejectionReason: 'Dokumen KTP tidak jelas.' }
+        });
+        return;
+    }
+
+    // Stage 2: Field Inspection (if IMB)
+    let nextStart = new Date(docCheckEnd);
+    if (type === PermitType.BUILDING_PERMIT) {
+        const inspectionEnd = new Date(nextStart);
+        inspectionEnd.setHours(inspectionEnd.getHours() + 30); // 30 hours later
+
+        await prisma.stageHistory.create({
+            data: {
+                applicationId: app.id,
+                fromStage: WorkflowStage.DOCUMENT_CHECK,
+                toStage: WorkflowStage.FIELD_INSPECTION,
+                transitionedAt: nextStart,
+                completedAt: inspectionEnd,
+                durationHours: 30,
+                slaStatus: SLAStatus.ON_TIME,
+            }
+        });
+
+        await prisma.validationAction.create({
+            data: {
+                applicationId: app.id,
+                actionType: ActionType.APPROVE,
+                stage: WorkflowStage.FIELD_INSPECTION,
+                performedById: allUsers['candra.inspector@flowgov.id'].id,
+                performedAt: inspectionEnd,
+                notes: 'Lokasi sesuai dengan dokumen permohonan.'
+            }
+        });
+        nextStart = inspectionEnd;
+    }
+
+    // Stage 3: Legalization
+    if (finalStatus === WorkflowStage.APPROVED) {
+        const legalEnd = new Date(nextStart);
+        legalEnd.setHours(legalEnd.getHours() + 10);
+
+        await prisma.stageHistory.create({
+            data: {
+                applicationId: app.id,
+                fromStage: type === PermitType.BUILDING_PERMIT ? WorkflowStage.FIELD_INSPECTION : WorkflowStage.DOCUMENT_CHECK,
+                toStage: WorkflowStage.LEGALIZATION,
+                transitionedAt: nextStart,
+                completedAt: legalEnd,
+                durationHours: 10,
+                slaStatus: SLAStatus.ON_TIME,
+            }
+        });
+
+        await prisma.validationAction.create({
+            data: {
+                applicationId: app.id,
+                actionType: ActionType.APPROVE,
+                stage: WorkflowStage.LEGALIZATION,
+                performedById: allUsers['eka.legalizer@flowgov.id'].id,
+                performedAt: legalEnd,
+                notes: 'Izin telah disahkan secara digital.'
+            }
+        });
+
+        // Add Feedback for approved app
+        await prisma.feedback.create({
+          data: {
+            applicationId: app.id,
+            userId: applicant.id,
+            rating: 5,
+            comment: 'Proses sangat cepat dan transparan. Terima kasih FlowGov!',
+            type: 'APPRECIATION'
+          }
+        });
+    }
+  };
+
+  // Create several approved apps
+  await createFullApp('IMB-2026-001', PermitType.BUILDING_PERMIT, 'citizen1@gmail.com', WorkflowStage.APPROVED, 20);
+  await createFullApp('IMB-2026-002', PermitType.BUILDING_PERMIT, 'citizen2@gmail.com', WorkflowStage.APPROVED, 15);
+  await createFullApp('IUMK-2026-001', PermitType.BUSINESS_LICENSE, 'citizen3@gmail.com', WorkflowStage.APPROVED, 5);
+  
+  // Create an app waiting in Document Check (for Andi)
+  const appWaiting1 = await prisma.permitApplication.create({
+    data: {
+        referenceNumber: 'IMB-2026-NEW-01',
+        permitType: PermitType.BUILDING_PERMIT,
+        applicantId: allUsers['citizen4@gmail.com'].id,
+        status: WorkflowStage.DOCUMENT_CHECK,
+        currentStage: WorkflowStage.DOCUMENT_CHECK,
+        locationAddress: 'Jl. Semeru No. 12',
+        landSize: 200,
+        submittedAt: new Date(),
+    }
+  });
+  await prisma.stageHistory.create({
+    data: { applicationId: appWaiting1.id, toStage: WorkflowStage.DOCUMENT_CHECK, transitionedAt: new Date() }
+  });
+
+  // Create an app waiting in Legalization
+  const appWaiting2 = await prisma.permitApplication.create({
+    data: {
+        referenceNumber: 'IUMK-2026-WAIT-01',
+        permitType: PermitType.BUSINESS_LICENSE,
+        applicantId: allUsers['user@flowgov.id'].id,
+        status: WorkflowStage.LEGALIZATION,
+        currentStage: WorkflowStage.LEGALIZATION,
+        businessName: 'Toko Heidar',
+        submittedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+    }
+  });
+  // Add history for doc check (already completed)
+  const wait2DocEnd = new Date(Date.now() - 1 * 24 * 60 * 60 * 1000);
+  await prisma.stageHistory.create({
+    data: { 
+        applicationId: appWaiting2.id, 
+        toStage: WorkflowStage.DOCUMENT_CHECK, 
+        transitionedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+        completedAt: wait2DocEnd,
+        durationHours: 24,
+        slaStatus: SLAStatus.ON_TIME
+    }
+  });
+  await prisma.validationAction.create({
+    data: {
+        applicationId: appWaiting2.id,
+        actionType: ActionType.APPROVE,
+        stage: WorkflowStage.DOCUMENT_CHECK,
+        performedById: allUsers['budi.validator@flowgov.id'].id,
+        performedAt: wait2DocEnd,
+        notes: 'Data usaha valid.'
+    }
+  });
+  await prisma.stageHistory.create({
+    data: { applicationId: appWaiting2.id, toStage: WorkflowStage.LEGALIZATION, transitionedAt: wait2DocEnd }
+  });
+
+  // 6. Seed Bottleneck Thresholds
+  console.log('⚙️ Seeding Bottleneck Thresholds...');
   const existingGlobalThreshold = await prisma.bottleneckThreshold.findFirst({
-    where: { stage: null },
+    where: { stage: null }
   });
 
   if (!existingGlobalThreshold) {
-    const defaultThreshold = await prisma.bottleneckThreshold.create({
+    await prisma.bottleneckThreshold.create({
       data: {
         queueLengthThreshold: 10,
         processingTimeMultiplier: 1.5,
         slaViolationPercentage: 20.0,
         workloadPerStaff: 5.0,
         bottleneckScoreThreshold: 60,
-        createdBy: 'SYSTEM',
-      },
+        createdBy: 'SYSTEM'
+      }
     });
-    console.log('✅ Default Bottleneck Threshold seeded:', defaultThreshold.id);
-  } else {
-    console.log('✅ Default Bottleneck Threshold already exists:', existingGlobalThreshold.id);
   }
 
-  console.log('--- Seed Process Completed Successfully ---');
+  console.log('--- 🏁 Demo Seed Process Completed! ---');
 }
 
 main()
