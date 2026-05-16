@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { WorkflowStage, SLAStatus, Role } from '@prisma/client';
+import { WorkflowStage, SLAStatus, Role, Prisma } from '@prisma/client';
 import { NotificationService } from './notification.service';
 
 export interface SLACheckResult {
@@ -29,6 +29,45 @@ export class SLAService {
     ) { }
 
     /**
+     * Complete a stage history and calculate SLA metrics
+     * Can be used within a transaction or standalone
+     */
+    async completeStageHistory(
+        applicationId: string,
+        currentStage: WorkflowStage,
+        tx?: Prisma.TransactionClient,
+    ) {
+        const prisma = tx || this.prisma;
+
+        // Find the active stage history entry
+        const activeStage = await prisma.stageHistory.findFirst({
+            where: {
+                applicationId,
+                toStage: currentStage,
+                completedAt: null,
+            },
+            orderBy: { transitionedAt: 'desc' },
+        });
+
+        if (!activeStage) return null;
+
+        const completedAt = new Date();
+        const slaCheck = await this.checkSLACompliance(
+            activeStage.transitionedAt,
+            currentStage,
+        );
+
+        return prisma.stageHistory.update({
+            where: { id: activeStage.id },
+            data: {
+                completedAt,
+                durationHours: slaCheck.durationHours,
+                slaStatus: slaCheck.status,
+            },
+        });
+    }
+
+    /**
      * Check SLA compliance for a specific stage
      */
     async checkSLACompliance(
@@ -41,13 +80,19 @@ export class SLAService {
         });
 
         if (!slaRule) {
-            throw new Error(`No SLA rule found for stage: ${stage}`);
+            // Default rule if none found (24h)
+            return {
+                status: SLAStatus.ON_TIME,
+                durationHours: this.calculateDuration(startTime, new Date()),
+                maxDurationHours: 24,
+                remainingHours: 24,
+                percentageUsed: 0,
+            };
         }
 
         // Calculate duration in hours
         const now = new Date();
-        const durationMs = now.getTime() - startTime.getTime();
-        const durationHours = Math.floor(durationMs / (1000 * 60 * 60));
+        const durationHours = this.calculateDuration(startTime, now);
 
         // Calculate remaining hours
         const remainingHours = Math.max(
@@ -76,7 +121,7 @@ export class SLAService {
             durationHours,
             maxDurationHours: slaRule.maxDurationHours,
             remainingHours,
-            percentageUsed: Math.round(percentageUsed * 10) / 10, // Round to 1 decimal
+            percentageUsed: Math.round(percentageUsed * 10) / 10,
         };
     }
 

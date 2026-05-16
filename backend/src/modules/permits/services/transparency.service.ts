@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { WorkflowStage, SLAStatus, PermitType } from '@prisma/client';
+import { AnalyticsService } from './analytics.service';
 
 export interface PublicDashboardMetrics {
     totalApplicationsProcessed: number;
@@ -36,196 +37,97 @@ export interface ProcessTransparency {
 
 @Injectable()
 export class TransparencyService {
-    constructor(private prisma: PrismaService) { }
+    constructor(
+        private prisma: PrismaService,
+        private analyticsService: AnalyticsService,
+    ) { }
 
     /**
-     * Get public dashboard metrics (no authentication required)
-     * Shows aggregate statistics for transparency
+     * Get public dashboard metrics
      */
     async getPublicDashboardMetrics(
         startDate?: Date,
         endDate?: Date,
     ): Promise<PublicDashboardMetrics> {
         const now = new Date();
-        const defaultStartDate = startDate || new Date(now.getFullYear(), 0, 1); // Start of year
-        const defaultEndDate = endDate || now;
+        const start = startDate || new Date(now.getFullYear(), 0, 1);
+        const end = endDate || now;
 
-        // Get all applications in date range
         const applications = await this.prisma.permitApplication.findMany({
             where: {
-                submittedAt: {
-                    gte: defaultStartDate,
-                    lte: defaultEndDate,
-                },
-                status: {
-                    in: [WorkflowStage.APPROVED, WorkflowStage.REJECTED],
-                },
+                submittedAt: { gte: start, lte: end },
+                status: { in: [WorkflowStage.APPROVED, WorkflowStage.REJECTED] },
             },
             include: {
                 stageHistory: {
-                    where: {
-                        completedAt: { not: null },
-                    },
-                    select: {
-                        durationHours: true,
-                        slaStatus: true,
-                    },
+                    where: { completedAt: { not: null } },
                 },
             },
         });
 
-        const totalApplicationsProcessed = applications.length;
+        const allStages = applications.flatMap(app => app.stageHistory);
+        const metrics = this.analyticsService.calculateMetricsFromStages(allStages);
 
-        // Calculate average processing time in days
-        const totalHours = applications.reduce((sum, app) => {
-            const appHours = app.stageHistory.reduce(
-                (s, stage) => s + (stage.durationHours || 0),
-                0,
-            );
-            return sum + appHours;
-        }, 0);
-        const averageProcessingDays =
-            totalApplicationsProcessed > 0
-                ? Math.round((totalHours / totalApplicationsProcessed / 24) * 10) / 10
-                : 0;
-
-        // Calculate on-time percentage
-        const allStageHistories = applications.flatMap((app) => app.stageHistory);
-        const onTimeCount = allStageHistories.filter(
-            (s) => s.slaStatus === SLAStatus.ON_TIME,
-        ).length;
-        const onTimePercentage =
-            allStageHistories.length > 0
-                ? Math.round((onTimeCount / allStageHistories.length) * 100 * 10) / 10
-                : 0;
-
-        // Currently in process
+        const approvedCount = applications.filter(app => app.status === WorkflowStage.APPROVED).length;
         const currentlyInProcess = await this.prisma.permitApplication.count({
             where: {
-                status: {
-                    notIn: [WorkflowStage.APPROVED, WorkflowStage.REJECTED, WorkflowStage.DRAFT],
-                },
+                status: { notIn: [WorkflowStage.APPROVED, WorkflowStage.REJECTED, WorkflowStage.DRAFT] },
             },
         });
 
-        // Approval rate
-        const approvedCount = applications.filter(
-            (app) => app.status === WorkflowStage.APPROVED,
-        ).length;
-        const approvalRate =
-            totalApplicationsProcessed > 0
-                ? Math.round((approvedCount / totalApplicationsProcessed) * 100 * 10) / 10
-                : 0;
-
         // Group by permit type
-        const permitTypeStats = new Map<
-            PermitType,
-            { total: number; approved: number; totalHours: number }
-        >();
-
-        applications.forEach((app) => {
-            const existing = permitTypeStats.get(app.permitType) || {
-                total: 0,
-                approved: 0,
-                totalHours: 0,
+        const byPermitType = Array.from(
+            applications.reduce((acc, app) => {
+                const existing = acc.get(app.permitType) || { total: 0, approved: 0, stages: [] };
+                acc.set(app.permitType, {
+                    total: existing.total + 1,
+                    approved: existing.approved + (app.status === WorkflowStage.APPROVED ? 1 : 0),
+                    stages: [...existing.stages, ...app.stageHistory]
+                });
+                return acc;
+            }, new Map<PermitType, any>()).entries()
+        ).map(([type, stats]) => {
+            const typeMetrics = this.analyticsService.calculateMetricsFromStages(stats.stages);
+            return {
+                permitType: type,
+                totalProcessed: stats.total,
+                averageProcessingDays: Math.round((typeMetrics.averageDurationHours / 24) * 10) / 10,
+                approvalRate: Math.round((stats.approved / stats.total) * 100 * 10) / 10
             };
-            const appHours = app.stageHistory.reduce(
-                (sum, s) => sum + (s.durationHours || 0),
-                0,
-            );
-            permitTypeStats.set(app.permitType, {
-                total: existing.total + 1,
-                approved: existing.approved + (app.status === WorkflowStage.APPROVED ? 1 : 0),
-                totalHours: existing.totalHours + appHours,
-            });
         });
 
-        const byPermitType = Array.from(permitTypeStats.entries()).map(
-            ([permitType, stats]) => ({
-                permitType,
-                totalProcessed: stats.total,
-                averageProcessingDays:
-                    stats.total > 0
-                        ? Math.round((stats.totalHours / stats.total / 24) * 10) / 10
-                        : 0,
-                approvalRate:
-                    stats.total > 0
-                        ? Math.round((stats.approved / stats.total) * 100 * 10) / 10
-                        : 0,
-            }),
-        );
-
         return {
-            totalApplicationsProcessed,
-            averageProcessingDays,
-            onTimePercentage,
+            totalApplicationsProcessed: applications.length,
+            averageProcessingDays: Math.round((metrics.averageDurationHours / 24) * 10) / 10,
+            onTimePercentage: Math.round(metrics.onTimePercentage * 10) / 10,
             currentlyInProcess,
-            approvalRate,
+            approvalRate: applications.length > 0 ? Math.round((approvedCount / applications.length) * 100 * 10) / 10 : 0,
             byPermitType,
         };
     }
 
     /**
-     * Get public application status by reference number
-     * No authentication required - public transparency
+     * Get public application status
      */
-    async getApplicationStatusPublic(
-        referenceNumber: string,
-    ): Promise<ApplicationStatusPublic | null> {
+    async getApplicationStatusPublic(referenceNumber: string): Promise<ApplicationStatusPublic | null> {
         const application = await this.prisma.permitApplication.findUnique({
             where: { referenceNumber },
-            select: {
-                referenceNumber: true,
-                permitType: true,
-                currentStage: true,
-                submittedAt: true,
-                status: true,
-                stageHistory: {
-                    where: {
-                        completedAt: null, // Current active stage
-                    },
-                    select: {
-                        transitionedAt: true,
-                        toStage: true,
-                    },
-                    orderBy: {
-                        transitionedAt: 'desc',
-                    },
-                    take: 1,
-                },
-            },
         });
 
-        if (!application || !application.submittedAt) {
-            return null;
-        }
+        if (!application || !application.submittedAt) return null;
 
-        // Calculate days in process
         const now = new Date();
         const submittedAt = new Date(application.submittedAt);
-        const daysInProcess = Math.floor(
-            (now.getTime() - submittedAt.getTime()) / (1000 * 60 * 60 * 24),
-        );
+        const daysInProcess = Math.floor((now.getTime() - submittedAt.getTime()) / (1000 * 60 * 60 * 24));
 
-        // Get SLA rules to estimate completion
         const slaRules = await this.prisma.sLARule.findMany();
-        const totalSLADays = slaRules.reduce(
-            (sum, rule) => sum + rule.maxDurationHours / 24,
-            0,
-        );
+        const totalSLADays = slaRules.reduce((sum, rule) => sum + rule.maxDurationHours / 24, 0);
 
-        // Estimate completion date
         const estimatedCompletionDate = new Date(submittedAt);
-        estimatedCompletionDate.setDate(
-            estimatedCompletionDate.getDate() + Math.ceil(totalSLADays),
-        );
+        estimatedCompletionDate.setDate(estimatedCompletionDate.getDate() + Math.ceil(totalSLADays));
 
-        // Determine status
         let status: 'ON_TRACK' | 'DELAYED' | 'COMPLETED';
-        if (
-            application.status === WorkflowStage.APPROVED ||
-            application.status === WorkflowStage.REJECTED
-        ) {
+        if (([WorkflowStage.APPROVED, WorkflowStage.REJECTED] as WorkflowStage[]).includes(application.status)) {
             status = 'COMPLETED';
         } else if (daysInProcess > totalSLADays) {
             status = 'DELAYED';
@@ -246,68 +148,36 @@ export class TransparencyService {
 
     /**
      * Get process transparency metrics
-     * Shows how each stage performs
      */
     async getProcessTransparency(): Promise<ProcessTransparency[]> {
-        const stages = [
-            WorkflowStage.DOCUMENT_CHECK,
-            WorkflowStage.FIELD_INSPECTION,
-            WorkflowStage.LEGALIZATION,
-        ];
+        const stages = [WorkflowStage.DOCUMENT_CHECK, WorkflowStage.FIELD_INSPECTION, WorkflowStage.LEGALIZATION];
+        const [slaRules, completedStages, backlogs] = await Promise.all([
+            this.prisma.sLARule.findMany({ where: { stage: { in: stages } } }),
+            this.prisma.stageHistory.findMany({ 
+                where: { toStage: { in: stages }, completedAt: { not: null } } 
+            }),
+            this.prisma.permitApplication.groupBy({
+                by: ['currentStage'],
+                where: { currentStage: { in: stages } },
+                _count: true
+            })
+        ]);
 
-        const transparencyData: ProcessTransparency[] = [];
+        const slaRuleMap = new Map(slaRules.map(r => [r.stage, r]));
+        const backlogMap = new Map(backlogs.map(b => [b.currentStage, b._count]));
 
-        for (const stage of stages) {
-            // Get SLA rule
-            const slaRule = await this.prisma.sLARule.findUnique({
-                where: { stage },
-            });
+        return stages.map(stage => {
+            const stageHistory = completedStages.filter(s => s.toStage === stage);
+            const metrics = this.analyticsService.calculateMetricsFromStages(stageHistory);
+            const slaRule = slaRuleMap.get(stage);
 
-            if (!slaRule) continue;
-
-            // Get completed stages
-            const completedStages = await this.prisma.stageHistory.findMany({
-                where: {
-                    toStage: stage,
-                    completedAt: { not: null },
-                },
-                select: {
-                    durationHours: true,
-                    slaStatus: true,
-                },
-            });
-
-            const totalDuration = completedStages.reduce(
-                (sum, s) => sum + (s.durationHours || 0),
-                0,
-            );
-            const averageProcessingDays =
-                completedStages.length > 0
-                    ? Math.round((totalDuration / completedStages.length / 24) * 10) / 10
-                    : 0;
-
-            const onTimeCount = completedStages.filter(
-                (s) => s.slaStatus === SLAStatus.ON_TIME,
-            ).length;
-            const onTimePercentage =
-                completedStages.length > 0
-                    ? Math.round((onTimeCount / completedStages.length) * 100 * 10) / 10
-                    : 0;
-
-            // Current backlog
-            const currentBacklog = await this.prisma.permitApplication.count({
-                where: { currentStage: stage },
-            });
-
-            transparencyData.push({
+            return {
                 stage,
-                averageProcessingDays,
-                slaLimitDays: Math.round((slaRule.maxDurationHours / 24) * 10) / 10,
-                onTimePercentage,
-                currentBacklog,
-            });
-        }
-
-        return transparencyData;
+                averageProcessingDays: Math.round((metrics.averageDurationHours / 24) * 10) / 10,
+                slaLimitDays: slaRule ? Math.round((slaRule.maxDurationHours / 24) * 10) / 10 : 0,
+                onTimePercentage: Math.round(metrics.onTimePercentage * 10) / 10,
+                currentBacklog: backlogMap.get(stage) || 0
+            };
+        });
     }
 }

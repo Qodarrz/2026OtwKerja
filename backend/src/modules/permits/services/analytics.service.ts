@@ -537,4 +537,20 @@ export class AnalyticsService {
             orderBy: { createdAt: 'desc' },
         });
     }
+
+    /**
+     * Shared helper to calculate metrics from a set of stage histories
+     */
+    calculateMetricsFromStages(stages: any[]) {
+        const total = stages.length;
+        if (total === 0) return { averageDurationHours: 0, onTimePercentage: 0 };
+
+        const totalDuration = stages.reduce((sum, s) => sum + (s.durationHours || 0), 0);
+        const onTimeCount = stages.filter(s => s.slaStatus === SLAStatus.ON_TIME).length;
+
+        return {
+            averageDurationHours: totalDuration / total,
+            onTimePercentage: (onTimeCount / total) * 100,
+        };
+    }
 }

@@ -291,6 +291,10 @@ model AuditLog {
   ipAddress         String?
   userAgent         String?
   
+  // Immutability fields
+  hash              String?          // SHA-256 hash of this record + previousHash
+  previousHash      String?          // Hash of the previous record
+  
   createdAt         DateTime         @default(now())
   
   @@index([entityType, entityId])

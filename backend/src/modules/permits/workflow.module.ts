@@ -24,7 +24,6 @@ import { ReportingController } from './controllers/reporting.controller';
   ],
   providers: [
     WorkflowService,
-    SLAService,
     AnalyticsService,
     TransparencyService,
     ReportingService,

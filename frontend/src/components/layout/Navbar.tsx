@@ -40,13 +40,11 @@ export function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Guest nav items
   const guestItems = [
     { name: "Beranda", href: "/" },
     { name: "Transparansi", href: "/public-tracking", icon: ExternalLink },
   ];
 
-  // Authenticated nav items
   const authItems = [
     { name: "Beranda", href: "/", icon: Home },
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -72,7 +70,6 @@ export function Navbar() {
           </span>
         </Link>
 
-        {/* Desktop Nav */}
         <div className="hidden md:flex items-center gap-1 bg-muted/30 p-1 rounded-2xl border border-border/50">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
@@ -82,8 +79,8 @@ export function Navbar() {
                 href={item.href}
                 className={cn(
                   "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all",
-                  isActive 
-                    ? "bg-background text-primary shadow-sm" 
+                  isActive
+                    ? "bg-background text-primary shadow-sm"
                     : "text-muted-foreground hover:text-foreground hover:bg-background/50"
                 )}
               >
@@ -95,7 +92,6 @@ export function Navbar() {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Theme Toggle */}
           {mounted && (
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
