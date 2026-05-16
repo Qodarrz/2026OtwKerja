@@ -14,6 +14,7 @@ import { PermitModule } from './modules/permits/permit.module';
 import { WorkflowModule } from './modules/permits/workflow.module';
 import { NotificationModule } from './modules/permits/notification.module';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
+import { BottleneckModule } from './modules/bottleneck/bottleneck.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { AuditLogModule } from './modules/audit-log/audit-log.module';
     PermitModule,
     WorkflowModule,
     NotificationModule,
+    BottleneckModule,
   ],
   controllers: [AppController],
   providers: [
