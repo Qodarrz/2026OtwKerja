@@ -7,6 +7,7 @@ import { SLAService } from './services/sla.service';
 import { AnalyticsService } from './services/analytics.service';
 import { TransparencyService } from './services/transparency.service';
 import { ReportingService } from './services/reporting.service';
+import { MonitoringScheduler } from './services/monitoring.scheduler';
 import { WorkflowController } from './controllers/workflow.controller';
 import { SLAController } from './controllers/sla.controller';
 import { AnalyticsController } from './controllers/analytics.controller';
@@ -28,6 +29,7 @@ import { ReportingController } from './controllers/reporting.controller';
     AnalyticsService,
     TransparencyService,
     ReportingService,
+    MonitoringScheduler,
   ],
   exports: [
     WorkflowService,

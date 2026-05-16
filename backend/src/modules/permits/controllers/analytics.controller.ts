@@ -4,6 +4,7 @@ import {
     Query,
     UseGuards,
     ParseIntPipe,
+    DefaultValuePipe,
     Req,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
@@ -95,5 +96,44 @@ export class AnalyticsController {
     @Roles(Role.ADMIN)
     async getRecentAuditLogs(@Query('limit', ParseIntPipe) limit: number = 10) {
         return this.analyticsService.getRecentAuditLogs(limit);
+    }
+
+    /**
+     * Get system health metrics
+     * Admin only
+     */
+    @Get('health')
+    @Roles(Role.ADMIN)
+    async getSystemHealth() {
+        return this.analyticsService.getSystemHealthMetrics();
+    }
+
+    /**
+     * Get time-series metrics
+     * Admin only
+     * Query params: intervalHours (default 1), periodDays (default 7)
+     */
+    @Get('time-series')
+    @Roles(Role.ADMIN)
+    async getTimeSeries(
+        @Query('intervalHours', new DefaultValuePipe(1), ParseIntPipe) intervalHours: number,
+        @Query('periodDays', new DefaultValuePipe(7), ParseIntPipe) periodDays: number,
+    ) {
+        return this.analyticsService.getTimeSeriesMetrics(intervalHours, periodDays);
+    }
+
+    /**
+     * Get current live metrics snapshot
+     * Admin and staff roles
+     */
+    @Get('live')
+    @Roles(
+        Role.ADMIN,
+        Role.DOCUMENT_VALIDATOR,
+        Role.FIELD_INSPECTOR,
+        Role.LEGALIZER,
+    )
+    async getLiveMetrics() {
+        return this.analyticsService.getLiveMetrics();
     }
 }
