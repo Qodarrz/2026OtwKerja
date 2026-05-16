@@ -176,6 +176,89 @@ async function main() {
   }
   console.log('✅ Permit Applications seeded.');
 
+  console.log('Seeding Workflow Templates...');
+
+  const workflowTemplates = [
+    {
+      name: 'Building Permit Workflow',
+      description: 'Default workflow for building permit applications',
+      permitType: PermitType.BUILDING_PERMIT,
+      stages: [
+        {
+          stage: WorkflowStage.DOCUMENT_CHECK,
+          order: 0,
+          requiredRoles: [Role.DOCUMENT_VALIDATOR],
+          slaDurationHours: 48,
+          slaWarningPercent: 0.8,
+          isRequired: true,
+        },
+        {
+          stage: WorkflowStage.FIELD_INSPECTION,
+          order: 1,
+          requiredRoles: [Role.FIELD_INSPECTOR],
+          slaDurationHours: 72,
+          slaWarningPercent: 0.8,
+          isRequired: true,
+        },
+        {
+          stage: WorkflowStage.LEGALIZATION,
+          order: 2,
+          requiredRoles: [Role.LEGALIZER],
+          slaDurationHours: 24,
+          slaWarningPercent: 0.8,
+          isRequired: true,
+        },
+      ],
+    },
+    {
+      name: 'Business License Workflow',
+      description: 'Default workflow for business license applications',
+      permitType: PermitType.BUSINESS_LICENSE,
+      stages: [
+        {
+          stage: WorkflowStage.DOCUMENT_CHECK,
+          order: 0,
+          requiredRoles: [Role.DOCUMENT_VALIDATOR],
+          slaDurationHours: 24,
+          slaWarningPercent: 0.8,
+          isRequired: true,
+        },
+        {
+          stage: WorkflowStage.LEGALIZATION,
+          order: 1,
+          requiredRoles: [Role.LEGALIZER],
+          slaDurationHours: 12,
+          slaWarningPercent: 0.8,
+          isRequired: true,
+        },
+      ],
+    },
+  ];
+
+  for (const templateData of workflowTemplates) {
+    const existing = await prisma.workflowTemplate.findUnique({
+      where: { permitType: templateData.permitType },
+    });
+
+    if (!existing) {
+      const created = await prisma.workflowTemplate.create({
+        data: {
+          name: templateData.name,
+          description: templateData.description,
+          permitType: templateData.permitType,
+          isActive: true,
+          stages: {
+            create: templateData.stages,
+          },
+        },
+      });
+      console.log(`✅ Workflow Template seeded: ${created.name}`);
+    } else {
+      console.log(`✅ Workflow Template already exists: ${templateData.name}`);
+    }
+  }
+  console.log('✅ Workflow Templates seeded.');
+
   console.log('Seeding Bottleneck Thresholds...');
   // Create default global threshold configuration
   // Check if global default already exists
