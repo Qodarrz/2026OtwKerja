@@ -3,6 +3,7 @@ import {
     NotFoundException,
     ForbiddenException,
     BadRequestException,
+    Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { WorkflowStage, ActionType, Role, Prisma, PermitType } from '@prisma/client';
@@ -14,6 +15,7 @@ import {
     AuditEntityType,
     AuditActionType,
 } from '../../audit-log/dto/audit-log.dto';
+import { BatchApproveItemDto, BatchRejectItemDto } from '../dto/batch.dto';
 
 export interface ApproveApplicationDto {
     notes?: string;
@@ -35,6 +37,8 @@ export interface StaffDashboardFilters {
 
 @Injectable()
 export class WorkflowService {
+    private readonly logger = new Logger(WorkflowService.name);
+
     constructor(
         private prisma: PrismaService,
         private slaService: SLAService,
@@ -445,4 +449,118 @@ export class WorkflowService {
         });
     }
 
+    /**
+     * Batch approve multiple applications
+     * Processes each item independently — partial success is allowed
+     */
+    async batchApprove(
+        userId: string,
+        items: BatchApproveItemDto[],
+    ): Promise<{
+        succeeded: { applicationId: string; referenceNumber: string; fromStage: WorkflowStage; toStage: WorkflowStage }[];
+        failed: { applicationId: string; reason: string }[];
+    }> {
+        const succeeded: { applicationId: string; referenceNumber: string; fromStage: WorkflowStage; toStage: WorkflowStage }[] = [];
+        const failed: { applicationId: string; reason: string }[] = [];
+
+        for (const item of items) {
+            try {
+                // Capture current stage before approval
+                const application = await this.prisma.permitApplication.findUnique({
+                    where: { id: item.applicationId },
+                    select: { currentStage: true, referenceNumber: true },
+                });
+
+                if (!application) {
+                    failed.push({ applicationId: item.applicationId, reason: 'Application not found' });
+                    continue;
+                }
+
+                const fromStage = application.currentStage;
+
+                await this.approveApplication(item.applicationId, userId, {
+                    notes: item.notes,
+                    inspectionNotes: item.inspectionNotes,
+                });
+
+                // Fetch updated stage after approval
+                const updated = await this.prisma.permitApplication.findUnique({
+                    where: { id: item.applicationId },
+                    select: { currentStage: true },
+                });
+
+                succeeded.push({
+                    applicationId: item.applicationId,
+                    referenceNumber: application.referenceNumber,
+                    fromStage,
+                    toStage: updated!.currentStage,
+                });
+            } catch (error) {
+                failed.push({
+                    applicationId: item.applicationId,
+                    reason: error instanceof Error ? error.message : String(error),
+                });
+            }
+        }
+
+        this.logger.log(
+            `Batch approve summary — total: ${items.length}, succeeded: ${succeeded.length}, failed: ${failed.length}`,
+        );
+
+        return { succeeded, failed };
+    }
+
+    /**
+     * Batch reject multiple applications
+     * Processes each item independently — partial success is allowed
+     */
+    async batchReject(
+        userId: string,
+        items: BatchRejectItemDto[],
+    ): Promise<{
+        succeeded: { applicationId: string; referenceNumber: string; stage: WorkflowStage }[];
+        failed: { applicationId: string; reason: string }[];
+    }> {
+        const succeeded: { applicationId: string; referenceNumber: string; stage: WorkflowStage }[] = [];
+        const failed: { applicationId: string; reason: string }[] = [];
+
+        for (const item of items) {
+            try {
+                // Capture current stage and reference number before rejection
+                const application = await this.prisma.permitApplication.findUnique({
+                    where: { id: item.applicationId },
+                    select: { currentStage: true, referenceNumber: true },
+                });
+
+                if (!application) {
+                    failed.push({ applicationId: item.applicationId, reason: 'Application not found' });
+                    continue;
+                }
+
+                const stage = application.currentStage;
+
+                await this.rejectApplication(item.applicationId, userId, {
+                    reason: item.reason,
+                    notes: item.notes,
+                });
+
+                succeeded.push({
+                    applicationId: item.applicationId,
+                    referenceNumber: application.referenceNumber,
+                    stage,
+                });
+            } catch (error) {
+                failed.push({
+                    applicationId: item.applicationId,
+                    reason: error instanceof Error ? error.message : String(error),
+                });
+            }
+        }
+
+        this.logger.log(
+            `Batch reject summary — total: ${items.length}, succeeded: ${succeeded.length}, failed: ${failed.length}`,
+        );
+
+        return { succeeded, failed };
+    }
 }
