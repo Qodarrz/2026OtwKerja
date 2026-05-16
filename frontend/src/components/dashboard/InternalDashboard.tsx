@@ -17,6 +17,9 @@ import {
   LayoutGrid,
   List,
   MoreVertical,
+  FileSearch, 
+  MapPin, 
+  Gavel,
   AlertCircle
 } from "lucide-react";
 import Link from "next/link";
@@ -25,12 +28,6 @@ import { permitService } from "@/services/permit.service";
 import { useAuth } from "@/contexts/AuthContext";
 import { Role } from "@/types/auth";
 import { SLACountdown } from "./SLACountdown";
-import { 
-  FileSearch, 
-  MapPin, 
-  Gavel, 
-  ShieldCheck
-} from "lucide-react";
 
 export function InternalDashboard() {
   const { user } = useAuth();

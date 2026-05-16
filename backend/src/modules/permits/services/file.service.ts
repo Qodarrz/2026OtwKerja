@@ -9,6 +9,11 @@ import { WorkflowStage, Role } from '@prisma/client';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { createReadStream } from 'fs';
+import { AuditLogService } from '../../audit-log/services/audit-log.service';
+import {
+    AuditEntityType,
+    AuditActionType,
+} from '../../audit-log/dto/audit-log.dto';
 
 export interface ValidationResult {
     isValid: boolean;
@@ -26,7 +31,10 @@ export class FileService {
     ];
     private readonly allowedExtensions = ['.pdf', '.jpg', '.jpeg', '.png'];
 
-    constructor(private prisma: PrismaService) { }
+    constructor(
+        private prisma: PrismaService,
+        private auditLogService: AuditLogService,
+    ) { }
 
     /**
      * Check if user has staff role (can access any application)
@@ -129,6 +137,20 @@ export class FileService {
             },
         });
 
+        // Create audit log for upload
+        await this.auditLogService.createAuditLog({
+            entityType: AuditEntityType.DOCUMENT,
+            entityId: document.id,
+            action: AuditActionType.UPLOAD,
+            performedBy: userId,
+            changes: {
+                filename: file.originalname,
+                fileSize: file.size,
+                mimeType: file.mimetype,
+                applicationId,
+            },
+        });
+
         return document;
     }
 
@@ -166,6 +188,20 @@ export class FileService {
         } catch (error) {
             throw new NotFoundException('File not found on disk');
         }
+
+        // Create audit log for download
+        await this.auditLogService.createAuditLog({
+            entityType: AuditEntityType.DOCUMENT,
+            entityId: documentId,
+            action: AuditActionType.DOWNLOAD,
+            performedBy: userId,
+            changes: {
+                filename: document.originalFilename,
+                fileSize: document.fileSize,
+                mimeType: document.mimeType,
+                applicationId: document.applicationId,
+            },
+        });
 
         // Return file stream
         const stream = createReadStream(fullPath);

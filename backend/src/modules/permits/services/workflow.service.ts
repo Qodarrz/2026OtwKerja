@@ -9,6 +9,11 @@ import { WorkflowStage, ActionType, Role, Prisma, PermitType } from '@prisma/cli
 import { SLAService } from './sla.service';
 import { NotificationService } from './notification.service';
 import { WORKFLOW_CONFIG } from '../constants/workflow.config';
+import { AuditLogService } from '../../audit-log/services/audit-log.service';
+import {
+    AuditEntityType,
+    AuditActionType,
+} from '../../audit-log/dto/audit-log.dto';
 
 export interface ApproveApplicationDto {
     notes?: string;
@@ -34,6 +39,7 @@ export class WorkflowService {
         private prisma: PrismaService,
         private slaService: SLAService,
         private notificationService: NotificationService,
+        private auditLogService: AuditLogService,
     ) { }
 
     /**
@@ -89,7 +95,8 @@ export class WorkflowService {
             );
         }
 
-        const updated = await this.prisma.$transaction(async (tx) => {
+        const result = await this.prisma.$transaction(async (tx) => {
+            // 1. Update application status
             const updateData: Prisma.PermitApplicationUpdateInput = {
                 status: nextStage,
                 currentStage: nextStage,
@@ -99,7 +106,7 @@ export class WorkflowService {
                 updateData.inspectionNotes = dto.inspectionNotes;
             }
 
-            const applicationUpdate = await tx.permitApplication.update({
+            const updated = await tx.permitApplication.update({
                 where: { id: applicationId },
                 data: updateData,
                 include: {
@@ -109,6 +116,7 @@ export class WorkflowService {
                 },
             });
 
+            // 2. Record validation action
             await tx.validationAction.create({
                 data: {
                     actionType: ActionType.APPROVE,
@@ -119,9 +127,10 @@ export class WorkflowService {
                 },
             });
 
-            // --- DELEGATED SLA LOGIC ---
+            // 3. Delegate SLA completion logic
             await this.slaService.completeStageHistory(applicationId, application.currentStage, tx);
 
+            // 4. Start next stage history
             await tx.stageHistory.create({
                 data: {
                     applicationId,
@@ -131,22 +140,24 @@ export class WorkflowService {
                 },
             });
 
-            // --- CENTRALIZED AUDIT LOG ---
-            await this.logActivity(tx, {
-                entityType: 'PermitApplication',
-                entityId: applicationId,
-                action: 'APPROVE',
-                performedBy: userId,
-                changes: {
-                    from: application.currentStage,
-                    to: nextStage,
-                    notes: dto.notes,
-                }
-            });
-
-            return applicationUpdate;
+            return updated;
         });
 
+        // 5. Create audit log (async via service)
+        await this.auditLogService.createAuditLog({
+            entityType: AuditEntityType.PERMIT_APPLICATION,
+            entityId: applicationId,
+            action: AuditActionType.APPROVE,
+            performedBy: userId,
+            changes: {
+                fromStage: application.currentStage,
+                toStage: nextStage,
+                notes: dto.notes,
+                inspectionNotes: dto.inspectionNotes,
+            },
+        });
+
+        // 6. Trigger notifications
         try {
             if (nextStage === WorkflowStage.APPROVED) {
                 await this.notificationService.notifyApplicationApproved(applicationId);
@@ -154,10 +165,10 @@ export class WorkflowService {
                 await this.notificationService.notifyStageAdvanced(applicationId, nextStage);
             }
         } catch (error) {
-            console.error('Notification failed:', error);
+            this.logger.error('Notification failed:', error);
         }
 
-        return updated;
+        return result;
     }
 
     /**
@@ -192,7 +203,8 @@ export class WorkflowService {
             );
         }
 
-        const updated = await this.prisma.$transaction(async (tx) => {
+        const result = await this.prisma.$transaction(async (tx) => {
+            // 1. Update application status to REJECTED
             const updated = await tx.permitApplication.update({
                 where: { id: applicationId },
                 data: {
@@ -209,6 +221,7 @@ export class WorkflowService {
                 },
             });
 
+            // 2. Record validation action
             await tx.validationAction.create({
                 data: {
                     actionType: ActionType.REJECT,
@@ -219,9 +232,10 @@ export class WorkflowService {
                 },
             });
 
-            // --- DELEGATED SLA LOGIC ---
+            // 3. Delegate SLA completion logic
             await this.slaService.completeStageHistory(applicationId, application.currentStage, tx);
 
+            // 4. Start rejection history
             await tx.stageHistory.create({
                 data: {
                     applicationId,
@@ -231,30 +245,34 @@ export class WorkflowService {
                 },
             });
 
-            // --- CENTRALIZED AUDIT LOG ---
-            await this.logActivity(tx, {
-                entityType: 'PermitApplication',
-                entityId: applicationId,
-                action: 'REJECT',
-                performedBy: userId,
-                changes: {
-                    from: application.currentStage,
-                    to: WorkflowStage.REJECTED,
-                    reason: dto.reason,
-                    notes: dto.notes,
-                }
-            });
-
             return updated;
         });
 
+        // 5. Create audit log (async via service)
+        await this.auditLogService.createAuditLog({
+            entityType: AuditEntityType.PERMIT_APPLICATION,
+            entityId: applicationId,
+            action: AuditActionType.REJECT,
+            performedBy: userId,
+            changes: {
+                fromStage: application.currentStage,
+                toStage: WorkflowStage.REJECTED,
+                reason: dto.reason,
+                notes: dto.notes,
+            },
+        });
+
+        // 6. Trigger notification
         try {
-            await this.notificationService.notifyApplicationRejected(applicationId, dto.reason);
+            await this.notificationService.notifyApplicationRejected(
+                applicationId,
+                dto.reason,
+            );
         } catch (error) {
-            console.error('Notification failed:', error);
+            this.logger.error('Notification failed:', error);
         }
 
-        return updated;
+        return result;
     }
 
     async canUserAccessStage(
@@ -427,46 +445,4 @@ export class WorkflowService {
         });
     }
 
-    /**
-     * Centralized logging helper with Immutability (Hashing)
-     */
-    private async logActivity(
-        tx: Prisma.TransactionClient,
-        data: {
-            entityType: string;
-            entityId: string;
-            action: string;
-            performedBy: string;
-            changes: any;
-        }
-    ) {
-        const crypto = require('crypto');
-
-        // 1. Get the last log entry to get its hash
-        const lastLog = await tx.auditLog.findFirst({
-            orderBy: { createdAt: 'desc' },
-        });
-
-        const previousHash = lastLog?.hash || 'GENESIS_HASH';
-
-        // 2. Create data string for hashing
-        const logContent = JSON.stringify({
-            ...data,
-            previousHash,
-            timestamp: new Date().toISOString(),
-        });
-
-        // 3. Generate SHA-256 hash
-        const hash = crypto.createHash('sha256').update(logContent).digest('hex');
-
-        // 4. Create the log entry
-        return tx.auditLog.create({
-            data: {
-                ...data,
-                previousHash,
-                hash,
-                createdAt: new Date(),
-            },
-        });
-    }
 }

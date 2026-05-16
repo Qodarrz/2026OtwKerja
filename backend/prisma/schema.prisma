@@ -300,6 +300,29 @@ model AuditLog {
   @@index([entityType, entityId])
   @@index([performedBy])
   @@index([createdAt])
+  @@index([entityType, action, createdAt])
+  @@index([performedBy, createdAt])
+}
+
+// Audit Log Archive Model (for logs older than 90 days)
+model AuditLogArchive {
+  id                String           @id @default(uuid())
+  entityType        String
+  entityId          String
+  action            String
+  changes           Json?
+  performedBy       String?
+  ipAddress         String?
+  userAgent         String?
+  createdAt         DateTime
+  archivedAt        DateTime         @default(now())
+  
+  @@index([entityType, entityId])
+  @@index([performedBy])
+  @@index([createdAt])
+  @@index([archivedAt])
+  @@index([entityType, action, createdAt])
+  @@index([performedBy, createdAt])
 }
 
 // SLA Rules Model
@@ -315,28 +338,155 @@ model SLARule {
   @@index([stage])
 }
 
-// Feedback Model for Citizen Engagement
-model Feedback {
-  id                String           @id @default(uuid())
-  rating            Int              // 1-5
-  comment           String?
-  type              FeedbackType     @default(GENERAL)
-  
-  application       PermitApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  applicationId     String
-  
-  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId            String
-  
-  createdAt         DateTime         @default(now())
-  
-  @@index([applicationId])
-  @@index([userId])
+// Bottleneck Detection Engine Enums
+enum BottleneckSeverity {
+  LOW      // score < 60
+  MEDIUM   // score 60-79
+  HIGH     // score >= 80
 }
 
-enum FeedbackType {
-  GENERAL
-  BOTTLENECK_REPORT
-  APPRECIATION
-  COMPLAINT
+enum BottleneckStatus {
+  ACTIVE
+  RESOLVED
+  ARCHIVED
+}
+
+enum RecommendationType {
+  ADD_STAFF
+  REASSIGN_STAFF
+  ADJUST_SLA
+  OPTIMIZE_PROCESS
+  REDISTRIBUTE_WORKLOAD
+  OTHER
+}
+
+enum RecommendationPriority {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum ResolutionActionType {
+  STAFF_ADDED
+  STAFF_REASSIGNED
+  SLA_ADJUSTED
+  PROCESS_OPTIMIZED
+  OTHER
+}
+
+// Bottleneck Event Model
+model BottleneckEvent {
+  id                String   @id @default(uuid())
+  stage             WorkflowStage
+  score             Int      // 0-100
+  severity          BottleneckSeverity
+  
+  // Contributing metrics
+  queueLength       Int
+  queueWeight       Float    // 0-100
+  avgProcessingTime Float    // hours
+  processingWeight  Float    // 0-100
+  slaViolationRate  Float    // percentage
+  slaWeight         Float    // 0-100
+  staffWorkload     Float    // applications per staff
+  workloadWeight    Float    // 0-100
+  
+  // Status tracking
+  status            BottleneckStatus @default(ACTIVE)
+  detectedAt        DateTime @default(now())
+  resolvedAt        DateTime?
+  resolutionDuration Int?    // minutes
+  
+  // Relationships
+  recommendations   BottleneckRecommendation[]
+  resolutionActions BottleneckResolution[]
+  
+  @@index([stage, detectedAt])
+  @@index([status, detectedAt])
+  @@index([score])
+}
+
+// Bottleneck Recommendation Model
+model BottleneckRecommendation {
+  id              String   @id @default(uuid())
+  bottleneckId    String
+  bottleneck      BottleneckEvent @relation(fields: [bottleneckId], references: [id], onDelete: Cascade)
+  
+  type            RecommendationType
+  priority        RecommendationPriority
+  description     String
+  specificMetrics Json     // e.g., {"staffToAdd": 2, "targetStage": "DOCUMENT_CHECK"}
+  estimatedImpact String   // HIGH, MEDIUM, LOW
+  
+  createdAt       DateTime @default(now())
+  
+  @@index([bottleneckId])
+}
+
+// Bottleneck Resolution Model
+model BottleneckResolution {
+  id              String   @id @default(uuid())
+  bottleneckId    String
+  bottleneck      BottleneckEvent @relation(fields: [bottleneckId], references: [id], onDelete: Cascade)
+  
+  actionType      ResolutionActionType
+  performedBy     String
+  performedAt     DateTime @default(now())
+  notes           String?
+  
+  // Effectiveness tracking
+  wasEffective    Boolean? // null until evaluated
+  evaluatedAt     DateTime?
+  
+  @@index([bottleneckId])
+  @@index([performedBy])
+}
+
+// Bottleneck Threshold Model
+model BottleneckThreshold {
+  id                      String   @id @default(uuid())
+  stage                   WorkflowStage? // null = global default
+  
+  // Threshold values
+  queueLengthThreshold    Int      @default(10)
+  processingTimeMultiplier Float   @default(1.5)
+  slaViolationPercentage  Float    @default(20.0)
+  workloadPerStaff        Float    @default(5.0)
+  
+  // Score threshold
+  bottleneckScoreThreshold Int     @default(60)
+  
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  createdBy               String
+  
+  @@unique([stage])
+  @@index([stage])
+}
+
+// Bottleneck Event Archive Model
+model BottleneckEventArchive {
+  id                String   @id
+  stage             WorkflowStage
+  score             Int
+  severity          BottleneckSeverity
+  
+  queueLength       Int
+  queueWeight       Float
+  avgProcessingTime Float
+  processingWeight  Float
+  slaViolationRate  Float
+  slaWeight         Float
+  staffWorkload     Float
+  workloadWeight    Float
+  
+  status            BottleneckStatus
+  detectedAt        DateTime
+  resolvedAt        DateTime?
+  resolutionDuration Int?
+  
+  archivedAt        DateTime @default(now())
+  
+  @@index([stage, detectedAt])
+  @@index([archivedAt])
 }

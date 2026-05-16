@@ -93,7 +93,7 @@ function VerifyOtpForm() {
 
   return (
     <div className="h-screen w-full bg-background flex overflow-hidden font-sans">
-      <div className="w-full lg:w-[480px] xl:w-[550px] flex flex-col h-full bg-card relative z-10 border-r border-border">
+      <div className="w-full lg:w-120 xl:w-137.5 flex flex-col h-full bg-card relative z-10 border-r border-border">
         <div className="flex-1 flex flex-col justify-center px-8 sm:px-12 md:px-16 lg:px-14 xl:px-20 overflow-y-auto custom-scrollbar py-8">
           <div className="w-full max-w-sm mx-auto space-y-8">
             <div className="space-y-4">
@@ -111,13 +111,13 @@ function VerifyOtpForm() {
             <form onSubmit={handleSubmit} className="space-y-6">
               {error && (
                 <div className="bg-destructive/10 border border-destructive/20 text-destructive p-4 rounded-xl text-sm font-medium flex items-center gap-3">
-                  <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                  <AlertCircle className="w-5 h-5 shrink-0" />
                   {error}
                 </div>
               )}
               {success && (
                 <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 p-4 rounded-xl text-sm font-medium flex items-center gap-3">
-                  <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
+                  <CheckCircle2 className="w-5 h-5 shrink-0" />
                   {success}
                 </div>
               )}

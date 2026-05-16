@@ -48,7 +48,7 @@ Pastikan perangkat Anda telah terpasang:
 ## Kontribusi & Tim Pengembang
 Proyek ini dikembangkan oleh **Team 2026OtwKerja** dari **SMK Negeri 4 Kota Bogor**:
 - **Muhammad Heidar Arrizqie**
-- **Muhammad Zidane Abieyansah**
+- **Mochammad Zidane Abiansyah Putera**
 - **Tanzil Muhammad Zibril**
 
 ---

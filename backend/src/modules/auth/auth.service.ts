@@ -17,6 +17,11 @@ import {
 } from './dto/auth.dto';
 import { AuthProvider } from '@prisma/client';
 import { MailerService } from '../mailer/mailer.service';
+import { AuditLogService } from '../audit-log/services/audit-log.service';
+import {
+  AuditEntityType,
+  AuditActionType,
+} from '../audit-log/dto/audit-log.dto';
 
 @Injectable()
 export class AuthService {
@@ -25,6 +30,7 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private mailerService: MailerService,
+    private auditLogService: AuditLogService,
   ) {}
 
   private generateOtp(): string {
@@ -249,6 +255,7 @@ export class AuthService {
   }
 
   async login(dto: LoginDto) {
+    const loginStartTime = new Date();
     const user = await this.usersService.findByEmail(dto.email);
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
@@ -284,6 +291,19 @@ export class AuthService {
       },
     });
 
+    // Create audit log for login
+    await this.auditLogService.createAuditLog({
+      entityType: AuditEntityType.USER,
+      entityId: user.id,
+      action: AuditActionType.LOGIN,
+      performedBy: user.id,
+      changes: {
+        authenticationMethod: 'LOCAL',
+        loginTime: loginStartTime,
+        email: user.email,
+      },
+    });
+
     return {
       access_token: token,
       user: {
@@ -303,6 +323,7 @@ export class AuthService {
     provider: AuthProvider;
     providerId: string;
   }) {
+    const loginStartTime = new Date();
     let user = await this.prisma.user.findUnique({
       where: { email: details.email },
       include: { userDetail: true },
@@ -372,6 +393,20 @@ export class AuthService {
       },
     });
 
+    // Create audit log for OAuth login
+    await this.auditLogService.createAuditLog({
+      entityType: AuditEntityType.USER,
+      entityId: user.id,
+      action: AuditActionType.LOGIN,
+      performedBy: user.id,
+      changes: {
+        authenticationMethod: details.provider,
+        loginTime: loginStartTime,
+        email: user.email,
+        providerId: details.providerId,
+      },
+    });
+
     return {
       access_token: token,
       user: {
@@ -398,9 +433,37 @@ export class AuthService {
   }
 
   async logout(token: string) {
+    const logoutTime = new Date();
+    
+    // Get session to find user and calculate session duration
+    const session = await this.prisma.session.findFirst({
+      where: { token },
+      include: { user: true },
+    });
+
     await this.prisma.session.deleteMany({
       where: { token },
     });
+
+    // Create audit log for logout if session was found
+    if (session) {
+      const sessionDuration = Math.floor(
+        (logoutTime.getTime() - session.createdAt.getTime()) / 1000 / 60, // minutes
+      );
+
+      await this.auditLogService.createAuditLog({
+        entityType: AuditEntityType.USER,
+        entityId: session.userId,
+        action: AuditActionType.LOGOUT,
+        performedBy: session.userId,
+        changes: {
+          logoutTime,
+          sessionDurationMinutes: sessionDuration,
+          email: session.user.email,
+        },
+      });
+    }
+
     return { message: 'Logged out successfully' };
   }
 }
