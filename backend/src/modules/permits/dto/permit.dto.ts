@@ -8,7 +8,10 @@ import {
     IsInt,
     Min,
     IsNotEmpty,
+    IsDateString,
+    IsArray,
 } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
 
 export class CreateApplicationDto {
     @IsEnum(PermitType)
@@ -129,16 +132,84 @@ export class ListApplicationsQuery {
     search?: string;
 
     @IsOptional()
-    @IsEnum(['submittedAt', 'updatedAt'])
-    sortBy?: 'submittedAt' | 'updatedAt';
+    @IsEnum(['submittedAt', 'updatedAt', 'createdAt', 'referenceNumber'])
+    sortBy?: 'submittedAt' | 'updatedAt' | 'createdAt' | 'referenceNumber';
 
     @IsOptional()
     @IsInt()
     @Min(1)
+    @Type(() => Number)
     page?: number;
 
     @IsOptional()
     @IsInt()
     @Min(1)
+    @Type(() => Number)
     limit?: number;
+
+    // Date range filters
+    @IsOptional()
+    @IsDateString()
+    startDate?: string;
+
+    @IsOptional()
+    @IsDateString()
+    endDate?: string;
+
+    // Multi-value filters (comma-separated in query string)
+    @IsOptional()
+    @IsArray()
+    @IsEnum(WorkflowStage, { each: true })
+    @Transform(({ value }) =>
+        typeof value === 'string' ? value.split(',').map((v: string) => v.trim()) : value,
+    )
+    stages?: WorkflowStage[];
+
+    @IsOptional()
+    @IsArray()
+    @IsEnum(LandType, { each: true })
+    @Transform(({ value }) =>
+        typeof value === 'string' ? value.split(',').map((v: string) => v.trim()) : value,
+    )
+    landTypes?: LandType[];
+
+    // Numeric range filters
+    @IsOptional()
+    @IsNumber()
+    @Min(0)
+    @Type(() => Number)
+    minLandSize?: number;
+
+    @IsOptional()
+    @IsNumber()
+    @Min(0)
+    @Type(() => Number)
+    maxLandSize?: number;
+
+    @IsOptional()
+    @IsNumber()
+    @Min(0)
+    @Type(() => Number)
+    minNjopValue?: number;
+
+    @IsOptional()
+    @IsNumber()
+    @Min(0)
+    @Type(() => Number)
+    maxNjopValue?: number;
+
+    // Boolean filter
+    @IsOptional()
+    @IsBoolean()
+    @Transform(({ value }) => {
+        if (value === 'true') return true;
+        if (value === 'false') return false;
+        return value;
+    })
+    isStrategicLocation?: boolean;
+
+    // Sort direction
+    @IsOptional()
+    @IsEnum(['asc', 'desc'])
+    sortOrder?: 'asc' | 'desc';
 }
