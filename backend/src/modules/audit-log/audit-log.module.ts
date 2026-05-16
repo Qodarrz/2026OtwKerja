@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bull';
 import { JwtModule } from '@nestjs/jwt';
 import { PrismaModule } from '../../prisma/prisma.module';
@@ -9,6 +9,7 @@ import { AuditLogProcessor } from './processors/audit-log.processor';
 import { AuditLogController } from './audit-log.controller';
 import { AuditLogGateway } from './gateways/audit-log.gateway';
 
+@Global()
 @Module({
     imports: [
         BullModule.registerQueue({

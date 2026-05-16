@@ -16,8 +16,14 @@ import { ReportingController } from './controllers/reporting.controller';
 import { WorkflowTemplateModule } from '../workflow-template/workflow-template.module';
 import { WorkflowTemplateService } from '../workflow-template/services/workflow-template.service';
 
+import { AuditLogModule } from '../audit-log/audit-log.module';
+
 @Module({
+<<<<<<< HEAD
   imports: [PrismaModule, PermitModule, NotificationModule, WorkflowTemplateModule],
+=======
+  imports: [PrismaModule, PermitModule, NotificationModule, AuditLogModule],
+>>>>>>> ee59e0a (workflow fix)
   controllers: [
     WorkflowController,
     SLAController,
@@ -34,11 +40,14 @@ import { WorkflowTemplateService } from '../workflow-template/services/workflow-
   ],
   exports: [
     WorkflowService,
-    SLAService,
     AnalyticsService,
     TransparencyService,
     ReportingService,
+<<<<<<< HEAD
     WorkflowTemplateService,
+=======
+    PermitModule,
+>>>>>>> ee59e0a (workflow fix)
   ],
 })
 export class WorkflowModule {}
