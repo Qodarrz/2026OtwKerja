@@ -5,7 +5,7 @@ import {
     BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { PermitType, WorkflowStage, Prisma, Role } from '@prisma/client';
+import { PermitType, WorkflowStage, Prisma, Role, LandType } from '@prisma/client';
 import {
     CreateApplicationDto,
     UpdateApplicationDto,
@@ -168,6 +168,113 @@ export class PermitService {
     }
 
     /**
+     * Build a shared Prisma where clause from ListApplicationsQuery filters.
+     * Pass `scopeToUserId` to restrict results to a single applicant (user-facing),
+     * or leave it undefined for staff/admin searches across all applications.
+     */
+    private buildApplicationsWhere(
+        query: ListApplicationsQuery,
+        scopeToUserId?: string,
+    ): Prisma.PermitApplicationWhereInput {
+        const where: Prisma.PermitApplicationWhereInput = {};
+
+        if (scopeToUserId) {
+            where.applicantId = scopeToUserId;
+        }
+
+        // Single-status filter (overridden by multi-stage below)
+        if (query.status && (!query.stages || query.stages.length === 0)) {
+            where.status = query.status;
+        }
+
+        // Multi-stage filter takes precedence over single status
+        if (query.stages && query.stages.length > 0) {
+            where.currentStage = { in: query.stages };
+        }
+
+        if (query.permitType) {
+            where.permitType = query.permitType;
+        }
+
+        // Date range on submittedAt
+        if (query.startDate || query.endDate) {
+            where.submittedAt = {};
+            if (query.startDate) {
+                (where.submittedAt as Prisma.DateTimeNullableFilter).gte = new Date(query.startDate);
+            }
+            if (query.endDate) {
+                (where.submittedAt as Prisma.DateTimeNullableFilter).lte = new Date(query.endDate);
+            }
+        }
+
+        // Multi-landType filter
+        if (query.landTypes && query.landTypes.length > 0) {
+            where.landType = { in: query.landTypes };
+        }
+
+        // Numeric range: landSize
+        if (query.minLandSize !== undefined || query.maxLandSize !== undefined) {
+            where.landSize = {};
+            if (query.minLandSize !== undefined) {
+                (where.landSize as Prisma.FloatNullableFilter).gte = query.minLandSize;
+            }
+            if (query.maxLandSize !== undefined) {
+                (where.landSize as Prisma.FloatNullableFilter).lte = query.maxLandSize;
+            }
+        }
+
+        // Numeric range: njopValue
+        if (query.minNjopValue !== undefined || query.maxNjopValue !== undefined) {
+            where.njopValue = {};
+            if (query.minNjopValue !== undefined) {
+                (where.njopValue as Prisma.FloatNullableFilter).gte = query.minNjopValue;
+            }
+            if (query.maxNjopValue !== undefined) {
+                (where.njopValue as Prisma.FloatNullableFilter).lte = query.maxNjopValue;
+            }
+        }
+
+        // Boolean filter
+        if (query.isStrategicLocation !== undefined) {
+            where.isStrategicLocation = query.isStrategicLocation;
+        }
+
+        // Extended full-text search
+        if (query.search) {
+            where.OR = [
+                { referenceNumber: { contains: query.search, mode: 'insensitive' } },
+                { applicant: { name: { contains: query.search, mode: 'insensitive' } } },
+                { applicant: { email: { contains: query.search, mode: 'insensitive' } } },
+                { locationAddress: { contains: query.search, mode: 'insensitive' } },
+                { businessName: { contains: query.search, mode: 'insensitive' } },
+                { businessType: { contains: query.search, mode: 'insensitive' } },
+            ];
+        }
+
+        return where;
+    }
+
+    /**
+     * Build orderBy from query params.
+     */
+    private buildOrderBy(
+        query: ListApplicationsQuery,
+    ): Prisma.PermitApplicationOrderByWithRelationInput {
+        const direction = query.sortOrder ?? 'desc';
+        switch (query.sortBy) {
+            case 'submittedAt':
+                return { submittedAt: direction };
+            case 'createdAt':
+                return { createdAt: direction };
+            case 'referenceNumber':
+                return { referenceNumber: direction };
+            case 'updatedAt':
+            default:
+                return { updatedAt: direction };
+        }
+    }
+
+    /**
      * List applications with filtering and pagination
      */
     async listApplications(
@@ -178,35 +285,52 @@ export class PermitService {
         const limit = query.limit || 10;
         const skip = (page - 1) * limit;
 
-        const where: Prisma.PermitApplicationWhereInput = {
-            applicantId: userId, // Filter by user (will be modified for staff)
-        };
+        const where = this.buildApplicationsWhere(query, userId);
+        const orderBy = this.buildOrderBy(query);
 
-        if (query.status) {
-            where.status = query.status;
-        }
-
-        if (query.permitType) {
-            where.permitType = query.permitType;
-        }
-
-        if (query.search) {
-            where.OR = [
-                { referenceNumber: { contains: query.search, mode: 'insensitive' } },
-                {
+        const [data, total] = await Promise.all([
+            this.prisma.permitApplication.findMany({
+                where,
+                skip,
+                take: limit,
+                orderBy,
+                include: {
                     applicant: {
-                        name: { contains: query.search, mode: 'insensitive' },
+                        select: {
+                            id: true,
+                            email: true,
+                            name: true,
+                        },
                     },
                 },
-            ];
-        }
+            }),
+            this.prisma.permitApplication.count({ where }),
+        ]);
 
-        const orderBy: Prisma.PermitApplicationOrderByWithRelationInput = {};
-        if (query.sortBy === 'submittedAt') {
-            orderBy.submittedAt = 'desc';
-        } else {
-            orderBy.updatedAt = 'desc';
-        }
+        return {
+            data,
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
+        };
+    }
+
+    /**
+     * Search across ALL applications (staff/admin only).
+     * Same filter set as listApplications but not scoped to a single user.
+     */
+    async searchApplications(
+        userId: string,
+        query: ListApplicationsQuery,
+    ): Promise<PaginatedResult<any>> {
+        const page = query.page || 1;
+        const limit = query.limit || 10;
+        const skip = (page - 1) * limit;
+
+        // Staff/admin can search all applications — no applicantId scope
+        const where = this.buildApplicationsWhere(query);
+        const orderBy = this.buildOrderBy(query);
 
         const [data, total] = await Promise.all([
             this.prisma.permitApplication.findMany({

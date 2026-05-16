@@ -54,6 +54,20 @@ export class PermitController {
     }
 
     /**
+     * GET /api/permits/applications/search
+     * Search across ALL applications (staff/admin).
+     * Must be declared before `:id` to avoid NestJS treating "search" as an ID.
+     */
+    @Get('search')
+    async searchApplications(
+        @Request() req: any,
+        @Query() query: ListApplicationsQuery,
+    ) {
+        const userId = req.user.sub;
+        return this.permitService.searchApplications(userId, query);
+    }
+
+    /**
      * GET /api/permits/applications/:id
      * Get application details
      */
