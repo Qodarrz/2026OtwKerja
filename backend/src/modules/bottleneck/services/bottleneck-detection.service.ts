@@ -8,6 +8,13 @@ import {
     SLAStatus,
     Role,
 } from '@prisma/client';
+import { SLAService } from '../../permits/services/sla.service';
+import { AnalyticsService } from '../../permits/services/analytics.service';
+import { AuditLogService } from '../../audit-log/services/audit-log.service';
+import {
+    AuditEntityType,
+    AuditActionType,
+} from '../../audit-log/dto/audit-log.dto';
 
 export interface BottleneckScore {
     stage: WorkflowStage;
@@ -43,11 +50,24 @@ export interface StageThresholds {
 export class BottleneckDetectionService {
     private readonly logger = new Logger(BottleneckDetectionService.name);
 
-    constructor(private prisma: PrismaService) {}
+    /** In-memory cache for stage metrics. Key: stage name. */
+    private readonly metricsCache = new Map<
+        string,
+        { data: StageMetrics; expiresAt: number }
+    >();
+
+    /** Cache TTL: 2 minutes (120 000 ms) */
+    private readonly CACHE_TTL_MS = 120_000;
+
+    constructor(
+        private prisma: PrismaService,
+        private slaService: SLAService,
+        private analyticsService: AnalyticsService,
+        private auditLogService: AuditLogService,
+    ) {}
 
     /**
      * Main detection method - analyzes all stages for bottlenecks
-     * Requirement 1.3: Analyze all active workflow stages every 5 minutes
      */
     async detectBottlenecks(): Promise<BottleneckEvent[]> {
         const stages = [
@@ -85,8 +105,6 @@ export class BottleneckDetectionService {
 
     /**
      * Calculate bottleneck score for a specific stage
-     * Requirement 1.1: Calculate score based on queue, processing time, SLA violations, and workload
-     * Requirement 1.4: Use formula: Score = (0.3 × Queue) + (0.3 × Processing) + (0.25 × SLA) + (0.15 × Workload)
      */
     async calculateBottleneckScore(
         stage: WorkflowStage,
@@ -94,15 +112,19 @@ export class BottleneckDetectionService {
         const metrics = await this.getStageMetrics(stage);
         const thresholds = await this.getThresholds(stage);
 
-        // Get SLA rule for expected processing time
-        const slaRule = await this.prisma.sLARule.findUnique({
-            where: { stage },
-        });
+        let expectedProcessingTime = 24;
+        try {
+            const slaRules = await this.slaService.getAllSLARules();
+            const slaRule = slaRules.find((r) => r.stage === stage);
+            if (slaRule) {
+                expectedProcessingTime = slaRule.maxDurationHours;
+            }
+        } catch (error) {
+            this.logger.warn(
+                `Could not retrieve SLA rules for stage ${stage}, using default: ${error.message}`,
+            );
+        }
 
-        const expectedProcessingTime = slaRule?.maxDurationHours || 24;
-
-        // Normalize each metric to 0-100 scale
-        // Requirement 1.5: Normalize each weight component to 0-100 scale
         const queueWeight = this.normalizeMetric(
             metrics.queueLength,
             thresholds.queueLengthThreshold,
@@ -141,10 +163,8 @@ export class BottleneckDetectionService {
             0.25 * slaWeight +
             0.15 * workloadWeight;
 
-        // Ensure score is between 0 and 100
         const finalScore = Math.min(100, Math.max(0, Math.round(score)));
 
-        // Determine severity based on score
         let severity: BottleneckSeverity;
         if (finalScore >= 80) {
             severity = BottleneckSeverity.HIGH;
@@ -177,10 +197,64 @@ export class BottleneckDetectionService {
     }
 
     /**
-     * Get current metrics for a stage
-     * Integrates with Analytics Service pattern
+     * Get current metrics for a stage.
+     * Results are cached for 2 minutes to reduce database queries.
      */
     private async getStageMetrics(
+        stage: WorkflowStage,
+    ): Promise<StageMetrics> {
+        const cacheKey = stage as string;
+        const cached = this.metricsCache.get(cacheKey);
+        if (cached && cached.expiresAt > Date.now()) {
+            return cached.data;
+        }
+
+        let result: StageMetrics;
+
+        try {
+            const stageBottlenecks = await this.analyticsService.getStageBottlenecks();
+            const stageData = stageBottlenecks.find((b) => b.stage === stage);
+
+            if (stageData) {
+                // Use analytics service data for queue length, processing time, and staff count
+                const queueLength = stageData.activeCount;
+                const avgProcessingTime = stageData.averageDurationHours;
+                const activeStaffCount = stageData.staffCount;
+
+                // SLA violation data from analytics
+                const slaViolationCount = stageData.overdueCount;
+                const totalApplications =
+                    stageData.overdueCount + stageData.warningCount + stageData.activeCount;
+
+                result = {
+                    queueLength,
+                    avgProcessingTime,
+                    slaViolationCount,
+                    totalApplications,
+                    activeStaffCount,
+                };
+            } else {
+                result = await this.getStageMetricsDirect(stage);
+            }
+        } catch (error) {
+            this.logger.warn(
+                `Could not retrieve analytics data for stage ${stage}, falling back to direct queries: ${error.message}`,
+            );
+            result = await this.getStageMetricsDirect(stage);
+        }
+
+        this.metricsCache.set(cacheKey, {
+            data: result,
+            expiresAt: Date.now() + this.CACHE_TTL_MS,
+        });
+
+        return result;
+    }
+
+    /**
+     * Direct database query fallback for stage metrics
+     */
+    private async getStageMetricsDirect(
         stage: WorkflowStage,
     ): Promise<StageMetrics> {
         // Get queue length (active applications at this stage)
@@ -198,7 +272,6 @@ export class BottleneckDetectionService {
                 durationHours: true,
                 slaStatus: true,
             },
-            // Get recent data (last 30 days) for more relevant metrics
             orderBy: {
                 completedAt: 'desc',
             },
@@ -243,8 +316,7 @@ export class BottleneckDetectionService {
     }
 
     /**
-     * Normalize metric to 0-100 scale
-     * Requirement 1.5: Normalize each weight component to 0-100 scale
+     * Normalize a metric value to a 0-100 scale relative to its threshold.
      */
     private normalizeMetric(
         value: number,
@@ -257,15 +329,21 @@ export class BottleneckDetectionService {
     }
 
     /**
-     * Get thresholds for a stage (stage-specific or global default)
-     * Requirement 2.6: Use stage-specific thresholds if available, otherwise global defaults
+     * Get thresholds for a stage (stage-specific or global default).
      */
     private async getThresholds(
         stage: WorkflowStage,
     ): Promise<StageThresholds> {
-        // Try to get stage-specific threshold
+        // Try to get stage-specific threshold — select only needed fields
         const stageThreshold = await this.prisma.bottleneckThreshold.findUnique({
             where: { stage },
+            select: {
+                queueLengthThreshold: true,
+                processingTimeMultiplier: true,
+                slaViolationPercentage: true,
+                workloadPerStaff: true,
+                bottleneckScoreThreshold: true,
+            },
         });
 
         if (stageThreshold) {
@@ -280,10 +358,17 @@ export class BottleneckDetectionService {
             };
         }
 
-        // Fall back to global default (where stage is null)
+        // Fall back to global default
         const globalThreshold = await this.prisma.bottleneckThreshold.findFirst(
             {
                 where: { stage: { equals: null } },
+                select: {
+                    queueLengthThreshold: true,
+                    processingTimeMultiplier: true,
+                    slaViolationPercentage: true,
+                    workloadPerStaff: true,
+                    bottleneckScoreThreshold: true,
+                },
             },
         );
 
@@ -299,8 +384,6 @@ export class BottleneckDetectionService {
             };
         }
 
-        // Use hardcoded defaults if no configuration exists
-        // Requirement 2.3: Default values
         return {
             queueLengthThreshold: 10,
             processingTimeMultiplier: 1.5,
@@ -311,9 +394,7 @@ export class BottleneckDetectionService {
     }
 
     /**
-     * Create bottleneck event when threshold is exceeded
-     * Requirement 1.2: Create BottleneckEvent when score exceeds threshold
-     * Requirement 1.6: Record timestamp, stage, score, and contributing metrics
+     * Create a bottleneck event record when a stage score exceeds the threshold.
      */
     async createBottleneckEvent(
         score: BottleneckScore,
@@ -339,16 +420,49 @@ export class BottleneckDetectionService {
             `Created bottleneck event ${bottleneck.id} for stage ${score.stage}`,
         );
 
+        try {
+            await this.auditLogService.createAuditLog({
+                entityType: AuditEntityType.BOTTLENECK,
+                entityId: bottleneck.id,
+                action: AuditActionType.DETECTED,
+                performedBy: undefined, // system-triggered
+                changes: {
+                    stage: score.stage,
+                    score: score.score,
+                    severity: score.severity,
+                    queueLength: score.queueLength,
+                    queueWeight: score.queueWeight,
+                    avgProcessingTime: score.avgProcessingTime,
+                    processingWeight: score.processingWeight,
+                    slaViolationRate: score.slaViolationRate,
+                    slaWeight: score.slaWeight,
+                    staffWorkload: score.staffWorkload,
+                    workloadWeight: score.workloadWeight,
+                },
+            });
+        } catch (error) {
+            this.logger.error(
+                `Failed to create audit log for bottleneck ${bottleneck.id}:`,
+                error,
+            );
+        }
+
         return bottleneck;
     }
 
     /**
-     * Check if a bottleneck is resolved
-     * Requirement 3.7: Mark as RESOLVED if score below threshold for 15 minutes
+     * Check if a bottleneck is resolved by recalculating the current score.
      */
     async checkResolution(bottleneckId: string): Promise<boolean> {
         const bottleneck = await this.prisma.bottleneckEvent.findUnique({
             where: { id: bottleneckId },
+            select: {
+                id: true,
+                stage: true,
+                status: true,
+                detectedAt: true,
+                score: true,
+            },
         });
 
         if (!bottleneck || bottleneck.status !== BottleneckStatus.ACTIVE) {
@@ -363,9 +477,6 @@ export class BottleneckDetectionService {
 
         // Check if score is below threshold
         if (currentScore.score < thresholds.bottleneckScoreThreshold) {
-            // For now, we'll mark it as resolved immediately
-            // In a production system, you'd track when it first dropped below threshold
-            // and verify it stays below threshold for at least 15 minutes
             const now = new Date();
             const resolutionDuration = Math.floor(
                 (now.getTime() - bottleneck.detectedAt.getTime()) / (1000 * 60),
@@ -383,6 +494,27 @@ export class BottleneckDetectionService {
             this.logger.log(
                 `Bottleneck ${bottleneckId} resolved after ${resolutionDuration} minutes`,
             );
+
+            try {
+                await this.auditLogService.createAuditLog({
+                    entityType: AuditEntityType.BOTTLENECK,
+                    entityId: bottleneckId,
+                    action: AuditActionType.RESOLVED,
+                    performedBy: undefined, // system-triggered
+                    changes: {
+                        stage: bottleneck.stage,
+                        previousScore: bottleneck.score,
+                        currentScore: currentScore.score,
+                        resolutionDuration,
+                        resolvedAt: now.toISOString(),
+                    },
+                });
+            } catch (error) {
+                this.logger.error(
+                    `Failed to create audit log for resolution of bottleneck ${bottleneckId}:`,
+                    error,
+                );
+            }
 
             return true;
         }

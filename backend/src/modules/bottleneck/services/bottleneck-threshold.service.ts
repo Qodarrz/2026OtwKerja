@@ -6,6 +6,11 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { WorkflowStage, BottleneckThreshold } from '@prisma/client';
+import { AuditLogService } from '../../audit-log/services/audit-log.service';
+import {
+    AuditEntityType,
+    AuditActionType,
+} from '../../audit-log/dto/audit-log.dto';
 
 export interface ThresholdDto {
     stage?: WorkflowStage | null;
@@ -29,21 +34,47 @@ export interface StageThresholds {
 export class BottleneckThresholdService {
     private readonly logger = new Logger(BottleneckThresholdService.name);
 
-    constructor(private prisma: PrismaService) {}
+    /** In-memory cache for threshold configurations. Key: stage name or 'global'. */
+    private readonly thresholdCache = new Map<
+        string,
+        { data: StageThresholds; expiresAt: number }
+    >();
+
+    /** Cache TTL: 2 minutes (120 000 ms) */
+    private readonly CACHE_TTL_MS = 120_000;
+
+    constructor(
+        private prisma: PrismaService,
+        private auditLogService: AuditLogService,
+    ) {}
 
     /**
-     * Get thresholds for a stage (stage-specific or global default)
+     * Get thresholds for a stage (stage-specific or global default).
+     * Results are cached for 2 minutes to reduce database queries.
      */
     async getThresholds(stage: WorkflowStage): Promise<StageThresholds> {
+        const cacheKey = stage as string;
+        const cached = this.thresholdCache.get(cacheKey);
+        if (cached && cached.expiresAt > Date.now()) {
+            return cached.data;
+        }
+
         // Try to get stage-specific threshold
         const stageThreshold = await this.prisma.bottleneckThreshold.findUnique(
             {
                 where: { stage },
+                select: {
+                    queueLengthThreshold: true,
+                    processingTimeMultiplier: true,
+                    slaViolationPercentage: true,
+                    workloadPerStaff: true,
+                    bottleneckScoreThreshold: true,
+                },
             },
         );
 
         if (stageThreshold) {
-            return {
+            const result: StageThresholds = {
                 queueLengthThreshold: stageThreshold.queueLengthThreshold,
                 processingTimeMultiplier:
                     stageThreshold.processingTimeMultiplier,
@@ -52,17 +83,35 @@ export class BottleneckThresholdService {
                 bottleneckScoreThreshold:
                     stageThreshold.bottleneckScoreThreshold,
             };
+            this.thresholdCache.set(cacheKey, {
+                data: result,
+                expiresAt: Date.now() + this.CACHE_TTL_MS,
+            });
+            return result;
         }
 
         // Fall back to global default (where stage is null)
+        const globalCacheKey = 'global';
+        const cachedGlobal = this.thresholdCache.get(globalCacheKey);
+        if (cachedGlobal && cachedGlobal.expiresAt > Date.now()) {
+            return cachedGlobal.data;
+        }
+
         const globalThreshold = await this.prisma.bottleneckThreshold.findFirst(
             {
                 where: { stage: { equals: null } },
+                select: {
+                    queueLengthThreshold: true,
+                    processingTimeMultiplier: true,
+                    slaViolationPercentage: true,
+                    workloadPerStaff: true,
+                    bottleneckScoreThreshold: true,
+                },
             },
         );
 
         if (globalThreshold) {
-            return {
+            const result: StageThresholds = {
                 queueLengthThreshold: globalThreshold.queueLengthThreshold,
                 processingTimeMultiplier:
                     globalThreshold.processingTimeMultiplier,
@@ -71,6 +120,11 @@ export class BottleneckThresholdService {
                 bottleneckScoreThreshold:
                     globalThreshold.bottleneckScoreThreshold,
             };
+            this.thresholdCache.set(globalCacheKey, {
+                data: result,
+                expiresAt: Date.now() + this.CACHE_TTL_MS,
+            });
+            return result;
         }
 
         // Use hardcoded defaults if no configuration exists
@@ -93,7 +147,7 @@ export class BottleneckThresholdService {
     }
 
     /**
-     * Update thresholds for a stage or global default
+     * Update or create thresholds for a stage or the global default.
      */
     async updateThresholds(
         thresholdDto: ThresholdDto,
@@ -112,21 +166,56 @@ export class BottleneckThresholdService {
                   where: { stage: { equals: null } },
               });
 
+        let result: BottleneckThreshold;
+
         if (existingThreshold) {
             // Update existing threshold
-            const updated = await this.prisma.bottleneckThreshold.update({
+            result = await this.prisma.bottleneckThreshold.update({
                 where: { id: existingThreshold.id },
                 data: thresholdData,
             });
+
+            // Invalidate cache for this stage and global fallback
+            this.invalidateCache(stage ?? null);
 
             this.logger.log(
                 `Updated threshold configuration for ${stage || 'global default'}`,
             );
 
-            return updated;
+            try {
+                await this.auditLogService.createAuditLog({
+                    entityType: AuditEntityType.BOTTLENECK_THRESHOLD,
+                    entityId: result.id,
+                    action: AuditActionType.THRESHOLD_UPDATED,
+                    performedBy: createdBy,
+                    changes: {
+                        before: {
+                            stage: existingThreshold.stage,
+                            queueLengthThreshold: existingThreshold.queueLengthThreshold,
+                            processingTimeMultiplier: existingThreshold.processingTimeMultiplier,
+                            slaViolationPercentage: existingThreshold.slaViolationPercentage,
+                            workloadPerStaff: existingThreshold.workloadPerStaff,
+                            bottleneckScoreThreshold: existingThreshold.bottleneckScoreThreshold,
+                        },
+                        after: {
+                            stage: result.stage,
+                            queueLengthThreshold: result.queueLengthThreshold,
+                            processingTimeMultiplier: result.processingTimeMultiplier,
+                            slaViolationPercentage: result.slaViolationPercentage,
+                            workloadPerStaff: result.workloadPerStaff,
+                            bottleneckScoreThreshold: result.bottleneckScoreThreshold,
+                        },
+                    },
+                });
+            } catch (error) {
+                this.logger.error(
+                    `Failed to create audit log for threshold update:`,
+                    error,
+                );
+            }
         } else {
             // Create new threshold
-            const created = await this.prisma.bottleneckThreshold.create({
+            result = await this.prisma.bottleneckThreshold.create({
                 data: {
                     stage: stage || null,
                     ...thresholdData,
@@ -134,12 +223,39 @@ export class BottleneckThresholdService {
                 },
             });
 
+            // Invalidate cache for this stage and global fallback
+            this.invalidateCache(stage ?? null);
+
             this.logger.log(
                 `Created threshold configuration for ${stage || 'global default'}`,
             );
 
-            return created;
+            try {
+                await this.auditLogService.createAuditLog({
+                    entityType: AuditEntityType.BOTTLENECK_THRESHOLD,
+                    entityId: result.id,
+                    action: AuditActionType.THRESHOLD_UPDATED,
+                    performedBy: createdBy,
+                    changes: {
+                        after: {
+                            stage: result.stage,
+                            queueLengthThreshold: result.queueLengthThreshold,
+                            processingTimeMultiplier: result.processingTimeMultiplier,
+                            slaViolationPercentage: result.slaViolationPercentage,
+                            workloadPerStaff: result.workloadPerStaff,
+                            bottleneckScoreThreshold: result.bottleneckScoreThreshold,
+                        },
+                    },
+                });
+            } catch (error) {
+                this.logger.error(
+                    `Failed to create audit log for threshold creation:`,
+                    error,
+                );
+            }
         }
+
+        return result;
     }
 
     /**
@@ -214,6 +330,9 @@ export class BottleneckThresholdService {
             where: { stage },
         });
 
+        // Invalidate cache for this stage
+        this.invalidateCache(stage);
+
         this.logger.log(`Deleted threshold configuration for stage ${stage}`);
     }
 
@@ -224,5 +343,20 @@ export class BottleneckThresholdService {
         return this.prisma.bottleneckThreshold.findUnique({
             where: { id },
         });
+    }
+
+    /**
+     * Invalidate cache entries for a given stage (and global fallback).
+     * Called whenever thresholds are created, updated, or deleted.
+     */
+    private invalidateCache(stage: WorkflowStage | null): void {
+        if (stage) {
+            this.thresholdCache.delete(stage as string);
+        }
+        // Always clear global cache since stage lookups fall back to it
+        this.thresholdCache.delete('global');
+        this.logger.debug(
+            `Threshold cache invalidated for ${stage ?? 'global'}`,
+        );
     }
 }

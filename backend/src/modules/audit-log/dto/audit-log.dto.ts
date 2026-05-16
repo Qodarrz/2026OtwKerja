@@ -9,6 +9,8 @@ export enum AuditEntityType {
     DOCUMENT = 'Document',
     SLA_RULE = 'SLARule',
     NOTIFICATION = 'Notification',
+    BOTTLENECK = 'Bottleneck',
+    BOTTLENECK_THRESHOLD = 'BottleneckThreshold',
 }
 
 /**
@@ -25,6 +27,9 @@ export enum AuditActionType {
     LOGOUT = 'LOGOUT',
     UPLOAD = 'UPLOAD',
     DOWNLOAD = 'DOWNLOAD',
+    DETECTED = 'DETECTED',
+    THRESHOLD_UPDATED = 'THRESHOLD_UPDATED',
+    RESOLVED = 'RESOLVED',
 }
 
 /**

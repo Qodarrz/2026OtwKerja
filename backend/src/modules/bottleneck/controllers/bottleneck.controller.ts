@@ -24,6 +24,11 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { GetHistoryQueryDto } from '../dto/bottleneck.dto';
 import { UpdateThresholdDto } from '../dto/threshold.dto';
 import { CreateResolutionDto } from '../dto/resolution.dto';
+import { AuditLogService } from '../../audit-log/services/audit-log.service';
+import {
+    AuditEntityType,
+    AuditActionType,
+} from '../../audit-log/dto/audit-log.dto';
 
 @Controller('bottlenecks')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -34,6 +39,7 @@ export class BottleneckController {
         private thresholdService: BottleneckThresholdService,
         private historicalService: BottleneckHistoricalService,
         private prisma: PrismaService,
+        private auditLogService: AuditLogService,
     ) {}
 
     @Get('current')
@@ -188,6 +194,25 @@ export class BottleneckController {
                 notes: dto.notes,
             },
         });
+
+        try {
+            await this.auditLogService.createAuditLog({
+                entityType: AuditEntityType.BOTTLENECK,
+                entityId: bottleneckId,
+                action: AuditActionType.RESOLVED,
+                performedBy: req.user.userId,
+                changes: {
+                    resolutionId: resolution.id,
+                    actionType: dto.actionType,
+                    notes: dto.notes,
+                    stage: bottleneck.stage,
+                    bottleneckScore: bottleneck.score,
+                    bottleneckSeverity: bottleneck.severity,
+                },
+            });
+        } catch (error) {
+            // Audit log failure should not block resolution recording
+        }
 
         return resolution;
     }

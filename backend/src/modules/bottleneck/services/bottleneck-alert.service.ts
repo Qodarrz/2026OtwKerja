@@ -1,6 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { BottleneckEvent, WorkflowStage, Role } from '@prisma/client';
+import { BottleneckEvent, WorkflowStage, Role, NotificationType } from '@prisma/client';
+import { NotificationService } from '../../permits/services/notification.service';
+import { AuditLogService } from '../../audit-log/services/audit-log.service';
+import {
+    AuditEntityType,
+    AuditActionType,
+} from '../../audit-log/dto/audit-log.dto';
 
 interface AlertHistory {
     stage: WorkflowStage;
@@ -14,8 +20,15 @@ export class BottleneckAlertService {
     private readonly logger = new Logger(BottleneckAlertService.name);
     private alertHistory: Map<WorkflowStage, AlertHistory> = new Map();
 
-    constructor(private prisma: PrismaService) {}
+    constructor(
+        private prisma: PrismaService,
+        private notificationService: NotificationService,
+        private auditLogService: AuditLogService,
+    ) {}
 
+    /**
+     * Send alert for a newly detected bottleneck.
+     */
     async sendBottleneckAlert(bottleneck: BottleneckEvent): Promise<void> {
         const shouldAggregate = await this.shouldAggregate(bottleneck.stage);
 
@@ -30,14 +43,20 @@ export class BottleneckAlertService {
         await this.createAndSendAlert(bottleneck);
     }
 
+    /**
+     * Send resolution notification.
+     */
     async sendResolutionAlert(bottleneck: BottleneckEvent): Promise<void> {
         const admins = await this.getAdminUsers();
+
+        const title = 'Bottleneck Resolved';
+        const message = `Bottleneck at ${bottleneck.stage} stage has been resolved. Duration: ${bottleneck.resolutionDuration} minutes. Score dropped from ${bottleneck.score} to below threshold.`;
 
         for (const admin of admins) {
             await this.createNotification(
                 admin.id,
-                'Bottleneck Resolved',
-                `Bottleneck at ${bottleneck.stage} stage has been resolved. Duration: ${bottleneck.resolutionDuration} minutes. Score dropped from ${bottleneck.score} to below threshold.`,
+                title,
+                message,
                 'BOTTLENECK_RESOLVED',
             );
         }
@@ -49,6 +68,9 @@ export class BottleneckAlertService {
         );
     }
 
+    /**
+     * Send reminder alerts for bottlenecks that have been active for more than 2 hours.
+     */
     async sendReminderAlerts(): Promise<void> {
         const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
 
@@ -95,15 +117,19 @@ export class BottleneckAlertService {
         }
     }
 
+    /**
+     * Build and send alert to admins (and stage staff for HIGH severity).
+     */
     private async createAndSendAlert(bottleneck: BottleneckEvent): Promise<void> {
         const admins = await this.getAdminUsers();
 
+        const title = 'Bottleneck Detected';
         const message = this.buildAlertMessage(bottleneck);
 
         for (const admin of admins) {
             await this.createNotification(
                 admin.id,
-                'Bottleneck Detected',
+                title,
                 message,
                 'BOTTLENECK_DETECTED',
             );
@@ -151,6 +177,9 @@ export class BottleneckAlertService {
         }
     }
 
+    /**
+     * Build the alert message body including stage, score, contributing factors, and timestamp.
+     */
     private buildAlertMessage(bottleneck: BottleneckEvent): string {
         const factors: string[] = [];
 
@@ -181,6 +210,9 @@ export class BottleneckAlertService {
         return `Bottleneck detected at ${bottleneck.stage} stage. Severity: ${bottleneck.severity}. Score: ${bottleneck.score}/100. Contributing factors: ${factors.join(', ')}. Detected at: ${bottleneck.detectedAt.toISOString()}.`;
     }
 
+    /**
+     * Persist a notification record for a user.
+     */
     private async createNotification(
         userId: string,
         title: string,
@@ -242,6 +274,9 @@ export class BottleneckAlertService {
         });
     }
 
+    /**
+     * Create an aggregated alert for multiple events within a 30-minute window.
+     */
     async createAggregatedAlert(stage: WorkflowStage): Promise<void> {
         const history = this.alertHistory.get(stage);
 
@@ -272,6 +307,9 @@ export class BottleneckAlertService {
         this.logger.log(`Sent aggregated alert for stage ${stage}`);
     }
 
+    /**
+     * Check if a bottleneck is a recurring issue (resolved then recurred within 1 hour).
+     */
     async checkRecurringIssue(
         stage: WorkflowStage,
         currentBottleneckId: string,
