@@ -553,4 +553,231 @@ export class AnalyticsService {
             onTimePercentage: (onTimeCount / total) * 100,
         };
     }
+
+    /**
+     * Get time-series metrics bucketed by hour or day.
+     * Groups by day when periodDays > 7, by hour when periodDays <= 7.
+     */
+    async getTimeSeriesMetrics(
+        intervalHours: number,
+        periodDays: number,
+    ): Promise<
+        {
+            timestamp: Date;
+            submitted: number;
+            approved: number;
+            rejected: number;
+            avgProcessingHours: number;
+        }[]
+    > {
+        const now = new Date();
+        const periodStart = new Date(now.getTime() - periodDays * 24 * 60 * 60 * 1000);
+
+        const bucketMs = periodDays > 7
+            ? 24 * 60 * 60 * 1000
+            : intervalHours * 60 * 60 * 1000;
+
+        const applications = await this.prisma.permitApplication.findMany({
+            where: {
+                submittedAt: { gte: periodStart, lte: now },
+            },
+            select: {
+                submittedAt: true,
+                status: true,
+                updatedAt: true,
+                stageHistory: {
+                    where: { completedAt: { not: null } },
+                    select: { durationHours: true },
+                },
+            },
+        });
+
+        const buckets = new Map<
+            number,
+            { submitted: number; approved: number; rejected: number; totalHours: number; stageCount: number }
+        >();
+
+        let cursor = new Date(periodStart);
+        while (cursor <= now) {
+            const key = Math.floor(cursor.getTime() / bucketMs) * bucketMs;
+            if (!buckets.has(key)) {
+                buckets.set(key, { submitted: 0, approved: 0, rejected: 0, totalHours: 0, stageCount: 0 });
+            }
+            cursor = new Date(cursor.getTime() + bucketMs);
+        }
+
+        for (const app of applications) {
+            if (!app.submittedAt) continue;
+            const key = Math.floor(app.submittedAt.getTime() / bucketMs) * bucketMs;
+            const bucket = buckets.get(key) ?? { submitted: 0, approved: 0, rejected: 0, totalHours: 0, stageCount: 0 };
+
+            bucket.submitted++;
+
+            if (app.status === WorkflowStage.APPROVED) {
+                bucket.approved++;
+            } else if (app.status === WorkflowStage.REJECTED) {
+                bucket.rejected++;
+            }
+
+            for (const sh of app.stageHistory) {
+                bucket.totalHours += sh.durationHours ?? 0;
+                bucket.stageCount++;
+            }
+
+            buckets.set(key, bucket);
+        }
+
+        return Array.from(buckets.entries())
+            .sort(([a], [b]) => a - b)
+            .map(([ts, data]) => ({
+                timestamp: new Date(ts),
+                submitted: data.submitted,
+                approved: data.approved,
+                rejected: data.rejected,
+                avgProcessingHours:
+                    data.stageCount > 0
+                        ? Math.round((data.totalHours / data.stageCount) * 10) / 10
+                        : 0,
+            }));
+    }
+
+    /**
+     * Get system health metrics including DB latency, queue counts, throughput, and uptime.
+     */
+    async getSystemHealthMetrics(): Promise<{
+        database: { status: string; queryTimeMs: number };
+        queues: {
+            pendingApplications: number;
+            overdueApplications: number;
+            warningApplications: number;
+        };
+        throughput: { last1h: number; last24h: number; last7d: number };
+        uptime: number;
+    }> {
+        const now = new Date();
+
+        const dbStart = Date.now();
+        let dbStatus = 'healthy';
+        let queryTimeMs = 0;
+        try {
+            await this.prisma.$queryRaw`SELECT 1`;
+            queryTimeMs = Date.now() - dbStart;
+        } catch {
+            dbStatus = 'unhealthy';
+            queryTimeMs = -1;
+        }
+
+        const pendingApplications = await this.prisma.permitApplication.count({
+            where: {
+                status: {
+                    notIn: [WorkflowStage.APPROVED, WorkflowStage.REJECTED, WorkflowStage.DRAFT],
+                },
+            },
+        });
+
+        const overdueApplications = await this.prisma.stageHistory.count({
+            where: { completedAt: null, slaStatus: SLAStatus.OVERDUE },
+        });
+
+        const warningApplications = await this.prisma.stageHistory.count({
+            where: { completedAt: null, slaStatus: SLAStatus.WARNING },
+        });
+
+        const last1hStart = new Date(now.getTime() - 1 * 60 * 60 * 1000);
+        const last24hStart = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        const last7dStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+        const [last1h, last24h, last7d] = await Promise.all([
+            this.prisma.permitApplication.count({
+                where: { status: WorkflowStage.APPROVED, updatedAt: { gte: last1hStart } },
+            }),
+            this.prisma.permitApplication.count({
+                where: { status: WorkflowStage.APPROVED, updatedAt: { gte: last24hStart } },
+            }),
+            this.prisma.permitApplication.count({
+                where: { status: WorkflowStage.APPROVED, updatedAt: { gte: last7dStart } },
+            }),
+        ]);
+
+        return {
+            database: { status: dbStatus, queryTimeMs },
+            queues: { pendingApplications, overdueApplications, warningApplications },
+            throughput: { last1h, last24h, last7d },
+            uptime: Math.floor(process.uptime()),
+        };
+    }
+
+    /**
+     * Get a live metrics snapshot suitable for real-time push.
+     */
+    async getLiveMetrics(): Promise<{
+        timestamp: Date;
+        activeApplications: number;
+        overdueCount: number;
+        warningCount: number;
+        processingRate: number;
+        stageLoad: { stage: WorkflowStage; count: number; slaStatus: SLAStatus | null }[];
+    }> {
+        const now = new Date();
+        const last1hStart = new Date(now.getTime() - 60 * 60 * 1000);
+
+        const activeApplications = await this.prisma.permitApplication.count({
+            where: {
+                status: {
+                    notIn: [WorkflowStage.APPROVED, WorkflowStage.REJECTED, WorkflowStage.DRAFT],
+                },
+            },
+        });
+
+        const overdueCount = await this.prisma.stageHistory.count({
+            where: { completedAt: null, slaStatus: SLAStatus.OVERDUE },
+        });
+
+        const warningCount = await this.prisma.stageHistory.count({
+            where: { completedAt: null, slaStatus: SLAStatus.WARNING },
+        });
+
+        const processingRate = await this.prisma.permitApplication.count({
+            where: { status: WorkflowStage.APPROVED, updatedAt: { gte: last1hStart } },
+        });
+
+        const activeStages = [
+            WorkflowStage.DOCUMENT_CHECK,
+            WorkflowStage.FIELD_INSPECTION,
+            WorkflowStage.LEGALIZATION,
+        ];
+
+        const stageLoad = await Promise.all(
+            activeStages.map(async (stage) => {
+                const count = await this.prisma.permitApplication.count({
+                    where: { currentStage: stage },
+                });
+
+                const slaGroups = await this.prisma.stageHistory.groupBy({
+                    by: ['slaStatus'],
+                    where: {
+                        toStage: stage,
+                        completedAt: null,
+                        slaStatus: { not: null },
+                    },
+                    _count: { slaStatus: true },
+                    orderBy: { _count: { slaStatus: 'desc' } },
+                    take: 1,
+                });
+
+                const dominantSla = slaGroups.length > 0 ? slaGroups[0].slaStatus : null;
+
+                return { stage, count, slaStatus: dominantSla };
+            }),
+        );
+
+        return {
+            timestamp: now,
+            activeApplications,
+            overdueCount,
+            warningCount,
+            processingRate,
+            stageLoad,
+        };
+    }
 }
