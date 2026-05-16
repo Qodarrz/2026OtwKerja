@@ -16,6 +16,7 @@ import { NotificationModule } from './modules/permits/notification.module';
 import { FeedbackModule } from './modules/feedback/feedback.module';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
 import { BottleneckModule } from './modules/bottleneck/bottleneck.module';
+import { IntegrationModule } from './modules/integration/integration.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { BottleneckModule } from './modules/bottleneck/bottleneck.module';
     NotificationModule,
     FeedbackModule,
     BottleneckModule,
+    IntegrationModule,
   ],
   controllers: [AppController],
   providers: [

@@ -490,6 +490,24 @@ model BottleneckEventArchive {
   @@index([stage, detectedAt])
   @@index([archivedAt])
 }
+
+// API Key Model (Integration API Layer)
+model ApiKey {
+  id          String    @id @default(uuid())
+  key         String    @unique
+  name        String
+  description String?
+  isActive    Boolean   @default(true)
+  scopes      String[]
+  lastUsedAt  DateTime?
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([key])
+  @@index([isActive])
+}
+
 // Feedback Model
 enum FeedbackType {
   COMPLAINT
