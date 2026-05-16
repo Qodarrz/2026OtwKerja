@@ -176,6 +176,29 @@ async function main() {
   }
   console.log('✅ Permit Applications seeded.');
 
+  console.log('Seeding Bottleneck Thresholds...');
+  // Create default global threshold configuration
+  // Check if global default already exists
+  const existingGlobalThreshold = await prisma.bottleneckThreshold.findFirst({
+    where: { stage: null },
+  });
+
+  if (!existingGlobalThreshold) {
+    const defaultThreshold = await prisma.bottleneckThreshold.create({
+      data: {
+        queueLengthThreshold: 10,
+        processingTimeMultiplier: 1.5,
+        slaViolationPercentage: 20.0,
+        workloadPerStaff: 5.0,
+        bottleneckScoreThreshold: 60,
+        createdBy: 'SYSTEM',
+      },
+    });
+    console.log('✅ Default Bottleneck Threshold seeded:', defaultThreshold.id);
+  } else {
+    console.log('✅ Default Bottleneck Threshold already exists:', existingGlobalThreshold.id);
+  }
+
   console.log('--- Seed Process Completed Successfully ---');
 }
 
