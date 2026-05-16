@@ -38,7 +38,7 @@ export default function VerifyKtpPage() {
   const [extractedData, setExtractedData] = useState<KtpData | null>(null);
   const [error, setError] = useState<string | null>(null);
   
-  const { user, token, login } = useAuth();
+  const { user, login } = useAuth();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -70,9 +70,7 @@ export default function VerifyKtpPage() {
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/auth/ktp/upload`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
+        credentials: 'include',
         body: formData
       });
 
@@ -98,8 +96,8 @@ export default function VerifyKtpPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
         },
+        credentials: 'include',
         body: JSON.stringify(extractedData)
       });
 
@@ -158,7 +156,7 @@ export default function VerifyKtpPage() {
                   />
                   
                   {preview ? (
-                    <div className="relative w-full aspect-[3/2] max-w-sm rounded-2xl overflow-hidden shadow-lg border-4 border-white">
+                    <div className="relative w-full aspect-3/2 max-w-sm rounded-2xl overflow-hidden shadow-lg border-4 border-white">
                       <img src={preview} alt="KTP Preview" className="w-full h-full object-cover" />
                       <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
                         <Camera className="w-8 h-8 text-white" />
@@ -179,7 +177,7 @@ export default function VerifyKtpPage() {
 
                 {error && (
                   <div className="bg-red-50 border border-red-100 text-red-600 p-4 rounded-2xl text-sm font-medium flex items-center gap-3">
-                    <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                    <AlertCircle className="w-5 h-5 shrink-0" />
                     {error}
                   </div>
                 )}
@@ -232,7 +230,7 @@ export default function VerifyKtpPage() {
             {step === 'confirm' && extractedData && (
               <div className="space-y-8">
                 <div className="flex items-center gap-4 bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
-                  <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center flex-shrink-0">
+                  <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center shrink-0">
                     <CheckCircle2 className="w-6 h-6 text-white" />
                   </div>
                   <div>
