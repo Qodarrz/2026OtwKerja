@@ -490,3 +490,29 @@ model BottleneckEventArchive {
   @@index([stage, detectedAt])
   @@index([archivedAt])
 }
+// Feedback Model
+enum FeedbackType {
+  COMPLAINT
+  SUGGESTION
+  APPRECIATION
+  OTHER
+}
+
+model Feedback {
+  id              String           @id @default(uuid())
+  rating          Int
+  comment         String?
+  type            FeedbackType     @default(OTHER)
+  
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId          String
+  
+  application     PermitApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  applicationId   String
+  
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  
+  @@index([userId])
+  @@index([applicationId])
+}
