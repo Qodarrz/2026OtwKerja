@@ -16,6 +16,7 @@ import {
     AuditActionType,
 } from '../../audit-log/dto/audit-log.dto';
 import { BatchApproveItemDto, BatchRejectItemDto } from '../dto/batch.dto';
+import { WorkflowTemplateService } from '../../workflow-template/services/workflow-template.service';
 
 export interface ApproveApplicationDto {
     notes?: string;
@@ -44,6 +45,7 @@ export class WorkflowService {
         private slaService: SLAService,
         private notificationService: NotificationService,
         private auditLogService: AuditLogService,
+        private workflowTemplateService: WorkflowTemplateService,
     ) { }
 
     /**
@@ -83,7 +85,7 @@ export class WorkflowService {
             );
         }
 
-        const nextStage = this.getNextStage(application.currentStage, application.permitType);
+        const nextStage = await this.getNextStage(application.currentStage, application.permitType);
 
         if (!nextStage) {
             throw new BadRequestException('Cannot advance from current stage');
@@ -291,15 +293,15 @@ export class WorkflowService {
         if (!user) return false;
         if (user.roles.includes(Role.ADMIN)) return true;
 
-        const config = WORKFLOW_CONFIG[permitType];
+        const config = await this.workflowTemplateService.getWorkflowDefinition(permitType);
         if (!config) return false;
 
         const requiredRoles = config.roles[stage] || [];
         return requiredRoles.some((role) => user.roles.includes(role));
     }
 
-    getNextStage(currentStage: WorkflowStage, permitType: PermitType): WorkflowStage | null {
-        const config = WORKFLOW_CONFIG[permitType];
+    async getNextStage(currentStage: WorkflowStage, permitType: PermitType): Promise<WorkflowStage | null> {
+        const config = await this.workflowTemplateService.getWorkflowDefinition(permitType);
         if (!config) return null;
 
         const currentIndex = config.stages.indexOf(currentStage);

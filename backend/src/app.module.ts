@@ -17,6 +17,7 @@ import { FeedbackModule } from './modules/feedback/feedback.module';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
 import { BottleneckModule } from './modules/bottleneck/bottleneck.module';
 import { IntegrationModule } from './modules/integration/integration.module';
+import { WorkflowTemplateModule } from './modules/workflow-template/workflow-template.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { IntegrationModule } from './modules/integration/integration.module';
     FeedbackModule,
     BottleneckModule,
     IntegrationModule,
+    WorkflowTemplateModule,
   ],
   controllers: [AppController],
   providers: [

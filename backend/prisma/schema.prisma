@@ -338,6 +338,35 @@ model SLARule {
   @@index([stage])
 }
 
+model WorkflowTemplate {
+  id          String                  @id @default(uuid())
+  name        String
+  description String?
+  permitType  PermitType              @unique
+  isActive    Boolean                 @default(true)
+  stages      WorkflowTemplateStage[]
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+
+  @@index([permitType])
+  @@index([isActive])
+}
+
+model WorkflowTemplateStage {
+  id                String           @id @default(uuid())
+  templateId        String
+  template          WorkflowTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  stage             WorkflowStage
+  order             Int
+  requiredRoles     Role[]
+  slaDurationHours  Int              @default(24)
+  slaWarningPercent Float            @default(0.8)
+  isRequired        Boolean          @default(true)
+
+  @@unique([templateId, stage])
+  @@index([templateId])
+}
+
 // Bottleneck Detection Engine Enums
 enum BottleneckSeverity {
   LOW      // score < 60
