@@ -22,6 +22,7 @@ import {
 import Link from "next/link";
 import { FAQ } from "@/components/landing/FAQ";
 import { ContactForm } from "@/components/landing/ContactForm";
+import { IntroLoader } from "@/components/landing/IntroLoader";
 import Image from "next/image";
 
 const fadeInUp = {
@@ -46,8 +47,9 @@ const staggerContainer = {
 export default function LandingPage() {
   return (
     <main className="min-h-screen bg-background overflow-x-hidden selection:bg-primary/20">
+      <IntroLoader />
       {/* Hero Section */}
-      <section className="relative min-h-[85vh] flex items-center justify-center pt-32 pb-20 lg:pt-36 lg:pb-32 px-6">
+      <section className="relative min-h-[92vh] lg:min-h-screen flex items-center justify-center pt-32 pb-20 lg:pt-36 lg:pb-36 px-6">
         {/* Subtle Background Elements (No heavy glow) */}
         <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:32px_32px] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-20 -z-10" />
 
@@ -56,7 +58,7 @@ export default function LandingPage() {
           initial={{ opacity: 0, x: -60 }}
           animate={{ opacity: 0.25, x: 0 }}
           transition={{ duration: 1.2, delay: 0.2, ease: "easeOut" }}
-          className="absolute left-[-2%] top-[25%] w-[280px] lg:w-[450px] h-auto hidden xl:block pointer-events-none select-none grayscale hover:grayscale-0 transition-all duration-1000"
+          className="absolute left-[-2%] top-[25%] w-[240px] lg:w-[380px] xl:w-[450px] h-auto hidden lg:block pointer-events-none select-none grayscale hover:grayscale-0 transition-all duration-1000"
         >
           <Image
             src="/skyscraper-hero.png"
@@ -71,7 +73,7 @@ export default function LandingPage() {
           initial={{ opacity: 0, x: 60 }}
           animate={{ opacity: 0.25, x: 0 }}
           transition={{ duration: 1.2, delay: 0.4, ease: "easeOut" }}
-          className="absolute right-[-2%] top-[20%] w-[320px] lg:w-[500px] h-auto hidden xl:block pointer-events-none select-none grayscale hover:grayscale-0 transition-all duration-1000"
+          className="absolute right-[-2%] top-[20%] w-[280px] lg:w-[420px] xl:w-[500px] h-auto hidden lg:block pointer-events-none select-none grayscale hover:grayscale-0 transition-all duration-1000"
         >
           <Image
             src="/pngegg.png"
@@ -82,7 +84,7 @@ export default function LandingPage() {
           />
         </motion.div>
 
-        <div className="max-w-7xl mx-auto text-center relative z-10">
+        <div className="w-full max-w-none px-6 md:px-16 lg:px-24 text-center relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -132,9 +134,9 @@ export default function LandingPage() {
               <motion.div
                 key={i}
                 variants={fadeInUp}
-                className="flex flex-col items-center md:items-start"
+                className="flex flex-col items-center text-center justify-center"
               >
-                <div className="flex items-center gap-2.5 mb-1.5">
+                <div className="flex items-center justify-center gap-2.5 mb-1.5">
                   <stat.icon className="w-4 h-4 text-primary/70" />
                   <span className="text-3xl font-bold tracking-tight text-foreground">{stat.value}</span>
                 </div>

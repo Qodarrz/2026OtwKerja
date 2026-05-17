@@ -4,12 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { 
-  Home, 
-  LayoutDashboard, 
-  FilePlus, 
-  Search, 
-  Bell, 
+import {
+  Home,
+  LayoutDashboard,
+  FilePlus,
+  Search,
+  Bell,
   User,
   Menu,
   X,
@@ -58,7 +58,7 @@ export function Navbar() {
     <nav
       className={cn(
         "fixed top-0 left-0 right-0 z-50 transition-all duration-300 px-6 py-4",
-        isScrolled 
+        isScrolled
           ? "bg-background/80 backdrop-blur-lg border-b border-border shadow-sm py-3"
           : "bg-transparent"
       )}
@@ -107,20 +107,20 @@ export function Navbar() {
                 <Bell className="w-5 h-5" />
                 <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-primary rounded-full border-2 border-background" />
               </button>
-              
+
               <div className="h-8 w-px bg-border mx-2 hidden sm:block" />
-              
+
               <Link href="/dashboard/profile">
                 <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center overflow-hidden hover:scale-105 transition-transform group">
-                   {user?.name ? (
-                     <span className="text-xs font-bold text-primary">{user.name.charAt(0)}</span>
-                   ) : (
-                     <User className="w-5 h-5 text-primary" />
-                   )}
+                  {user?.name ? (
+                    <span className="text-xs font-bold text-primary">{user.name.charAt(0)}</span>
+                  ) : (
+                    <User className="w-5 h-5 text-primary" />
+                  )}
                 </div>
               </Link>
 
-              <button 
+              <button
                 onClick={logout}
                 className="p-2 text-muted-foreground hover:text-rose-500 transition-colors"
                 title="Logout"
@@ -144,7 +144,7 @@ export function Navbar() {
           )}
 
           {/* Mobile Toggle */}
-          <button 
+          <button
             className="md:hidden p-2 text-foreground"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >

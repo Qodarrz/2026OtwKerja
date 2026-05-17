@@ -20,29 +20,36 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const { httpAdapter } = this.httpAdapterHost;
 
     const ctx = host.switchToHttp();
+    const request = ctx.getRequest();
+    const requestUrl = httpAdapter.getRequestUrl(request);
+    const requestMethod = request.method || 'UNKNOWN';
 
     const httpStatus =
       exception instanceof HttpException
         ? exception.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
 
-    this.logger.error('--- EXCEPTION DETECTED ---');
-    this.logger.error(exception);
-    
-    if (exception instanceof Error) {
-        this.logger.error(`Message: ${exception.message}`);
-        this.logger.error(`Stack: ${exception.stack}`);
+    if (httpStatus >= 500) {
+      this.logger.error(`--- INTERNAL SERVER ERROR --- [${requestMethod}] ${requestUrl}`);
+      this.logger.error(exception);
+      
+      if (exception instanceof Error) {
+          this.logger.error(`Message: ${exception.message}`);
+          this.logger.error(`Stack: ${exception.stack}`);
+      } else {
+          this.logger.error(`Exception is not an Error object: ${JSON.stringify(exception)}`);
+          try {
+              const keys = Object.getOwnPropertyNames(exception);
+              const detail: any = {};
+              keys.forEach(key => {
+                  detail[key] = (exception as any)[key];
+              });
+              this.logger.error(`Exception Details: ${JSON.stringify(detail)}`);
+          } catch (e) {}
+      }
     } else {
-        this.logger.error(`Exception is not an Error object: ${JSON.stringify(exception)}`);
-        // If it's an ErrorEvent or similar, try to log its properties
-        try {
-            const keys = Object.getOwnPropertyNames(exception);
-            const detail: any = {};
-            keys.forEach(key => {
-                detail[key] = (exception as any)[key];
-            });
-            this.logger.error(`Exception Details: ${JSON.stringify(detail)}`);
-        } catch (e) {}
+      const message = (exception as any)?.response?.message || (exception as any)?.message || 'Client Exception';
+      this.logger.warn(`[${httpStatus}] [${requestMethod}] ${requestUrl} - ${message}`);
     }
 
     const responseBody = {

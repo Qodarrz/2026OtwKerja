@@ -13,15 +13,19 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest();
+    const token = request.cookies?.['access_token'] || request.headers.authorization?.split(' ')[1];
+
+    if (!token) {
+      throw new UnauthorizedException('Access token not found');
+    }
+
     try {
       // Basic Passport-JWT check
       const isValid = await super.canActivate(context);
-      if (!isValid) return false;
-
-      const request = context.switchToHttp().getRequest();
-      const token = request.cookies?.['access_token'] || request.headers.authorization?.split(' ')[1];
-
-      if (!token) return false;
+      if (!isValid) {
+        throw new UnauthorizedException('Invalid or expired access token');
+      }
 
       // Strict validation against Database Session Table
       const session = await this.prisma.session.findUnique({
@@ -29,12 +33,15 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       });
 
       if (!session || new Date() > session.expiresAt) {
-        return false;
+        throw new UnauthorizedException('Session expired or invalid');
       }
 
       return true;
     } catch (e) {
-      return false;
+      if (e instanceof UnauthorizedException) {
+        throw e;
+      }
+      throw new UnauthorizedException('Authentication failed');
     }
   }
 }
