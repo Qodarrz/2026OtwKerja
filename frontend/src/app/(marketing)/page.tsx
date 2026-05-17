@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -349,13 +350,13 @@ export default function LandingPage() {
           <div className="pt-12 border-t border-border/40 text-center">
             <div className="flex flex-wrap justify-center items-center gap-12 opacity-50 grayscale hover:grayscale-0 transition-all duration-500 mb-12">
               <div className="flex items-center gap-2.5">
-                <Image src="/dinas-pupr.png" alt="Dinas PUPR" width={120} height={40} className="object-contain h-10 w-auto" />
+                <Image src="/dinas-pupr.png" alt="Dinas PUPR" width={120} height={40} className="object-contain" />
               </div>
               <div className="flex items-center gap-2.5">
-                <Image src="/bpn-ri.png" alt="BPN RI" width={120} height={40} className="object-contain h-10 w-auto" />
+                <Image src="/bpn-ri.png" alt="BPN RI" width={120} height={40} className="object-contain" />
               </div>
               <div className="flex items-center gap-2.5">
-                <Image src="/ombudsman.png" alt="Ombudsman RI" width={120} height={40} className="object-contain h-10 w-auto" />
+                <Image src="/ombudsman.png" alt="Ombudsman RI" width={120} height={40} className="object-contain" />
               </div>
             </div>
             <p className="text-muted-foreground text-xs font-medium">
@@ -370,6 +371,9 @@ export default function LandingPage() {
         <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">Pusat Bantuan</DialogTitle>
+            <DialogDescription className="sr-only">
+              Informasi bantuan dan kontak layanan FlowGov.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 text-sm text-muted-foreground leading-relaxed">
             <p>Selamat datang di Pusat Bantuan FlowGov. Kami siap membantu Anda dalam setiap tahap proses perizinan.</p>
@@ -404,6 +408,9 @@ export default function LandingPage() {
         <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">Kebijakan Privasi</DialogTitle>
+            <DialogDescription className="sr-only">
+              Kebijakan privasi dan perlindungan data FlowGov.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 text-sm text-muted-foreground leading-relaxed">
             <p className="text-xs text-muted-foreground">Terakhir diperbarui: 1 Januari 2026</p>
@@ -437,6 +444,9 @@ export default function LandingPage() {
         <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">Syarat &amp; Ketentuan</DialogTitle>
+            <DialogDescription className="sr-only">
+              Syarat dan ketentuan penggunaan layanan FlowGov.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 text-sm text-muted-foreground leading-relaxed">
             <p className="text-xs text-muted-foreground">Berlaku sejak: 1 Januari 2026</p>
