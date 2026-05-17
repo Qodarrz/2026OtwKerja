@@ -21,7 +21,8 @@ import {
   Activity,
   History,
   Lock,
-  BellRing
+  BellRing,
+  Headset
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Role } from "@/types/auth";
@@ -44,7 +45,13 @@ export function Sidebar() {
       title: "Dashboard",
       icon: LayoutDashboard,
       href: "/dashboard",
-      roles: [Role.ADMIN, Role.DOCUMENT_VALIDATOR, Role.FIELD_INSPECTOR, Role.LEGALIZER]
+      roles: [Role.ADMIN, Role.DOCUMENT_VALIDATOR, Role.FIELD_INSPECTOR, Role.LEGALIZER, Role.CS]
+    },
+    {
+      title: "Customer Service",
+      icon: Headset,
+      href: "/dashboard/tickets",
+      roles: [Role.ADMIN, Role.CS]
     },
     {
       title: "Antrean Berkas",

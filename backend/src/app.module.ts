@@ -18,6 +18,7 @@ import { AuditLogModule } from './modules/audit-log/audit-log.module';
 import { BottleneckModule } from './modules/bottleneck/bottleneck.module';
 import { IntegrationModule } from './modules/integration/integration.module';
 import { WorkflowTemplateModule } from './modules/workflow-template/workflow-template.module';
+import { ChatModule } from './modules/chat/chat.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { WorkflowTemplateModule } from './modules/workflow-template/workflow-tem
     BottleneckModule,
     IntegrationModule,
     WorkflowTemplateModule,
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [

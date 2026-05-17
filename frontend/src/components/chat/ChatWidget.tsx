@@ -1,0 +1,448 @@
+"use client";
+
+import React, { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { MessageSquare, X, Send, Bot, Headset, LogIn, Loader2, MessageCircle } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import api from "@/lib/axios";
+import { io, Socket } from "socket.io-client";
+import Link from "next/link";
+
+interface Message {
+  id?: string;
+  senderName: string;
+  senderRole: string; // 'BOT' | 'USER' | 'ADMIN'
+  content: string;
+  createdAt: Date;
+}
+
+export function ChatWidget() {
+  const { user, isAuthenticated } = useAuth();
+  const [isOpen, setIsOpen] = useState(false);
+  const [session, setSession] = useState<any>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputValue, setInputValue] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isEscalated, setIsEscalated] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const socketRef = useRef<Socket | null>(null);
+  const chatEndRef = useRef<HTMLDivElement | null>(null);
+
+  // Auto scroll to bottom
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isOpen]);
+
+  // Load session from backend if logged in and widget is open
+  useEffect(() => {
+    if (!isAuthenticated || !isOpen) {
+      // Close socket when widget closes
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
+      return;
+    }
+
+    const initChatSession = async () => {
+      setIsLoading(true);
+      try {
+        const { data } = await api.post("/chat/sessions");
+        setSession(data);
+        setIsEscalated(data.status === "OPEN");
+        
+        // Parse dates
+        const formattedMessages = data.messages.map((m: any) => ({
+          ...m,
+          createdAt: new Date(m.createdAt),
+        }));
+        setMessages(formattedMessages);
+        setUnreadCount(0);
+
+        if (data.status === "OPEN") {
+          connectWebSocket(data.id);
+        }
+      } catch (e) {
+        console.error("Gagal memuat sesi chat:", e);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initChatSession();
+
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
+    };
+  }, [isAuthenticated, isOpen]);
+
+  // Socket connection helper
+  const connectWebSocket = (sessionId: string) => {
+    if (socketRef.current) return;
+
+    const socketUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+    const socket = io(socketUrl, {
+      withCredentials: true,
+      transports: ["websocket", "polling"],
+    });
+
+    socketRef.current = socket;
+
+    socket.on("connect", () => {
+      socket.emit("join_session", { sessionId });
+    });
+
+    socket.on("new_message", (message: any) => {
+      setMessages((prev) => {
+        // Prevent duplicate messages if already in state
+        if (prev.some((m) => m.id === message.id)) return prev;
+        return [
+          ...prev,
+          {
+            ...message,
+            createdAt: new Date(message.createdAt),
+          },
+        ];
+      });
+
+      // Increase unread count if chat widget is closed
+      if (!isOpen) {
+        setUnreadCount((c) => c + 1);
+      }
+    });
+
+    socket.on("session_updated", (data: any) => {
+      if (data.status === "RESOLVED") {
+        setIsEscalated(false);
+        setMessages((prev) => [
+          ...prev,
+          {
+            ...data.message,
+            createdAt: new Date(data.message.createdAt),
+          },
+        ]);
+        setSession((prevSession: any) =>
+          prevSession ? { ...prevSession, status: "RESOLVED" } : null
+        );
+      }
+    });
+
+    socket.on("error", (err) => {
+      console.error("Socket error:", err);
+    });
+  };
+
+  const handleEscalateToCS = async () => {
+    if (!isAuthenticated) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          senderName: "Virtual Assistant",
+          senderRole: "BOT",
+          content: "Mohon masuk (login) terlebih dahulu untuk terhubung ke staf Customer Service kami.",
+          createdAt: new Date(),
+        },
+      ]);
+      return;
+    }
+
+    if (!session) return;
+
+    setIsLoading(true);
+    try {
+      const { data } = await api.patch(`/chat/sessions/${session.id}/escalate`);
+      setSession(data);
+      setIsEscalated(true);
+      
+      const formattedMessages = data.messages.map((m: any) => ({
+        ...m,
+        createdAt: new Date(m.createdAt),
+      }));
+      setMessages(formattedMessages);
+
+      // Connect socket
+      connectWebSocket(session.id);
+    } catch (e) {
+      console.error("Gagal melakukan eskalasi:", e);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handlePresetQuestion = (question: string, answer: string) => {
+    // 1. Add user question to screen locally
+    const userMsg: Message = {
+      senderName: user?.name || "Citizen",
+      senderRole: "USER",
+      content: question,
+      createdAt: new Date(),
+    };
+
+    // 2. Add bot answer
+    const botMsg: Message = {
+      senderName: "Virtual Assistant",
+      senderRole: "BOT",
+      content: answer,
+      createdAt: new Date(),
+    };
+
+    setMessages((prev) => [...prev, userMsg, botMsg]);
+  };
+
+  const handleSendMessage = () => {
+    if (!inputValue.trim()) return;
+
+    // Send through WebSocket if escalated (Live Chat with CS)
+    if (isEscalated && socketRef.current && session) {
+      socketRef.current.emit("send_message", {
+        sessionId: session.id,
+        content: inputValue.trim(),
+      });
+      setInputValue("");
+    } else {
+      // Offline/Bot mode: User types a custom question
+      const userMsg: Message = {
+        senderName: user?.name || "Citizen",
+        senderRole: "USER",
+        content: inputValue.trim(),
+        createdAt: new Date(),
+      };
+
+      const botReply: Message = {
+        senderName: "Virtual Assistant",
+        senderRole: "BOT",
+        content: "Maaf, saya belum memahami pertanyaan kustom Anda. Silakan gunakan tombol opsi di atas atau hubungi Customer Service kami untuk bantuan lebih lanjut.",
+        createdAt: new Date(),
+      };
+
+      setMessages((prev) => [...prev, userMsg, botReply]);
+      setInputValue("");
+    }
+  };
+
+  const presetOptions = [
+    {
+      title: "Cara mendaftar Izin Bangunan (IMB)",
+      question: "Bagaimana cara mendaftar IMB?",
+      answer: "Untuk mendaftar Izin Mendirikan Bangunan (IMB), Anda perlu membuka portal Anda, lalu klik menu 'Pengajuan Baru', pilih 'Building Permit'. Isi formulir lengkap terkait detail lokasi tanah, luas lahan, tinggi bangunan, dan unggah dokumen persyaratan seperti KTP dan Sertifikat Hak Milik.",
+    },
+    {
+      title: "Cara mendaftar Izin Usaha Mikro (IUMK)",
+      question: "Bagaimana cara mendaftar IUMK?",
+      answer: "Untuk mendaftar Izin Usaha Mikro (IUMK), pilih kategori 'Business License' di halaman Pengajuan Baru. Lengkapi data badan usaha, nama komersial, jenis industri, lokasi operasional, dan estimasi total karyawan.",
+    },
+    {
+      title: "Berapa lama durasi SLA verifikasi?",
+      question: "Berapa lama durasi SLA verifikasi berkas?",
+      answer: "Proses verifikasi dibagi menjadi tiga tahap SLA utama: 1) Document Check memakan waktu maksimal 24 jam. 2) Field Inspection (peninjauan lokasi lapangan) maksimal 48 jam. 3) Legalization (pengesahan) memakan waktu maksimal 24 jam.",
+    },
+  ];
+
+  return (
+    <div className="fixed bottom-6 right-6 z-50 font-sans">
+      {/* Floating Chat Bubble Button */}
+      <motion.button
+        onClick={() => {
+          setIsOpen(!isOpen);
+          setUnreadCount(0);
+        }}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        className="relative w-14 h-14 bg-gradient-to-tr from-sky-500 via-blue-500 to-indigo-600 rounded-full shadow-lg flex items-center justify-center text-white cursor-pointer hover:shadow-indigo-500/20"
+      >
+        {isOpen ? <X className="w-6 h-6" /> : <MessageCircle className="w-7 h-7" />}
+        
+        {/* Unread Message Badge */}
+        {unreadCount > 0 && (
+          <span className="absolute -top-1 -right-1 w-6 h-6 bg-rose-500 border border-white text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
+            {unreadCount}
+          </span>
+        )}
+      </motion.button>
+
+      {/* Chat Window Panel */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 50, scale: 0.9 }}
+            transition={{ duration: 0.2 }}
+            className="absolute bottom-18 right-0 w-96 h-[520px] bg-card/95 border border-border shadow-2xl rounded-2xl flex flex-col overflow-hidden backdrop-blur-xl"
+          >
+            {/* Chat Header */}
+            <div className="p-4 bg-gradient-to-r from-slate-900 to-slate-800 text-white flex items-center justify-between shadow-md">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center text-primary relative">
+                  <Bot className="w-5 h-5 text-sky-400" />
+                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-slate-900 rounded-full"></span>
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm leading-tight">FlowGov Asisten</h4>
+                  <p className="text-[10px] text-sky-300 font-bold uppercase tracking-wider">Virtual Support</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="p-1.5 hover:bg-white/10 rounded-full transition-all text-slate-300 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Chat Message List Body */}
+            <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-muted/30 scrollbar-thin">
+              {messages.map((msg, index) => {
+                const isUser = msg.senderRole === "USER";
+                const isSystem = msg.senderRole === "BOT" && msg.senderName === "Sistem";
+
+                if (isSystem) {
+                  return (
+                    <div key={index} className="flex justify-center my-2">
+                      <div className="bg-slate-100 dark:bg-slate-800/80 border border-border px-3 py-1.5 rounded-xl text-[11px] text-muted-foreground text-center font-medium max-w-[85%] shadow-sm">
+                        {msg.content}
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div
+                    key={index}
+                    className={`flex gap-2.5 max-w-[85%] ${isUser ? "ml-auto flex-row-reverse" : "mr-auto"}`}
+                  >
+                    {!isUser && (
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-white text-xs font-bold ${msg.senderRole === "BOT" ? "bg-sky-500" : "bg-indigo-600"}`}>
+                        {msg.senderRole === "BOT" ? <Bot className="w-4 h-4" /> : <Headset className="w-4 h-4" />}
+                      </div>
+                    )}
+                    <div className="space-y-1">
+                      <div className={`text-[10px] text-muted-foreground font-bold tracking-tight px-1 ${isUser ? "text-right" : "text-left"}`}>
+                        {msg.senderName}
+                      </div>
+                      <div
+                        className={`p-3 rounded-2xl text-xs leading-relaxed shadow-sm ${
+                          isUser
+                            ? "bg-primary text-primary-foreground rounded-tr-none"
+                            : "bg-card border border-border text-foreground rounded-tl-none"
+                        }`}
+                      >
+                        {msg.content}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              
+              {isLoading && (
+                <div className="flex gap-2 max-w-[80%] items-center text-muted-foreground text-xs py-2 px-1">
+                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                  <span>Sedang memuat...</span>
+                </div>
+              )}
+              
+              <div ref={chatEndRef} />
+            </div>
+
+            {/* Quick Action Preset Options Panel */}
+            {!isEscalated && session?.status !== "RESOLVED" && (
+              <div className="p-3 border-t border-border bg-card/60 flex flex-col gap-1.5 overflow-x-auto">
+                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mb-0.5 px-1">Pertanyaan Populer</p>
+                {presetOptions.map((opt, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handlePresetQuestion(opt.question, opt.answer)}
+                    className="w-full text-left text-xs bg-slate-50 hover:bg-primary/5 hover:text-primary dark:bg-slate-900 border border-border hover:border-primary/20 px-3 py-2 rounded-xl transition-all duration-200 truncate cursor-pointer font-medium"
+                  >
+                    {opt.title}
+                  </button>
+                ))}
+
+                {/* CS Escalation Button */}
+                <button
+                  onClick={handleEscalateToCS}
+                  className="w-full mt-1.5 flex items-center justify-center gap-2 text-xs bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-600 hover:to-indigo-700 text-white font-bold px-3 py-2.5 rounded-xl transition-all shadow-md cursor-pointer"
+                >
+                  <Headset className="w-4 h-4" /> Hubungi Customer Service
+                </button>
+              </div>
+            )}
+
+            {/* Inactive Resolved State Panel */}
+            {session?.status === "RESOLVED" && (
+              <div className="p-4 border-t border-border bg-slate-50 dark:bg-slate-900 text-center space-y-2">
+                <p className="text-xs text-muted-foreground font-medium">Percakapan bantuan ini telah ditutup oleh Customer Service.</p>
+                {isAuthenticated && (
+                  <button
+                    onClick={async () => {
+                      setIsLoading(true);
+                      try {
+                        const { data } = await api.post("/chat/sessions");
+                        setSession(data);
+                        setIsEscalated(false);
+                        const formattedMessages = data.messages.map((m: any) => ({
+                          ...m,
+                          createdAt: new Date(m.createdAt),
+                        }));
+                        setMessages(formattedMessages);
+                      } catch (e) {
+                        console.error(e);
+                      } finally {
+                        setIsLoading(false);
+                      }
+                    }}
+                    className="text-xs text-primary font-bold hover:underline cursor-pointer"
+                  >
+                    Buat Sesi Bantuan Baru
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Login Prompt for Guests */}
+            {!isAuthenticated && (
+              <div className="p-4 border-t border-border bg-card text-center space-y-3">
+                <p className="text-xs text-muted-foreground font-medium">Log in ke FlowGov untuk mengakses live chat bersama staf Customer Service kami.</p>
+                <Link
+                  href="/login"
+                  className="inline-flex items-center gap-2 justify-center text-xs bg-primary text-primary-foreground font-bold px-4 py-2.5 rounded-xl w-full hover:bg-primary/90 transition-all shadow-sm"
+                >
+                  <LogIn className="w-4 h-4" /> Log In Sekarang
+                </Link>
+              </div>
+            )}
+
+            {/* Chat Text Input Bar */}
+            {isAuthenticated && session?.status !== "RESOLVED" && (
+              <div className="p-3 border-t border-border bg-card flex gap-2 items-center">
+                <input
+                  type="text"
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+                  placeholder={
+                    isEscalated
+                      ? "Ketik pesan ke Customer Service..."
+                      : "Ketik pesan untuk asisten virtual..."
+                  }
+                  className="flex-1 text-xs bg-muted/50 border border-border focus:border-primary/50 focus:ring-1 focus:ring-primary/20 px-3.5 py-2.5 rounded-xl outline-none transition-all"
+                />
+                <button
+                  onClick={handleSendMessage}
+                  disabled={!inputValue.trim()}
+                  className="p-2.5 bg-primary text-primary-foreground disabled:bg-slate-100 disabled:text-slate-400 dark:disabled:bg-slate-800 rounded-xl hover:bg-primary/90 transition-all cursor-pointer shadow-sm"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}

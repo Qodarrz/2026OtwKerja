@@ -25,6 +25,7 @@ enum Role {
   DOCUMENT_VALIDATOR
   FIELD_INSPECTOR
   LEGALIZER
+  CS
 }
 
 model User {
@@ -48,6 +49,10 @@ model User {
   notifications   Notification[]
   feedbacks       Feedback[]
   notificationSetting NotificationSetting?
+  
+  // Chat relationships
+  chatSessions    ChatSession[]    @relation("UserChatSessions")
+  assignedChats   ChatSession[]    @relation("AssignedChatSessions")
   
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
@@ -585,4 +590,41 @@ model Feedback {
   
   @@index([userId])
   @@index([applicationId])
+}
+
+// Chat System Models
+enum ChatSessionStatus {
+  BOT
+  OPEN
+  RESOLVED
+}
+
+model ChatSession {
+  id           String            @id @default(uuid())
+  status       ChatSessionStatus @default(BOT)
+  userId       String
+  user         User              @relation("UserChatSessions", fields: [userId], references: [id], onDelete: Cascade)
+  assignedToId String?
+  assignedTo   User?             @relation("AssignedChatSessions", fields: [assignedToId], references: [id], onDelete: SetNull)
+  
+  messages     ChatMessage[]
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@index([userId])
+  @@index([assignedToId])
+  @@index([status])
+}
+
+model ChatMessage {
+  id         String      @id @default(uuid())
+  sessionId  String
+  session    ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  senderId   String?     // null if sent by bot/system
+  senderName String
+  senderRole String      // "USER", "ADMIN", "BOT"
+  content    String
+  createdAt  DateTime    @default(now())
+
+  @@index([sessionId])
 }

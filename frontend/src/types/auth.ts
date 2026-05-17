@@ -4,6 +4,7 @@ export enum Role {
   DOCUMENT_VALIDATOR = 'DOCUMENT_VALIDATOR',
   FIELD_INSPECTOR = 'FIELD_INSPECTOR',
   LEGALIZER = 'LEGALIZER',
+  CS = 'CS',
 }
 
 export interface User {
