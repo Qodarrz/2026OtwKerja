@@ -1,7 +1,14 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import {
   ArrowRight,
@@ -45,20 +52,23 @@ const staggerContainer = {
 } as const;
 
 export default function LandingPage() {
+  type PopupKey = "pusat-bantuan" | "kebijakan-privasi" | "syarat-ketentuan" | null;
+  const [activePopup, setActivePopup] = useState<PopupKey>(null);
+
   return (
     <main className="min-h-screen bg-background overflow-x-hidden selection:bg-primary/20">
       <IntroLoader />
       {/* Hero Section */}
       <section className="relative min-h-[92vh] lg:min-h-screen flex items-center justify-center pt-32 pb-20 lg:pt-36 lg:pb-36 px-6">
         {/* Subtle Background Elements (No heavy glow) */}
-        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:32px_32px] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-20 -z-10" />
+        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] bg-size-[32px_32px] mask-[radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-20 -z-10" />
 
         {/* Floating Building Assets - More subtle and integrated */}
         <motion.div
           initial={{ opacity: 0, x: -60 }}
           animate={{ opacity: 0.25, x: 0 }}
           transition={{ duration: 1.2, delay: 0.2, ease: "easeOut" }}
-          className="absolute left-[-2%] top-[25%] w-[240px] lg:w-[380px] xl:w-[450px] h-auto hidden lg:block pointer-events-none select-none grayscale hover:grayscale-0 transition-all duration-1000"
+          className="absolute left-[-2%] top-[25%] w-60 lg:w-95 xl:w-112.5 h-auto hidden lg:block pointer-events-none select-none grayscale hover:grayscale-0 transition-all duration-1000"
         >
           <Image
             src="/skyscraper-hero.png"
@@ -73,7 +83,7 @@ export default function LandingPage() {
           initial={{ opacity: 0, x: 60 }}
           animate={{ opacity: 0.25, x: 0 }}
           transition={{ duration: 1.2, delay: 0.4, ease: "easeOut" }}
-          className="absolute right-[-2%] top-[20%] w-[280px] lg:w-[420px] xl:w-[500px] h-auto hidden lg:block pointer-events-none select-none grayscale hover:grayscale-0 transition-all duration-1000"
+          className="absolute right-[-2%] top-[20%] w-70 lg:w-105 xl:w-125 h-auto hidden lg:block pointer-events-none select-none grayscale hover:grayscale-0 transition-all duration-1000"
         >
           <Image
             src="/pngegg.png"
@@ -317,23 +327,35 @@ export default function LandingPage() {
               <h4 className="font-bold text-base mb-6">Bantuan</h4>
               <ul className="space-y-4 text-muted-foreground font-medium text-sm">
                 <li><Link href="#faq" className="hover:text-primary transition-colors">FAQ</Link></li>
-                <li><Link href="#" className="hover:text-primary transition-colors">Pusat Bantuan</Link></li>
-                <li><Link href="#" className="hover:text-primary transition-colors">Kebijakan Privasi</Link></li>
-                <li><Link href="#" className="hover:text-primary transition-colors">Syarat & Ketentuan</Link></li>
+                <li>
+                  <button onClick={() => setActivePopup("pusat-bantuan")} className="hover:text-primary transition-colors text-left">
+                    Pusat Bantuan
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => setActivePopup("kebijakan-privasi")} className="hover:text-primary transition-colors text-left">
+                    Kebijakan Privasi
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => setActivePopup("syarat-ketentuan")} className="hover:text-primary transition-colors text-left">
+                    Syarat &amp; Ketentuan
+                  </button>
+                </li>
               </ul>
             </div>
           </div>
 
           <div className="pt-12 border-t border-border/40 text-center">
             <div className="flex flex-wrap justify-center items-center gap-12 opacity-50 grayscale hover:grayscale-0 transition-all duration-500 mb-12">
-              <div className="flex items-center gap-2.5 font-bold text-lg tracking-tight">
-                <Building2 className="w-6 h-6 text-primary" /> DINAS PUPR
+              <div className="flex items-center gap-2.5">
+                <Image src="/dinas-pupr.png" alt="Dinas PUPR" width={120} height={40} className="object-contain h-10 w-auto" />
               </div>
-              <div className="flex items-center gap-2.5 font-bold text-lg tracking-tight">
-                <ShieldCheck className="w-6 h-6 text-primary" /> BPN RI
+              <div className="flex items-center gap-2.5">
+                <Image src="/bpn-ri.png" alt="BPN RI" width={120} height={40} className="object-contain h-10 w-auto" />
               </div>
-              <div className="flex items-center gap-2.5 font-bold text-lg tracking-tight">
-                <Scale className="w-6 h-6 text-primary" /> OMBUDSMAN
+              <div className="flex items-center gap-2.5">
+                <Image src="/ombudsman.png" alt="Ombudsman RI" width={120} height={40} className="object-contain h-10 w-auto" />
               </div>
             </div>
             <p className="text-muted-foreground text-xs font-medium">
@@ -342,6 +364,110 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+
+      {/* ── Popup: Pusat Bantuan ── */}
+      <Dialog open={activePopup === "pusat-bantuan"} onOpenChange={(o) => !o && setActivePopup(null)}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Pusat Bantuan</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 text-sm text-muted-foreground leading-relaxed">
+            <p>Selamat datang di Pusat Bantuan FlowGov. Kami siap membantu Anda dalam setiap tahap proses perizinan.</p>
+            <div>
+              <h3 className="font-semibold text-foreground mb-2">Cara Mengajukan Permohonan</h3>
+              <ol className="list-decimal list-inside space-y-1">
+                <li>Daftarkan akun Anda melalui halaman Pendaftaran.</li>
+                <li>Lengkapi data profil dan verifikasi KTP.</li>
+                <li>Pilih jenis izin yang ingin diajukan.</li>
+                <li>Unggah dokumen persyaratan yang diperlukan.</li>
+                <li>Pantau status permohonan secara daring.</li>
+              </ol>
+            </div>
+            <div>
+              <h3 className="font-semibold text-foreground mb-2">Hubungi Kami</h3>
+              <ul className="space-y-1">
+                <li>📧 Email: bantuan@flowgov.id</li>
+                <li>📞 Telepon: (0251) 123-4567</li>
+                <li>🕐 Jam Layanan: Senin–Jumat, 08.00–16.00 WIB</li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-semibold text-foreground mb-2">Pertanyaan Umum</h3>
+              <p>Untuk pertanyaan yang sering diajukan, silakan kunjungi bagian <strong>FAQ</strong> di halaman utama kami.</p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Popup: Kebijakan Privasi ── */}
+      <Dialog open={activePopup === "kebijakan-privasi"} onOpenChange={(o) => !o && setActivePopup(null)}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Kebijakan Privasi</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 text-sm text-muted-foreground leading-relaxed">
+            <p className="text-xs text-muted-foreground">Terakhir diperbarui: 1 Januari 2026</p>
+            <p>FlowGov berkomitmen untuk melindungi privasi dan keamanan data pribadi Anda sesuai dengan ketentuan peraturan perundang-undangan yang berlaku di Indonesia.</p>
+            <div>
+              <h3 className="font-semibold text-foreground mb-2">1. Data yang Kami Kumpulkan</h3>
+              <p>Kami mengumpulkan data yang Anda berikan secara langsung, meliputi nama lengkap, alamat surel, nomor induk kependudukan (NIK), dan dokumen pendukung perizinan.</p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-foreground mb-2">2. Penggunaan Data</h3>
+              <p>Data Anda digunakan semata-mata untuk keperluan pemrosesan permohonan izin, verifikasi identitas, serta penyampaian notifikasi terkait status permohonan Anda.</p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-foreground mb-2">3. Keamanan Data</h3>
+              <p>Kami menerapkan enkripsi dan langkah-langkah keamanan teknis untuk melindungi data Anda dari akses, pengungkapan, atau perubahan yang tidak sah.</p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-foreground mb-2">4. Berbagi Data</h3>
+              <p>Data Anda tidak akan dijual atau dibagikan kepada pihak ketiga, kecuali kepada instansi pemerintah yang berwenang dalam rangka proses perizinan.</p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-foreground mb-2">5. Hak Pengguna</h3>
+              <p>Anda berhak mengakses, memperbarui, atau meminta penghapusan data pribadi Anda dengan menghubungi kami melalui alamat surel bantuan@flowgov.id.</p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Popup: Syarat & Ketentuan ── */}
+      <Dialog open={activePopup === "syarat-ketentuan"} onOpenChange={(o) => !o && setActivePopup(null)}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Syarat &amp; Ketentuan</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 text-sm text-muted-foreground leading-relaxed">
+            <p className="text-xs text-muted-foreground">Berlaku sejak: 1 Januari 2026</p>
+            <p>Dengan menggunakan layanan FlowGov, Anda menyatakan telah membaca, memahami, dan menyetujui syarat dan ketentuan berikut.</p>
+            <div>
+              <h3 className="font-semibold text-foreground mb-2">1. Ketentuan Umum</h3>
+              <p>FlowGov adalah platform perizinan daring yang dikelola untuk memfasilitasi proses pengajuan izin mendirikan bangunan dan izin usaha secara elektronik.</p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-foreground mb-2">2. Kewajiban Pengguna</h3>
+              <ul className="list-disc list-inside space-y-1">
+                <li>Memberikan informasi yang benar, lengkap, dan akurat.</li>
+                <li>Tidak menyalahgunakan layanan untuk tujuan yang melanggar hukum.</li>
+                <li>Menjaga kerahasiaan kata sandi akun Anda.</li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-semibold text-foreground mb-2">3. Tanggung Jawab Layanan</h3>
+              <p>FlowGov bertanggung jawab atas ketersediaan layanan dan keamanan data, namun tidak bertanggung jawab atas keterlambatan yang disebabkan oleh faktor di luar kendali sistem.</p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-foreground mb-2">4. Perubahan Ketentuan</h3>
+              <p>Kami berhak mengubah syarat dan ketentuan ini sewaktu-waktu. Perubahan akan diberitahukan melalui surel atau notifikasi dalam aplikasi.</p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-foreground mb-2">5. Hukum yang Berlaku</h3>
+              <p>Syarat dan ketentuan ini tunduk pada hukum Republik Indonesia dan segala sengketa diselesaikan melalui jalur musyawarah atau pengadilan yang berwenang.</p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }

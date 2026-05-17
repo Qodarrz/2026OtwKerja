@@ -47,7 +47,7 @@ model User {
   validationActions ValidationAction[]
   notifications   Notification[]
   feedbacks       Feedback[]
-  notificationSettings NotificationSetting?
+  notificationSetting NotificationSetting?
   
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
