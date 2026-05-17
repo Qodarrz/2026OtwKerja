@@ -67,7 +67,7 @@ export function IntroLoader() {
       scale: 1,
       transition: { 
         duration: 0.6, 
-        ease: [0.16, 1, 0.3, 1] // Custom easeOutExpo
+        ease: [0.16, 1, 0.3, 1] as [number, number, number, number],
       }
     }
   };
@@ -80,7 +80,7 @@ export function IntroLoader() {
       transition: { 
         delay: 1.2,
         duration: 1.5,
-        ease: "easeOut"
+        ease: "easeOut" as const,
       }
     }
   };
@@ -93,7 +93,7 @@ export function IntroLoader() {
       transition: { 
         delay: 1.4,
         duration: 0.8,
-        ease: "easeOut"
+        ease: "easeOut" as const,
       }
     }
   };
@@ -108,14 +108,14 @@ export function IntroLoader() {
             filter: "blur(20px)",
             transition: { duration: 0.8, ease: [0.76, 0, 0.24, 1] } 
           }}
-          className="fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-background/98 backdrop-blur-2xl select-none pointer-events-none"
+          className="fixed inset-0 z-99999 flex flex-col items-center justify-center bg-background/98 backdrop-blur-2xl select-none pointer-events-none"
         >
           {/* Subtle Ambient Radial Glowing Background behind the logo */}
           <motion.div
             variants={glowVariants}
             initial="initial"
             animate="animate"
-            className="absolute w-[400px] h-[400px] rounded-full bg-primary/20 blur-[100px] -z-10"
+            className="absolute w-100 h-100 rounded-full bg-primary/20 blur-[100px] -z-10"
           />
 
           {/* Typing/Blur Reveal Brand Text */}
@@ -149,7 +149,7 @@ export function IntroLoader() {
             variants={lineVariants}
             initial="initial"
             animate="animate"
-            className="h-[2px] bg-primary rounded-full mt-6 shadow-lg shadow-primary/50"
+            className="h-0.5 bg-primary rounded-full mt-6 shadow-lg shadow-primary/50"
           />
         </motion.div>
       )}
