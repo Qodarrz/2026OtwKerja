@@ -27,7 +27,7 @@ export default function PortalLayout({
 
   const isAdmin = user.roles.includes(Role.ADMIN);
   const isStaff = user.roles.some(role => 
-    [Role.DOCUMENT_VALIDATOR, Role.FIELD_INSPECTOR, Role.LEGALIZER].includes(role)
+    [Role.DOCUMENT_VALIDATOR, Role.FIELD_INSPECTOR, Role.LEGALIZER, Role.CS].includes(role)
   );
 
   const isInternal = isAdmin || isStaff;

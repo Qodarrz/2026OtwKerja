@@ -89,12 +89,10 @@ export class ChatController {
     return session;
   }
 
-  // Admin/Staff: Mark ticket as resolved
   @Patch('sessions/:sessionId/resolve')
   @UseGuards(RolesGuard)
   @Roles(Role.CS, Role.ADMIN)
   async resolveSession(@Param('sessionId') sessionId: string, @Request() req: any) {
-    // Make sure it is assigned first
     const session = await this.chatService.getSessionById(sessionId);
     if (!session.assignedToId) {
       await this.chatService.assignSession(sessionId, req.user.userId);

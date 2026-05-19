@@ -230,7 +230,7 @@ export default function TicketingPage() {
       <div className="w-96 bg-card border border-border rounded-2xl flex flex-col overflow-hidden shadow-sm">
         
         {/* Header Search & Title */}
-        <div className="p-5 border-b border-border space-y-4 bg-slate-50/50">
+        <div className="p-5 border-b border-border space-y-4 bg-muted/20">
           <div>
             <h2 className="text-lg font-bold text-foreground leading-tight tracking-tight flex items-center gap-2">
               <Headset className="w-5 h-5 text-primary" /> Ruang Bantuan CS
@@ -251,7 +251,7 @@ export default function TicketingPage() {
         </div>
 
         {/* Navigation Filter Tabs */}
-        <div className="flex border-b border-border bg-slate-50/20 text-xs px-2 pt-2 gap-1">
+        <div className="flex border-b border-border bg-muted/10 text-xs px-2 pt-2 gap-1">
           {[
             { id: "OPEN", label: "Antrean", icon: Inbox },
             { id: "MY", label: "Ditangani Saya", icon: UserCheck },
@@ -280,7 +280,7 @@ export default function TicketingPage() {
             </div>
           ) : filteredSessions.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center p-6 text-muted-foreground">
-              <AlertCircle className="w-8 h-8 mb-2 text-slate-300" />
+              <AlertCircle className="w-8 h-8 mb-2 text-muted-foreground/50" />
               <p className="text-xs font-bold">Tidak ada tiket</p>
               <p className="text-[10px] max-w-[80%] mt-0.5">Belum ada obrolan bantuan warga di kategori ini.</p>
             </div>
@@ -291,22 +291,22 @@ export default function TicketingPage() {
 
               return (
                 <button
-                  key={session.id}
+                   key={session.id}
                   onClick={() => handleSelectSession(session)}
                   className={`w-full text-left p-4 rounded-xl border transition-all duration-200 cursor-pointer flex flex-col gap-2 relative ${
                     isSelected
                       ? "bg-primary/5 border-primary shadow-sm"
-                      : "bg-card border-border hover:bg-muted/10 hover:border-slate-300"
+                      : "bg-card border-border hover:bg-muted/10 hover:border-primary/30"
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-xs text-foreground truncate max-w-[70%] tracking-tight">
                       {session.user.name}
                     </span>
-                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
+                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${
                       session.status === "OPEN"
-                        ? "bg-amber-50 text-amber-600 border border-amber-100"
-                        : "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                        ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
+                        : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
                     }`}>
                       {session.status}
                     </span>
@@ -318,13 +318,13 @@ export default function TicketingPage() {
 
                   <div className="flex items-center justify-between mt-1 text-[9px] text-muted-foreground font-semibold">
                     <span className="flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-slate-300" />
+                      <Clock className="w-3 h-3 text-muted-foreground/50" />
                       {new Date(session.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                     {session.assignedTo ? (
-                      <span className="text-[9px] font-bold text-indigo-500">CS: {session.assignedTo.name}</span>
+                      <span className="text-[9px] font-bold text-primary">CS: {session.assignedTo.name}</span>
                     ) : (
-                      <span className="text-[9px] font-bold text-rose-500">Unassigned</span>
+                      <span className="text-[9px] font-bold text-destructive">Belum Ditugaskan</span>
                     )}
                   </div>
                 </button>
@@ -343,7 +343,7 @@ export default function TicketingPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-slate-50/10"
+              className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-muted/5"
             >
               <div className="w-16 h-16 rounded-full bg-primary/5 flex items-center justify-center mb-4 border border-primary/10 animate-bounce">
                 <Headset className="w-8 h-8 text-primary" />
@@ -360,7 +360,7 @@ export default function TicketingPage() {
               className="flex-1 flex flex-col h-full"
             >
               {/* Header Active Chat */}
-              <div className="p-4 border-b border-border bg-slate-50/50 flex items-center justify-between">
+              <div className="p-4 border-b border-border bg-muted/20 flex items-center justify-between">
                 <div>
                   <h4 className="font-bold text-sm text-foreground leading-tight tracking-tight">{selectedSession.user.name}</h4>
                   <p className="text-[10px] text-muted-foreground mt-0.5 font-medium">{selectedSession.user.email}</p>
@@ -371,7 +371,7 @@ export default function TicketingPage() {
                   {!selectedSession.assignedToId && selectedSession.status === "OPEN" && (
                     <button
                       onClick={handleClaimTicket}
-                      className="text-xs font-bold bg-indigo-500 hover:bg-indigo-600 text-white px-3.5 py-2 rounded-xl transition-all cursor-pointer shadow-sm"
+                      className="text-xs font-bold bg-primary hover:bg-primary/95 text-primary-foreground px-3.5 py-2 rounded-xl transition-all cursor-pointer shadow-sm"
                     >
                       Ambil Alih Tiket
                     </button>
@@ -381,7 +381,7 @@ export default function TicketingPage() {
                   {selectedSession.status === "OPEN" && (
                     <button
                       onClick={handleResolveTicket}
-                      className="text-xs font-bold bg-emerald-500 hover:bg-emerald-600 text-white px-3.5 py-2 rounded-xl transition-all cursor-pointer shadow-sm flex items-center gap-1.5"
+                      className="text-xs font-bold bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500/20 dark:hover:bg-emerald-500/30 text-white dark:text-emerald-400 px-3.5 py-2 rounded-xl transition-all cursor-pointer shadow-sm flex items-center gap-1.5 border dark:border-emerald-500/30"
                     >
                       <CheckCircle className="w-4 h-4" /> Selesaikan Tiket
                     </button>
@@ -398,7 +398,7 @@ export default function TicketingPage() {
                   if (isSystem) {
                     return (
                       <div key={msg.id || index} className="flex justify-center my-3">
-                        <div className="bg-slate-100 dark:bg-slate-800/80 border border-border px-4 py-2 rounded-2xl text-[11px] text-muted-foreground text-center font-medium max-w-[80%] shadow-sm">
+                        <div className="bg-muted border border-border px-4 py-2 rounded-2xl text-[11px] text-muted-foreground text-center font-medium max-w-[80%] shadow-sm">
                           {msg.content}
                         </div>
                       </div>
@@ -410,7 +410,7 @@ export default function TicketingPage() {
                       key={msg.id || index}
                       className={`flex gap-3 max-w-[80%] ${isAgent ? "ml-auto flex-row-reverse" : "mr-auto"}`}
                     >
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-white text-xs font-bold ${isAgent ? "bg-primary" : msg.senderRole === "BOT" ? "bg-indigo-500" : "bg-slate-500"}`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold ${isAgent ? "bg-primary text-primary-foreground" : msg.senderRole === "BOT" ? "bg-accent text-accent-foreground" : "bg-muted text-muted-foreground border border-border"}`}>
                         {isAgent ? <User className="w-4 h-4" /> : msg.senderRole === "BOT" ? <Bot className="w-4 h-4" /> : <User className="w-4 h-4" />}
                       </div>
                       <div className="space-y-1">
@@ -436,15 +436,15 @@ export default function TicketingPage() {
               {/* Chat Input Bar Footer */}
               <div className="p-4 border-t border-border bg-card">
                 {selectedSession.status === "RESOLVED" ? (
-                  <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 rounded-xl p-3.5 text-center text-xs font-bold text-emerald-600">
+                  <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3.5 text-center text-xs font-bold text-emerald-600 dark:text-emerald-400">
                     Sesi bantuan ini telah diselesaikan. Chat ditutup untuk warga.
                   </div>
                 ) : !selectedSession.assignedToId ? (
-                  <div className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 rounded-xl p-3.5 text-center text-xs font-bold text-rose-500">
+                  <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-3.5 text-center text-xs font-bold text-destructive">
                     Tiket ini belum diambil alih. Klik tombol "Ambil Alih Tiket" di atas untuk membalas obrolan warga.
                   </div>
                 ) : selectedSession.assignedToId !== user?.id ? (
-                  <div className="bg-slate-50 dark:bg-slate-900 border border-border rounded-xl p-3.5 text-center text-xs font-bold text-muted-foreground">
+                  <div className="bg-muted/50 border border-border rounded-xl p-3.5 text-center text-xs font-bold text-muted-foreground">
                     Tiket obrolan sedang ditangani oleh CS Agen lain ({selectedSession.assignedTo?.name}).
                   </div>
                 ) : (
@@ -460,7 +460,7 @@ export default function TicketingPage() {
                     <button
                       onClick={handleSendMessage}
                       disabled={!inputValue.trim()}
-                      className="p-3 bg-primary text-primary-foreground disabled:bg-slate-100 disabled:text-slate-400 dark:disabled:bg-slate-800 rounded-xl hover:bg-primary/90 transition-all cursor-pointer shadow-sm"
+                      className="p-3 bg-primary text-primary-foreground disabled:opacity-50 rounded-xl hover:bg-primary/90 transition-all cursor-pointer shadow-sm"
                     >
                       <Send className="w-4 h-5" />
                     </button>

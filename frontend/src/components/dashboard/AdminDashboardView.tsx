@@ -24,26 +24,36 @@ import {
   History, 
   User, 
   Activity,
-  Cpu
+  Cpu,
+  Headset
 } from "lucide-react";
+import Link from "next/link";
+import api from "@/lib/axios";
 
 export function AdminDashboardView() {
   const [metrics, setMetrics] = useState<any>(null);
   const [bottlenecks, setBottlenecks] = useState<any>([]);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [csStats, setCsStats] = useState({ pending: 0, active: 0 });
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [metricsData, bottlenecksData, auditLogsData] = await Promise.all([
+        const [metricsData, bottlenecksData, auditLogsData, chatData] = await Promise.all([
           analyticsService.getDashboardMetrics(),
           analyticsService.getBottlenecks(),
-          analyticsService.getAuditLogs(5)
+          analyticsService.getAuditLogs(5),
+          api.get("/chat/sessions/admin/all").then(res => res.data).catch(() => [])
         ]);
         setMetrics(metricsData);
         setBottlenecks(bottlenecksData);
         setAuditLogs(auditLogsData);
+
+        const openChats = chatData.filter((s: any) => s.status === "OPEN");
+        const pending = openChats.filter((s: any) => s.assignedToId === null).length;
+        const active = openChats.filter((s: any) => s.assignedToId !== null).length;
+        setCsStats({ pending, active });
       } catch (error) {
         console.error("Failed to fetch admin data", error);
       } finally {
@@ -296,6 +306,35 @@ export function AdminDashboardView() {
                   Tahap <span className="font-bold text-foreground">{bottlenecks[0]?.stage?.replace('_', ' ') || 'Verifikasi'}</span> butuh tambahan sumber daya untuk menjaga kestabilan SLA pekan depan.
                 </p>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-none shadow-sm bg-card overflow-hidden relative">
+            <div className="p-8 border-b border-border flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-foreground tracking-tight">Customer Service</h2>
+                <p className="text-sm text-muted-foreground font-medium">Status aduan & live chat warga.</p>
+              </div>
+              <Headset className="w-5 h-5 text-primary animate-pulse" />
+            </div>
+            <CardContent className="p-8 space-y-6">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Antrean Pending</span>
+                <span className="px-2.5 py-1 bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 text-xs font-bold rounded-lg border border-amber-200/50">
+                  {csStats.pending} Tiket
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Sedang Aktif</span>
+                <span className="px-2.5 py-1 bg-primary/10 text-primary text-xs font-bold rounded-lg border border-primary/20">
+                  {csStats.active} Tiket
+                </span>
+              </div>
+              <Link href="/dashboard/tickets" className="block">
+                <Button className="w-full bg-secondary hover:bg-muted text-foreground font-bold rounded-xl h-11 transition-all active:scale-95 border border-border">
+                  Buka Ruang CS
+                </Button>
+              </Link>
             </CardContent>
           </Card>
 

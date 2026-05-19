@@ -252,13 +252,13 @@ export function ChatWidget() {
         }}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        className="relative w-14 h-14 bg-gradient-to-tr from-sky-500 via-blue-500 to-indigo-600 rounded-full shadow-lg flex items-center justify-center text-white cursor-pointer hover:shadow-indigo-500/20"
+        className="relative w-14 h-14 bg-primary text-primary-foreground rounded-full shadow-lg flex items-center justify-center cursor-pointer hover:bg-primary/95 transition-all hover:shadow-primary/20"
       >
         {isOpen ? <X className="w-6 h-6" /> : <MessageCircle className="w-7 h-7" />}
         
         {/* Unread Message Badge */}
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 w-6 h-6 bg-rose-500 border border-white text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
+          <span className="absolute -top-1 -right-1 w-6 h-6 bg-destructive border border-background text-destructive-foreground text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
             {unreadCount}
           </span>
         )}
@@ -275,20 +275,20 @@ export function ChatWidget() {
             className="absolute bottom-18 right-0 w-96 h-[520px] bg-card/95 border border-border shadow-2xl rounded-2xl flex flex-col overflow-hidden backdrop-blur-xl"
           >
             {/* Chat Header */}
-            <div className="p-4 bg-gradient-to-r from-slate-900 to-slate-800 text-white flex items-center justify-between shadow-md">
+            <div className="p-4 bg-primary text-primary-foreground flex items-center justify-between shadow-md">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center text-primary relative">
-                  <Bot className="w-5 h-5 text-sky-400" />
-                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-slate-900 rounded-full"></span>
+                <div className="w-10 h-10 rounded-full bg-primary-foreground/10 border border-primary-foreground/20 flex items-center justify-center text-primary-foreground relative">
+                  <Bot className="w-5 h-5" />
+                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-primary rounded-full"></span>
                 </div>
                 <div>
                   <h4 className="font-bold text-sm leading-tight">FlowGov Asisten</h4>
-                  <p className="text-[10px] text-sky-300 font-bold uppercase tracking-wider">Virtual Support</p>
+                  <p className="text-[10px] text-primary-foreground/80 font-bold uppercase tracking-wider">Virtual Support</p>
                 </div>
               </div>
               <button
                 onClick={() => setIsOpen(false)}
-                className="p-1.5 hover:bg-white/10 rounded-full transition-all text-slate-300 hover:text-white"
+                className="p-1.5 hover:bg-primary-foreground/10 rounded-full transition-all text-primary-foreground/80 hover:text-primary-foreground"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -303,7 +303,7 @@ export function ChatWidget() {
                 if (isSystem) {
                   return (
                     <div key={index} className="flex justify-center my-2">
-                      <div className="bg-slate-100 dark:bg-slate-800/80 border border-border px-3 py-1.5 rounded-xl text-[11px] text-muted-foreground text-center font-medium max-w-[85%] shadow-sm">
+                      <div className="bg-muted border border-border px-3 py-1.5 rounded-xl text-[11px] text-muted-foreground text-center font-medium max-w-[85%] shadow-sm">
                         {msg.content}
                       </div>
                     </div>
@@ -316,7 +316,11 @@ export function ChatWidget() {
                     className={`flex gap-2.5 max-w-[85%] ${isUser ? "ml-auto flex-row-reverse" : "mr-auto"}`}
                   >
                     {!isUser && (
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-white text-xs font-bold ${msg.senderRole === "BOT" ? "bg-sky-500" : "bg-indigo-600"}`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold ${
+                        msg.senderRole === "BOT" 
+                          ? "bg-primary text-primary-foreground" 
+                          : "bg-secondary text-secondary-foreground border border-border"
+                      }`}>
                         {msg.senderRole === "BOT" ? <Bot className="w-4 h-4" /> : <Headset className="w-4 h-4" />}
                       </div>
                     )}
@@ -356,7 +360,7 @@ export function ChatWidget() {
                   <button
                     key={i}
                     onClick={() => handlePresetQuestion(opt.question, opt.answer)}
-                    className="w-full text-left text-xs bg-slate-50 hover:bg-primary/5 hover:text-primary dark:bg-slate-900 border border-border hover:border-primary/20 px-3 py-2 rounded-xl transition-all duration-200 truncate cursor-pointer font-medium"
+                    className="w-full text-left text-xs bg-muted hover:bg-accent hover:text-accent-foreground border border-border hover:border-accent-foreground/20 px-3 py-2 rounded-xl transition-all duration-200 truncate cursor-pointer font-medium text-foreground"
                   >
                     {opt.title}
                   </button>
@@ -365,7 +369,7 @@ export function ChatWidget() {
                 {/* CS Escalation Button */}
                 <button
                   onClick={handleEscalateToCS}
-                  className="w-full mt-1.5 flex items-center justify-center gap-2 text-xs bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-600 hover:to-indigo-700 text-white font-bold px-3 py-2.5 rounded-xl transition-all shadow-md cursor-pointer"
+                  className="w-full mt-1.5 flex items-center justify-center gap-2 text-xs bg-secondary hover:bg-secondary/80 text-secondary-foreground font-bold px-3 py-2.5 rounded-xl transition-all shadow-sm border border-border cursor-pointer"
                 >
                   <Headset className="w-4 h-4" /> Hubungi Customer Service
                 </button>
@@ -374,7 +378,7 @@ export function ChatWidget() {
 
             {/* Inactive Resolved State Panel */}
             {session?.status === "RESOLVED" && (
-              <div className="p-4 border-t border-border bg-slate-50 dark:bg-slate-900 text-center space-y-2">
+              <div className="p-4 border-t border-border bg-muted/50 text-center space-y-2">
                 <p className="text-xs text-muted-foreground font-medium">Percakapan bantuan ini telah ditutup oleh Customer Service.</p>
                 {isAuthenticated && (
                   <button
@@ -434,7 +438,7 @@ export function ChatWidget() {
                 <button
                   onClick={handleSendMessage}
                   disabled={!inputValue.trim()}
-                  className="p-2.5 bg-primary text-primary-foreground disabled:bg-slate-100 disabled:text-slate-400 dark:disabled:bg-slate-800 rounded-xl hover:bg-primary/90 transition-all cursor-pointer shadow-sm"
+                  className="p-2.5 bg-primary text-primary-foreground disabled:bg-muted disabled:text-muted-foreground rounded-xl hover:bg-primary/90 transition-all cursor-pointer shadow-sm"
                 >
                   <Send className="w-4 h-4" />
                 </button>

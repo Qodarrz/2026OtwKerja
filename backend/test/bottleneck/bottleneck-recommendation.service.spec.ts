@@ -210,8 +210,10 @@ describe('BottleneckRecommendationService', () => {
                 (r) => r.type === RecommendationType.ADD_STAFF,
             );
             expect(addStaffRec).toBeDefined();
-            expect(addStaffRec.specificMetrics).toHaveProperty('staffToAdd');
-            expect(addStaffRec.specificMetrics).toHaveProperty('targetStage');
+            if (addStaffRec) {
+                expect(addStaffRec.specificMetrics).toHaveProperty('staffToAdd');
+                expect(addStaffRec.specificMetrics).toHaveProperty('targetStage');
+            }
         });
 
         it('should prioritize HIGH priority recommendations first', async () => {

@@ -113,7 +113,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       Role.ADMIN,
       Role.DOCUMENT_VALIDATOR,
       Role.FIELD_INSPECTOR,
-      Role.LEGALIZER
+      Role.LEGALIZER,
+      Role.CS
     ];
     return authState.user?.roles.some(role => internalRoles.includes(role)) || false;
   };
