@@ -208,7 +208,7 @@ export default function ApplicationDetailPage() {
             <CardContent className="p-8">
               {" "}
               {application.status !== "APPROVED" &&
-              application.status !== "REJECTED" ? (
+                application.status !== "REJECTED" ? (
                 <div className="space-y-6">
                   {" "}
                   <p className="text-sm font-medium text-muted-foreground leading-relaxed">
@@ -316,7 +316,7 @@ export default function ApplicationDetailPage() {
               </p>{" "}
               <Button
                 variant="outline"
-                className="w-full rounded-xl border-slate-700 hover:bg-muted text-primary-foreground font-bold h-11"
+                className="w-full bg-primary text-white rounded-xl hover:text-white hover:bg-primary font-bold h-11"
               >
                 {" "}
                 Chat Support{" "}

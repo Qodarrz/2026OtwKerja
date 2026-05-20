@@ -22,6 +22,10 @@
   --input: #f1f5f9;
   --ring: #0ea5e9;
   --radius: 1rem;
+  --warning: #f59e0b;
+  --warning-foreground: #ffffff;
+  --success: #10b981;
+  --success-foreground: #ffffff;
 }
 
 .dark {
@@ -44,6 +48,10 @@
   --border: #1e293b;
   --input: #1e293b;
   --ring: #0ea5e9;
+  --warning: #f59e0b;
+  --warning-foreground: #ffffff;
+  --success: #10b981;
+  --success-foreground: #ffffff;
 }
 
 @theme inline {
@@ -64,6 +72,10 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
   
   --font-sans: 'Outfit', sans-serif;
   --radius-xl: calc(var(--radius) + 4px);

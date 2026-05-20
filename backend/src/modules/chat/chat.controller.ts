@@ -84,7 +84,7 @@ export class ChatController {
       `${staffName} bergabung ke percakapan untuk membantu Anda.`,
     );
 
-    this.chatGateway.emitSessionUpdated(sessionId, 'OPEN', message);
+    this.chatGateway.emitSessionUpdated(sessionId, 'OPEN', message, session.assignedTo);
     
     return session;
   }

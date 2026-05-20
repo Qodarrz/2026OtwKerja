@@ -95,30 +95,23 @@ export default function AuditLogsPage() {
         <CardContent className="p-0">
           {" "}
           <div className="overflow-x-auto">
-            {" "}
             <table className="w-full text-left">
-              {" "}
               <thead className="bg-muted text-xs font-semibold uppercase text-muted-foreground border-b border-border">
-                {" "}
                 <tr>
-                  {" "}
-                  <th className="px-6 py-4">Waktu (WIB)</th>{" "}
-                  <th className="px-6 py-4">Aktor / Pengguna</th>{" "}
-                  <th className="px-6 py-4">Aktivitas</th>{" "}
-                  <th className="px-6 py-4">Target Entitas</th>{" "}
-                  <th className="px-6 py-4">Status</th>{" "}
-                </tr>{" "}
-              </thead>{" "}
+                  <th className="px-6 py-4">Waktu (WIB)</th>
+                  <th className="px-6 py-4">Aktor / Pengguna</th>
+                  <th className="px-6 py-4">Aktivitas</th>
+                  <th className="px-6 py-4">Target Entitas</th>
+                  <th className="px-6 py-4">Status</th>
+                </tr>
+              </thead>
               <tbody className="divide-y divide-slate-50">
-                {" "}
                 {logs.map((log) => (
                   <tr
                     key={log.id}
                     className="hover:bg-accent/80 transition-colors group font-mono text-xs"
                   >
-                    {" "}
                     <td className="px-6 py-4 text-muted-foreground font-medium">
-                      {" "}
                       {new Date(log.createdAt).toLocaleString("id-ID", {
                         year: "numeric",
                         month: "2-digit",
@@ -126,50 +119,42 @@ export default function AuditLogsPage() {
                         hour: "2-digit",
                         minute: "2-digit",
                         second: "2-digit",
-                      })}{" "}
-                    </td>{" "}
+                      })}
+                    </td>
                     <td className="px-6 py-4 font-semibold text-foreground">
-                      {" "}
-                      {log.userId || "System"}{" "}
-                    </td>{" "}
+                      {log.userId || "System"}
+                    </td>
                     <td className="px-6 py-4 font-semibold text-foreground">
-                      {" "}
-                      {log.action}{" "}
-                    </td>{" "}
+                      {log.action}
+                    </td>
                     <td className="px-6 py-4 text-muted-foreground">
-                      {" "}
-                      {log.entityType}{" "}
+                      {log.entityType}
                       <span className="text-[10px] bg-secondary px-1.5 py-0.5 rounded text-muted-foreground ml-1">
                         {log.entityId}
-                      </span>{" "}
-                    </td>{" "}
+                      </span>
+                    </td>
                     <td className="px-6 py-4">
-                      {" "}
                       <span className="inline-flex items-center px-2 py-0.5 bg-emerald-50 text-emerald-600 text-[10px] font-bold uppercase tracking-wider rounded-md">
-                        {" "}
-                        SUCCESS{" "}
-                      </span>{" "}
-                    </td>{" "}
+                        SUCCESS
+                      </span>
+                    </td>
                   </tr>
-                ))}{" "}
+                ))}
                 {logs.length === 0 && (
                   <tr>
-                    {" "}
                     <td
                       colSpan={5}
                       className="py-12 text-center text-muted-foreground font-sans font-medium"
                     >
-                      {" "}
                       <div className="flex flex-col items-center justify-center gap-2">
-                        {" "}
-                        <History className="w-8 h-8 opacity-20" />{" "}
-                        <p>Belum ada rekaman log aktivitas.</p>{" "}
-                      </div>{" "}
-                    </td>{" "}
+                        <History className="w-8 h-8 opacity-20" />
+                        <p>Belum ada rekaman log aktivitas.</p>
+                      </div>
+                    </td>
                   </tr>
-                )}{" "}
-              </tbody>{" "}
-            </table>{" "}
+                )}
+              </tbody>
+            </table>
           </div>{" "}
         </CardContent>{" "}
       </Card>{" "}

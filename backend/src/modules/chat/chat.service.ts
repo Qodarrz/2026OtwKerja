@@ -12,7 +12,6 @@ export class ChatService {
     });
     const userName = user?.name || 'Citizen';
 
-    // Check if there is an active session (BOT or OPEN) for the user
     let session = await this.prisma.chatSession.findFirst({
       where: {
         userId,
@@ -27,7 +26,6 @@ export class ChatService {
       },
     });
 
-    // If no active session, create a new one starting in BOT mode
     if (!session) {
       session = await this.prisma.chatSession.create({
         data: {
@@ -200,6 +198,16 @@ export class ChatService {
             email: true,
           },
         },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        messages: {
+          orderBy: { createdAt: 'asc' },
+        },
       },
     });
   }
@@ -230,6 +238,20 @@ export class ChatService {
       include: {
         messages: {
           orderBy: { createdAt: 'asc' },
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        assignedTo: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
         },
       },
     });

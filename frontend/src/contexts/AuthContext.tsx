@@ -54,21 +54,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           isAuthenticated: true,
           isLoading: false,
         });
-      } catch (err) {
-        localStorage.removeItem('user_hint');
-        try {
-          // Force clear local cookie
-          await fetch('/api/auth/logout', { method: 'POST' });
-          // Attempt to logout from backend
-          await authService.logout();
-        } catch (e) {
-          // Ignore errors during cleanup
+      } catch (err: any) {
+        const isAuthError = err.response && (err.response.status === 401 || err.response.status === 403);
+        
+        if (isAuthError) {
+          localStorage.removeItem('user_hint');
+          try {
+            // Force clear local cookie
+            await fetch('/api/auth/logout', { method: 'POST' });
+            // Attempt to logout from backend
+            await authService.logout();
+          } catch (e) {
+            // Ignore errors during cleanup
+          }
+          setAuthState({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+          });
+        } else {
+          // If it's a network error (server restarting) or 500, do NOT log out.
+          // Just gracefully stop loading and rely on the optimistic state.
+          setAuthState((prev) => ({
+            ...prev,
+            isLoading: false,
+          }));
         }
-        setAuthState({
-          user: null,
-          isAuthenticated: false,
-          isLoading: false,
-        });
       }
     };
 

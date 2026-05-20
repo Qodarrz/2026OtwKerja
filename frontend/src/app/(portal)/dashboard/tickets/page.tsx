@@ -4,18 +4,19 @@ import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/lib/axios";
 import { io, Socket } from "socket.io-client";
-import { 
-  Headset, 
-  Search, 
-  Send, 
-  User, 
-  CheckCircle, 
-  Clock, 
+import {
+  Headset,
+  Search,
+  Send,
+  User,
+  CheckCircle,
+  Clock,
   AlertCircle,
   Inbox,
   UserCheck,
   Bot,
-  Loader2
+  Loader2,
+  Bell
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -49,6 +50,14 @@ export default function TicketingPage() {
   const [activeTab, setActiveTab] = useState<"ALL" | "OPEN" | "MY" | "RESOLVED">("OPEN");
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [toastMessage, setToastMessage] = useState<{ title: string; message: string } | null>(null);
+
+  useEffect(() => {
+    if (toastMessage) {
+      const timer = setTimeout(() => setToastMessage(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toastMessage]);
 
   const socketRef = useRef<Socket | null>(null);
   const chatEndRef = useRef<HTMLDivElement | null>(null);
@@ -96,24 +105,34 @@ export default function TicketingPage() {
     socket.on("ticket_activity", (data: any) => {
       setSessions((prevSessions) => {
         const index = prevSessions.findIndex((s) => s.id === data.sessionId);
-        
+
         if (index !== -1) {
           // Update message snippet and status of existing session
           const updated = [...prevSessions];
           const session = { ...updated[index] };
-          
+
           // Check if message already exists
           if (!session.messages.some((m: any) => m.id === data.latestMessage.id)) {
             session.messages = [...session.messages, data.latestMessage];
           }
-          
+
           if (data.status) {
             session.status = data.status;
           }
-          
+
+          if (data.assignedTo !== undefined) {
+            session.assignedTo = data.assignedTo;
+            session.assignedToId = data.assignedTo?.id || null;
+
+            // Re-render selectedSession if it is the one being updated
+            setSelectedSession((prev) =>
+              prev?.id === session.id ? { ...prev, assignedTo: session.assignedTo, assignedToId: session.assignedToId } : prev
+            );
+          }
+
           session.updatedAt = new Date().toISOString();
           updated[index] = session;
-          
+
           // Sort by updatedAt descending
           return updated.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
         } else {
@@ -138,11 +157,18 @@ export default function TicketingPage() {
     try {
       const { data } = await api.get(`/chat/sessions/${session.id}`);
       setMessages(data.messages);
-      
+
       // Join room for this specific chat
       if (socketRef.current) {
-        socketRef.current.emit("join_session", { sessionId: session.id });
-        
+        if (socketRef.current.connected) {
+          socketRef.current.emit("join_session", { sessionId: session.id });
+        } else {
+          socketRef.current.once("connect", () => {
+            socketRef.current?.emit("join_session", { sessionId: session.id });
+          });
+          socketRef.current.emit("join_session", { sessionId: session.id });
+        }
+
         // Listen to live messages in this room
         socketRef.current.off("new_message"); // clear old listeners
         socketRef.current.on("new_message", (message: any) => {
@@ -176,6 +202,10 @@ export default function TicketingPage() {
       const { data } = await api.patch(`/chat/sessions/${selectedSession.id}/assign`);
       setSelectedSession(data);
       fetchSessions();
+      setToastMessage({
+        title: "Tiket Diambil Alih",
+        message: `Anda sekarang menangani tiket milik ${selectedSession.user.name}.`
+      });
     } catch (e) {
       console.error("Gagal mengklaim tiket:", e);
     }
@@ -197,11 +227,22 @@ export default function TicketingPage() {
   const handleSendMessage = () => {
     if (!inputValue.trim() || !selectedSession || !socketRef.current) return;
 
+    // Optimistic UI Update
+    const newMessage = {
+      id: "temp_" + Date.now().toString(),
+      content: inputValue.trim(),
+      senderRole: "CS",
+      senderName: user?.name,
+      senderId: user?.id,
+      createdAt: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, newMessage]);
+
     socketRef.current.emit("send_message", {
       sessionId: selectedSession.id,
       content: inputValue.trim(),
     });
-    
+
     setInputValue("");
   };
 
@@ -225,10 +266,10 @@ export default function TicketingPage() {
 
   return (
     <div className="h-[calc(100vh-140px)] flex gap-6 font-sans">
-      
+
       {/* 1. Left Panel: Ticket Queue List */}
       <div className="w-96 bg-card border border-border rounded-2xl flex flex-col overflow-hidden shadow-sm">
-        
+
         {/* Header Search & Title */}
         <div className="p-5 border-b border-border space-y-4 bg-muted/20">
           <div>
@@ -261,11 +302,10 @@ export default function TicketingPage() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-1.5 px-3 py-2.5 font-bold rounded-t-xl transition-all cursor-pointer ${
-                activeTab === tab.id
-                  ? "bg-background text-primary border-t-2 border-primary"
-                  : "text-muted-foreground hover:bg-muted/30 hover:text-foreground"
-              }`}
+              className={`flex items-center gap-1.5 px-3 py-2.5 font-bold rounded-t-xl transition-all cursor-pointer ${activeTab === tab.id
+                ? "bg-background text-primary border-t-2 border-primary"
+                : "text-muted-foreground hover:bg-muted/30 hover:text-foreground"
+                }`}
             >
               <tab.icon className="w-3.5 h-3.5" /> {tab.label}
             </button>
@@ -291,23 +331,21 @@ export default function TicketingPage() {
 
               return (
                 <button
-                   key={session.id}
+                  key={session.id}
                   onClick={() => handleSelectSession(session)}
-                  className={`w-full text-left p-4 rounded-xl border transition-all duration-200 cursor-pointer flex flex-col gap-2 relative ${
-                    isSelected
-                      ? "bg-primary/5 border-primary shadow-sm"
-                      : "bg-card border-border hover:bg-muted/10 hover:border-primary/30"
-                  }`}
+                  className={`w-full text-left p-4 rounded-xl border transition-all duration-200 cursor-pointer flex flex-col gap-2 relative ${isSelected
+                    ? "bg-primary/5 border-primary shadow-sm"
+                    : "bg-card border-border hover:bg-muted/10 hover:border-primary/30"
+                    }`}
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-xs text-foreground truncate max-w-[70%] tracking-tight">
                       {session.user.name}
                     </span>
-                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${
-                      session.status === "OPEN"
-                        ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
-                        : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
-                    }`}>
+                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${session.status === "OPEN"
+                      ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
+                      : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                      }`}>
                       {session.status}
                     </span>
                   </div>
@@ -418,11 +456,10 @@ export default function TicketingPage() {
                           {msg.senderName} <span className="text-[8px] uppercase px-1 py-px bg-muted rounded font-bold">{msg.senderRole}</span>
                         </div>
                         <div
-                          className={`p-3.5 rounded-2xl text-xs leading-relaxed shadow-sm ${
-                            isAgent
-                              ? "bg-primary text-primary-foreground rounded-tr-none"
-                              : "bg-card border border-border text-foreground rounded-tl-none"
-                          }`}
+                          className={`p-3.5 rounded-2xl text-xs leading-relaxed shadow-sm ${isAgent
+                            ? "bg-primary text-primary-foreground rounded-tr-none"
+                            : "bg-card border border-border text-foreground rounded-tl-none"
+                            }`}
                         >
                           {msg.content}
                         </div>
@@ -472,6 +509,25 @@ export default function TicketingPage() {
         </AnimatePresence>
       </div>
 
+      {/* Toast Notification Popup */}
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            className="fixed bottom-6 right-6 bg-card border border-border shadow-2xl rounded-2xl p-4 max-w-sm flex gap-3 z-50 items-start"
+          >
+            <div className="bg-primary/10 p-2 rounded-full flex-shrink-0 text-primary">
+              <Bell className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-bold text-sm text-foreground">{toastMessage.title}</h4>
+              <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{toastMessage.message}</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

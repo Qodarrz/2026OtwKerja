@@ -143,9 +143,7 @@ async function main() {
         submittedAt: submittedAt,
       }
     });
-
-    // Create Histories & Actions
-    // Stage 1: Document Check
+    
     const docCheckStart = new Date(submittedAt);
     const docCheckEnd = new Date(docCheckStart);
     docCheckEnd.setHours(docCheckEnd.getHours() + 4); // Fast check

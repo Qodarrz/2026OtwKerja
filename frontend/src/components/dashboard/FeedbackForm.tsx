@@ -181,7 +181,7 @@ export function FeedbackForm({ applicationId, onSuccess }: FeedbackFormProps) {
           <Button
             type="submit"
             disabled={isSubmitting}
-            className="w-full rounded-xl bg-background hover:bg-muted text-primary-foreground font-bold h-12 transition-all active:scale-[0.98] shadow-md "
+            className="w-full rounded-xl bg-primary text-white font-bold h-12 transition-all active:scale-[0.98] shadow-md hover:bg-primary/90"
           >
             {" "}
             {isSubmitting ? (

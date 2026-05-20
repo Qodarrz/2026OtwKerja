@@ -15,35 +15,38 @@ export function SLACountdown({ remainingHours, maxHours, status }: SLACountdownP
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setTimeLeft((prev) => Math.max(0, prev - 1));
+      setTimeLeft((prev) => prev - 1); // Allow going negative for OVERDUE
     }, 1000);
 
     return () => clearInterval(timer);
   }, []);
 
   const formatTime = (seconds: number) => {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = Math.floor(seconds % 60);
-    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    const isNegative = seconds < 0;
+    const absSeconds = Math.abs(seconds);
+    const h = Math.floor(absSeconds / 3600);
+    const m = Math.floor((absSeconds % 3600) / 60);
+    const s = Math.floor(absSeconds % 60);
+    const sign = isNegative ? "+" : "";
+    return `${sign}${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  const percentage = Math.min(100, (remainingHours / maxHours) * 100);
+  const percentage = Math.max(0, Math.min(100, (remainingHours / maxHours) * 100));
 
   return (
     <div className="flex flex-col gap-1.5 w-full">
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-2">
           {status === 'OVERDUE' ? (
-            <AlertCircle className="w-3.5 h-3.5 text-rose-500 animate-pulse" />
+            <AlertCircle className="w-3.5 h-3.5 text-destructive animate-pulse" />
           ) : status === 'WARNING' ? (
-            <Clock className="w-3.5 h-3.5 text-amber-500" />
+            <Clock className="w-3.5 h-3.5 text-warning" />
           ) : (
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+            <CheckCircle2 className="w-3.5 h-3.5 text-success" />
           )}
           <span className={cn(
             "text-[10px] font-bold uppercase tracking-widest",
-            status === 'OVERDUE' ? "text-rose-600" : status === 'WARNING' ? "text-amber-600" : "text-emerald-600"
+            status === 'OVERDUE' ? "text-destructive" : status === 'WARNING' ? "text-warning" : "text-success"
           )}>
             {status.replace('_', ' ')}
           </span>
@@ -56,7 +59,7 @@ export function SLACountdown({ remainingHours, maxHours, status }: SLACountdownP
         <div 
           className={cn(
             "h-full transition-all duration-1000 rounded-full",
-            status === 'OVERDUE' ? "bg-rose-500" : status === 'WARNING' ? "bg-amber-500" : "bg-emerald-500"
+            status === 'OVERDUE' ? "bg-destructive" : status === 'WARNING' ? "bg-warning" : "bg-success"
           )}
           style={{ width: `${percentage}%` }}
         />

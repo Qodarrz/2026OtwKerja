@@ -4,6 +4,7 @@ import {
   SubscribeMessage,
   OnGatewayConnection,
   OnGatewayDisconnect,
+  OnGatewayInit,
   MessageBody,
   ConnectedSocket,
 } from '@nestjs/websockets';
@@ -19,7 +20,7 @@ import { Role } from '@prisma/client';
     credentials: true,
   },
 })
-export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
   @WebSocketServer()
   server: Server;
 
@@ -29,55 +30,60 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly prisma: PrismaService,
   ) {}
 
-  async handleConnection(client: Socket) {
-    try {
-      let token: string | null = null;
-      
-      // 1. Try to extract from Cookie header
-      const cookies = client.handshake.headers.cookie;
-      if (cookies) {
-        const match = cookies.match(/access_token=([^;]+)/);
-        if (match) {
-          token = match[1];
+  afterInit(server: Server) {
+    server.use(async (client: Socket, next) => {
+      try {
+        let token: string | null = null;
+        
+        // 1. Try to extract from Cookie header
+        const cookies = client.handshake.headers.cookie;
+        if (cookies) {
+          const match = cookies.match(/access_token=([^;]+)/);
+          if (match) {
+            token = match[1];
+          }
         }
+
+        // 2. Try to extract from Auth options
+        if (!token && client.handshake.auth?.token) {
+          token = client.handshake.auth.token;
+        }
+
+        // 3. Try to extract from Query parameters
+        if (!token && client.handshake.query?.token) {
+          token = client.handshake.query.token as string;
+        }
+
+        if (!token) {
+          return next(new Error('Authentication error'));
+        }
+
+        // Verify token
+        const payload = this.jwtService.verify(token, {
+          secret: process.env.JWT_SECRET || 'secretKey',
+        });
+
+        // Fetch user from DB
+        const user = await this.prisma.user.findUnique({
+          where: { id: payload.sub },
+          select: { id: true, name: true, email: true, roles: true },
+        });
+
+        if (!user) {
+          return next(new Error('User not found'));
+        }
+
+        // Save user profile onto socket connection state
+        client.data.user = user;
+        next();
+      } catch (e) {
+        next(new Error('Authentication error'));
       }
+    });
+  }
 
-      // 2. Try to extract from Auth options
-      if (!token && client.handshake.auth?.token) {
-        token = client.handshake.auth.token;
-      }
-
-      // 3. Try to extract from Query parameters
-      if (!token && client.handshake.query?.token) {
-        token = client.handshake.query.token as string;
-      }
-
-      if (!token) {
-        client.disconnect();
-        return;
-      }
-
-      // Verify token
-      const payload = this.jwtService.verify(token, {
-        secret: process.env.JWT_SECRET || 'secretKey',
-      });
-
-      // Fetch user from DB
-      const user = await this.prisma.user.findUnique({
-        where: { id: payload.sub },
-        select: { id: true, name: true, email: true, roles: true },
-      });
-
-      if (!user) {
-        client.disconnect();
-        return;
-      }
-
-      // Save user profile onto socket connection state
-      client.data.user = user;
-    } catch (e) {
-      client.disconnect();
-    }
+  handleConnection(client: Socket) {
+    // Connection established after middleware success
   }
 
   handleDisconnect(client: Socket) {
@@ -152,12 +158,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   // Gateway triggered broadcast for external actions (like controller resolves)
-  emitSessionUpdated(sessionId: string, status: string, message: any) {
-    this.server.to(`session_${sessionId}`).emit('session_updated', { status, message });
+  emitSessionUpdated(sessionId: string, status: string, message: any, assignedTo?: any) {
+    this.server.to(`session_${sessionId}`).emit('session_updated', { status, message, assignedTo });
     this.server.emit('ticket_activity', {
       sessionId,
       status,
       latestMessage: message,
+      assignedTo,
     });
   }
 }

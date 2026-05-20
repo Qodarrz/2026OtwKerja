@@ -51,7 +51,7 @@ export function ChatWidget() {
         const { data } = await api.post("/chat/sessions");
         setSession(data);
         setIsEscalated(data.status === "OPEN");
-        
+
         // Parse dates
         const formattedMessages = data.messages.map((m: any) => ({
           ...m,
@@ -92,6 +92,10 @@ export function ChatWidget() {
 
     socketRef.current = socket;
 
+    if (socket.connected) {
+      socket.emit("join_session", { sessionId });
+    }
+
     socket.on("connect", () => {
       socket.emit("join_session", { sessionId });
     });
@@ -128,6 +132,18 @@ export function ChatWidget() {
         setSession((prevSession: any) =>
           prevSession ? { ...prevSession, status: "RESOLVED" } : null
         );
+      } else if (data.status === "OPEN" && data.message) {
+        // Appends the system message (e.g. "Staff joined the chat")
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === data.message.id)) return prev;
+          return [
+            ...prev,
+            {
+              ...data.message,
+              createdAt: new Date(data.message.createdAt),
+            },
+          ];
+        });
       }
     });
 
@@ -150,22 +166,28 @@ export function ChatWidget() {
       return;
     }
 
-    if (!session) return;
-
     setIsLoading(true);
     try {
-      const { data } = await api.patch(`/chat/sessions/${session.id}/escalate`);
+      let targetSessionId = session?.id;
+
+      // If the current session is resolved, create a new one first before escalating
+      if (!session || session.status === "RESOLVED") {
+        const { data: newSession } = await api.post("/chat/sessions");
+        setSession(newSession);
+        targetSessionId = newSession.id;
+      }
+
+      const { data } = await api.patch(`/chat/sessions/${targetSessionId}/escalate`);
       setSession(data);
       setIsEscalated(true);
-      
+
       const formattedMessages = data.messages.map((m: any) => ({
         ...m,
         createdAt: new Date(m.createdAt),
       }));
       setMessages(formattedMessages);
 
-      // Connect socket
-      connectWebSocket(session.id);
+      connectWebSocket(data.id);
     } catch (e) {
       console.error("Gagal melakukan eskalasi:", e);
     } finally {
@@ -198,6 +220,17 @@ export function ChatWidget() {
 
     // Send through WebSocket if escalated (Live Chat with CS)
     if (isEscalated && socketRef.current && session) {
+      // Optimistic UI update
+      const newMessage = {
+        id: "temp_" + Date.now().toString(),
+        content: inputValue.trim(),
+        senderRole: "USER",
+        senderName: user?.name || "Warga",
+        senderId: user?.id,
+        createdAt: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, newMessage]);
+
       socketRef.current.emit("send_message", {
         sessionId: session.id,
         content: inputValue.trim(),
@@ -255,7 +288,7 @@ export function ChatWidget() {
         className="relative w-14 h-14 bg-primary text-primary-foreground rounded-full shadow-lg flex items-center justify-center cursor-pointer hover:bg-primary/95 transition-all hover:shadow-primary/20"
       >
         {isOpen ? <X className="w-6 h-6" /> : <MessageCircle className="w-7 h-7" />}
-        
+
         {/* Unread Message Badge */}
         {unreadCount > 0 && (
           <span className="absolute -top-1 -right-1 w-6 h-6 bg-destructive border border-background text-destructive-foreground text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
@@ -277,10 +310,7 @@ export function ChatWidget() {
             {/* Chat Header */}
             <div className="p-4 bg-primary text-primary-foreground flex items-center justify-between shadow-md">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary-foreground/10 border border-primary-foreground/20 flex items-center justify-center text-primary-foreground relative">
-                  <Bot className="w-5 h-5" />
-                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-primary rounded-full"></span>
-                </div>
+
                 <div>
                   <h4 className="font-bold text-sm leading-tight">FlowGov Asisten</h4>
                   <p className="text-[10px] text-primary-foreground/80 font-bold uppercase tracking-wider">Virtual Support</p>
@@ -316,11 +346,10 @@ export function ChatWidget() {
                     className={`flex gap-2.5 max-w-[85%] ${isUser ? "ml-auto flex-row-reverse" : "mr-auto"}`}
                   >
                     {!isUser && (
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold ${
-                        msg.senderRole === "BOT" 
-                          ? "bg-primary text-primary-foreground" 
-                          : "bg-secondary text-secondary-foreground border border-border"
-                      }`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold ${msg.senderRole === "BOT"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-secondary-foreground border border-border"
+                        }`}>
                         {msg.senderRole === "BOT" ? <Bot className="w-4 h-4" /> : <Headset className="w-4 h-4" />}
                       </div>
                     )}
@@ -329,11 +358,10 @@ export function ChatWidget() {
                         {msg.senderName}
                       </div>
                       <div
-                        className={`p-3 rounded-2xl text-xs leading-relaxed shadow-sm ${
-                          isUser
-                            ? "bg-primary text-primary-foreground rounded-tr-none"
-                            : "bg-card border border-border text-foreground rounded-tl-none"
-                        }`}
+                        className={`p-3 rounded-2xl text-xs leading-relaxed shadow-sm ${isUser
+                          ? "bg-primary text-primary-foreground rounded-tr-none"
+                          : "bg-card border border-border text-foreground rounded-tl-none"
+                          }`}
                       >
                         {msg.content}
                       </div>
@@ -341,71 +369,46 @@ export function ChatWidget() {
                   </div>
                 );
               })}
-              
+
               {isLoading && (
                 <div className="flex gap-2 max-w-[80%] items-center text-muted-foreground text-xs py-2 px-1">
                   <Loader2 className="w-4 h-4 animate-spin text-primary" />
                   <span>Sedang memuat...</span>
                 </div>
               )}
-              
+
               <div ref={chatEndRef} />
             </div>
 
             {/* Quick Action Preset Options Panel */}
-            {!isEscalated && session?.status !== "RESOLVED" && (
-              <div className="p-3 border-t border-border bg-card/60 flex flex-col gap-1.5 overflow-x-auto">
-                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mb-0.5 px-1">Pertanyaan Populer</p>
-                {presetOptions.map((opt, i) => (
-                  <button
-                    key={i}
-                    onClick={() => handlePresetQuestion(opt.question, opt.answer)}
-                    className="w-full text-left text-xs bg-muted hover:bg-accent hover:text-accent-foreground border border-border hover:border-accent-foreground/20 px-3 py-2 rounded-xl transition-all duration-200 truncate cursor-pointer font-medium text-foreground"
-                  >
-                    {opt.title}
-                  </button>
-                ))}
+            {!isEscalated && (
+              <div className="p-2.5 border-t border-border bg-card/60 flex flex-col gap-1.5">
+                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider px-1">Pertanyaan Populer</p>
+
+                {/* Horizontal Slider for Presets */}
+                <div className="flex overflow-x-auto gap-2 pb-1 scrollbar-hide px-1">
+                  {presetOptions.map((opt, i) => (
+                    <button
+                      key={i}
+                      onClick={() => handlePresetQuestion(opt.question, opt.answer)}
+                      className="whitespace-nowrap flex-shrink-0 text-[11px] bg-muted hover:bg-accent hover:text-accent-foreground border border-border hover:border-accent-foreground/20 px-3.5 py-1.5 rounded-full transition-all duration-200 cursor-pointer font-medium text-foreground shadow-sm"
+                    >
+                      {opt.title}
+                    </button>
+                  ))}
+                </div>
 
                 {/* CS Escalation Button */}
                 <button
                   onClick={handleEscalateToCS}
-                  className="w-full mt-1.5 flex items-center justify-center gap-2 text-xs bg-secondary hover:bg-secondary/80 text-secondary-foreground font-bold px-3 py-2.5 rounded-xl transition-all shadow-sm border border-border cursor-pointer"
+                  className="w-full mt-0.5 flex items-center justify-center gap-1.5 text-[11px] bg-secondary hover:bg-secondary/80 text-secondary-foreground font-bold px-3 py-2 rounded-xl transition-all shadow-sm border border-border cursor-pointer"
                 >
-                  <Headset className="w-4 h-4" /> Hubungi Customer Service
+                  <Headset className="w-3.5 h-3.5" /> Hubungi Customer Service
                 </button>
               </div>
             )}
 
-            {/* Inactive Resolved State Panel */}
-            {session?.status === "RESOLVED" && (
-              <div className="p-4 border-t border-border bg-muted/50 text-center space-y-2">
-                <p className="text-xs text-muted-foreground font-medium">Percakapan bantuan ini telah ditutup oleh Customer Service.</p>
-                {isAuthenticated && (
-                  <button
-                    onClick={async () => {
-                      setIsLoading(true);
-                      try {
-                        const { data } = await api.post("/chat/sessions");
-                        setSession(data);
-                        setIsEscalated(false);
-                        const formattedMessages = data.messages.map((m: any) => ({
-                          ...m,
-                          createdAt: new Date(m.createdAt),
-                        }));
-                        setMessages(formattedMessages);
-                      } catch (e) {
-                        console.error(e);
-                      } finally {
-                        setIsLoading(false);
-                      }
-                    }}
-                    className="text-xs text-primary font-bold hover:underline cursor-pointer"
-                  >
-                    Buat Sesi Bantuan Baru
-                  </button>
-                )}
-              </div>
-            )}
+            {/* Inactive Resolved State Panel (Removed for seamless transition) */}
 
             {/* Login Prompt for Guests */}
             {!isAuthenticated && (
@@ -421,7 +424,7 @@ export function ChatWidget() {
             )}
 
             {/* Chat Text Input Bar */}
-            {isAuthenticated && session?.status !== "RESOLVED" && (
+            {isAuthenticated && (
               <div className="p-3 border-t border-border bg-card flex gap-2 items-center">
                 <input
                   type="text"
