@@ -14,9 +14,12 @@ import {
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
+import { useAuth } from "@/contexts/AuthContext";
+
 export function SmartOnboarding() {
   const [isVisible, setIsVisible] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     setMounted(true);
@@ -32,6 +35,9 @@ export function SmartOnboarding() {
   };
 
   if (!mounted || !isVisible) return null;
+
+  const isStaff = user?.roles?.some(role => ['ADMIN', 'CS'].includes(role));
+  if (!isStaff) return null;
 
   const guides = [
     {
