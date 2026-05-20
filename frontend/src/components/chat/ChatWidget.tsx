@@ -220,17 +220,6 @@ export function ChatWidget() {
 
     // Send through WebSocket if escalated (Live Chat with CS)
     if (isEscalated && socketRef.current && session) {
-      // Optimistic UI update
-      const newMessage = {
-        id: "temp_" + Date.now().toString(),
-        content: inputValue.trim(),
-        senderRole: "USER",
-        senderName: user?.name || "Warga",
-        senderId: user?.id,
-        createdAt: new Date().toISOString(),
-      };
-      setMessages((prev) => [...prev, newMessage]);
-
       socketRef.current.emit("send_message", {
         sessionId: session.id,
         content: inputValue.trim(),

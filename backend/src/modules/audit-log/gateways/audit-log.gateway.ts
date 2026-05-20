@@ -20,7 +20,7 @@ interface ClientSubscription {
 @WebSocketGateway({
     namespace: '/audit-logs',
     cors: {
-        origin: '*',
+        origin: true,
         credentials: true,
     },
 })

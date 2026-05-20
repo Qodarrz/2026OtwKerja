@@ -10,7 +10,7 @@ async function bootstrap() {
   // Global validation pipe is configured in AppModule via APP_PIPE provider
   
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3001',
+    origin: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
   });

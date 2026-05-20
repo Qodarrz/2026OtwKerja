@@ -33,7 +33,7 @@ const SEVERITY_ORDER: BottleneckSeverity[] = ['LOW', 'MEDIUM', 'HIGH'];
 @WebSocketGateway({
     namespace: '/bottlenecks',
     cors: {
-        origin: '*',
+        origin: true,
         credentials: true,
     },
 })

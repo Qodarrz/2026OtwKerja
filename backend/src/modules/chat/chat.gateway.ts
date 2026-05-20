@@ -16,7 +16,7 @@ import { Role } from '@prisma/client';
 
 @WebSocketGateway({
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:3001',
+    origin: true,
     credentials: true,
   },
 })

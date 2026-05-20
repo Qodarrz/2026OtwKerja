@@ -227,17 +227,6 @@ export default function TicketingPage() {
   const handleSendMessage = () => {
     if (!inputValue.trim() || !selectedSession || !socketRef.current) return;
 
-    // Optimistic UI Update
-    const newMessage = {
-      id: "temp_" + Date.now().toString(),
-      content: inputValue.trim(),
-      senderRole: "CS",
-      senderName: user?.name,
-      senderId: user?.id,
-      createdAt: new Date().toISOString(),
-    };
-    setMessages((prev) => [...prev, newMessage]);
-
     socketRef.current.emit("send_message", {
       sessionId: selectedSession.id,
       content: inputValue.trim(),
