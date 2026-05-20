@@ -14,6 +14,7 @@ import {
   Shield,
   User as UserIcon,
   Eye,
+  EyeOff,
   Building2,
   ShieldCheck,
   ChevronLeft
@@ -26,6 +27,7 @@ function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const { login } = useAuth();
   const router = useRouter();
@@ -155,7 +157,7 @@ function LoginForm() {
                 <div className="relative group">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 xl:h-5 xl:w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                   <input
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     name="password"
                     required
                     value={password}
@@ -163,8 +165,8 @@ function LoginForm() {
                     className="w-full bg-transparent border border-border rounded-xl py-3.5 pl-11 xl:pl-12 pr-11 xl:pr-12 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all text-sm"
                     placeholder="Masukkan kata sandi"
                   />
-                  <button type="button" className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors">
-                    <Eye className="w-4 h-4 xl:h-5 xl:w-5" />
+                  <button type="button" onClick={() => setShowPassword((v) => !v)} className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors">
+                    {showPassword ? <EyeOff className="w-4 h-4 xl:h-5 xl:w-5" /> : <Eye className="w-4 h-4 xl:h-5 xl:w-5" />}
                   </button>
                 </div>
               </div>
