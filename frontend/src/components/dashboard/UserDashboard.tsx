@@ -98,7 +98,7 @@ export function UserDashboard() {
           <p className="text-muted-foreground font-medium">Pantau progres perizinan dan kewajiban administrasi Anda di sini.</p>
         </div>
         <Link href="/submit">
-          <Button className="rounded-xl bg-primary hover:bg-primary/90 shadow-lg shadow-sm font-bold h-11 px-8 transition-all active:scale-95">
+          <Button className="rounded-xl bg-primary hover:bg-primary/90 shadow-lg font-bold h-11 px-8 transition-all active:scale-95">
             <Plus className="w-5 h-5 mr-2" />
             Buat Pengajuan Baru
           </Button>
@@ -193,7 +193,7 @@ export function UserDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-primary to-blue-700 text-primary-foreground overflow-hidden relative border-none shadow-lg shadow-sm">
+          <Card className="bg-linear-to-br from-primary to-blue-700 text-primary-foreground overflow-hidden relative border-none shadow-lg">
             <div className="absolute top-0 right-0 w-80 h-80 bg-card/10 rounded-full -mr-32 -mt-32 blur-3xl opacity-50" />
             <CardContent className="p-12 relative z-10">
               <div className="max-w-md space-y-6">
@@ -232,7 +232,7 @@ export function UserDashboard() {
                   </p>
                   <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Total Akumulatif</p>
                 </div>
-                <Button size="sm" className="w-full rounded-xl bg-primary hover:bg-primary/90 font-bold h-10 mt-4 shadow-md shadow-sm transition-all">
+                <Button size="sm" className="w-full rounded-xl bg-primary hover:bg-primary/90 font-bold h-10 mt-4 shadow-md transition-all">
                   Bayar Sekarang
                 </Button>
               </div>
@@ -262,7 +262,7 @@ export function UserDashboard() {
           </Card>
 
           <Card className={cn(
-            "border-none overflow-hidden shadow-lg shadow-sm",
+            "border-none overflow-hidden shadow-sm",
             user?.isKtpVerified ? "bg-primary text-primary-foreground" : "bg-amber-500 text-primary-foreground"
           )}>
              <CardContent className="p-8">

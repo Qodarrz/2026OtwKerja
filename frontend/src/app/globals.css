@@ -104,7 +104,7 @@
   }
 
   .gradient-text {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-sky-500 via-blue-500 to-indigo-600;
+    @apply bg-clip-text text-transparent bg-linear-to-r from-sky-500 via-blue-500 to-indigo-600;
   }
 
   .gradient-border {

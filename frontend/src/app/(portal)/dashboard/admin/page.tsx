@@ -101,7 +101,7 @@ export default function AdminDashboardPage() {
             <Button variant="outline" className="rounded-xl">
               <Filter className="w-4 h-4 mr-2" /> Filter
             </Button>
-            <Button className="rounded-xl bg-primary hover:bg-primary/90 shadow-lg shadow-sm">
+            <Button className="rounded-xl bg-primary hover:bg-primary/90 shadow-sm">
               Generate Report
             </Button>
           </div>
@@ -181,7 +181,7 @@ export default function AdminDashboardPage() {
 
           {/* Sidebar Stats */}
           <div className="space-y-6">
-            <Card className="border-primary/20 shadow-md shadow-sm">
+            <Card className="border-primary/20 shadow-md">
               <CardHeader>
                 <CardTitle className="text-lg">Kepatuhan SLA</CardTitle>
                 <CardDescription>Status kecepatan pelayanan kumulatif.</CardDescription>

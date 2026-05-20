@@ -136,7 +136,7 @@ export function Navbar() {
                 </Button>
               </Link>
               <Link href="/register">
-                <Button size="sm" className="rounded-xl shadow-lg shadow-sm">
+                <Button size="sm" className="rounded-xl shadow-lg">
                   Daftar
                 </Button>
               </Link>

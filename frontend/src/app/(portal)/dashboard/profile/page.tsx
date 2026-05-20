@@ -61,7 +61,7 @@ export default function ProfilePage() {
               <div className="h-40 w-full bg-muted rounded-2xl animate-pulse" />
             </div>
             <div className="lg:col-span-2 space-y-8">
-              <div className="h-[500px] w-full bg-muted rounded-2xl animate-pulse" />
+              <div className="h-125 w-full bg-muted rounded-2xl animate-pulse" />
               <div className="h-48 w-full bg-muted rounded-2xl animate-pulse" />
             </div>
           </div>
@@ -101,7 +101,7 @@ export default function ProfilePage() {
           {/* Left Column: Profile Card */}
           <div className="lg:col-span-1 space-y-6">
             <Card className="text-center border-none shadow-sm bg-card overflow-hidden">
-              <div className="h-24 bg-gradient-to-tr from-primary/20 to-accent/20" />
+              <div className="h-24 bg-linear-to-tr from-primary/20 to-accent/20" />
               <CardContent className="pt-0 pb-8 flex flex-col items-center -mt-12">
                 <div className="relative group cursor-pointer">
                   <div className="w-32 h-32 rounded-full bg-background p-1 border border-border shadow-xl">

@@ -38,7 +38,7 @@ export default function PortalLayout({
         {isInternal ? (
           <>
             <Sidebar />
-            <main className="flex-1 lg:ml-[320px] p-10 bg-background min-h-screen">
+            <main className="flex-1 lg:ml-80 p-10 bg-background min-h-screen">
               {children}
             </main>
           </>

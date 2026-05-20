@@ -338,7 +338,7 @@ export default function ValidatePermitPage() {
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       placeholder="Tambahkan catatan untuk pemohon atau staf selanjutnya..."
-                      className="w-full bg-muted border border-border rounded-xl p-4 text-sm font-medium focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all resize-none min-h-[120px]"
+                      className="w-full bg-muted border border-border rounded-xl p-4 text-sm font-medium focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all resize-none min-h-30"
                     />{" "}
                   </div>{" "}
                   <div className="flex flex-col gap-3">
