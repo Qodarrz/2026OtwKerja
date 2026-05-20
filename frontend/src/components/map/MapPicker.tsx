@@ -60,7 +60,7 @@ export default function MapPicker({ onAreaChange }: MapPickerProps) {
   };
 
   return (
-    <div className="relative w-full h-[500px] rounded-3xl overflow-hidden border-2 border-border shadow-inner">
+    <div className="relative w-full h-125 rounded-3xl overflow-hidden border-2 border-border shadow-inner">
       <MapContainer 
         center={center} 
         zoom={13} 
@@ -91,8 +91,8 @@ export default function MapPicker({ onAreaChange }: MapPickerProps) {
         )}
       </MapContainer>
 
-      <div className="absolute top-4 right-4 z-[400] flex flex-col gap-2">
-        <div className="bg-background/90 backdrop-blur-md p-3 rounded-2xl border border-border shadow-lg flex flex-col gap-1 min-w-[150px]">
+      <div className="absolute top-4 right-4 z-400 flex flex-col gap-2">
+        <div className="bg-background/90 backdrop-blur-md p-3 rounded-2xl border border-border shadow-lg flex flex-col gap-1 min-w-37.5">
           <span className="text-xs font-bold text-muted-foreground uppercase">Info Lahan</span>
           <div className="flex justify-between items-baseline">
             <span className="text-lg font-bold">{points.length}</span>
@@ -112,7 +112,7 @@ export default function MapPicker({ onAreaChange }: MapPickerProps) {
         </div>
       </div>
 
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[400] w-[90%] max-w-md">
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-400 w-[90%] max-w-md">
         <div className="bg-primary/90 backdrop-blur-md text-primary-foreground p-4 rounded-2xl shadow-lg flex items-center justify-between border border-white/10">
           <div className="flex flex-col">
             <span className="text-[10px] uppercase font-bold opacity-80">Instruksi</span>

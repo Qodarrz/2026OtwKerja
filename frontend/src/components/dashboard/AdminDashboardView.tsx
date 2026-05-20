@@ -133,7 +133,7 @@ export function AdminDashboardView() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
-            <Card className="border-none shadow-sm h-[500px]">
+            <Card className="border-none shadow-sm h-125">
               <CardContent className="p-8 space-y-8">
                 <div className="h-8 w-48 bg-muted rounded-md animate-pulse" />
                 {[1, 2, 3].map((i) => (
@@ -172,7 +172,7 @@ export function AdminDashboardView() {
           <Button variant="outline" className="rounded-xl border-border bg-card font-bold h-11 px-6 hover:bg-accent transition-all">
             <Filter className="w-4 h-4 mr-2 text-muted-foreground" /> Filter Data
           </Button>
-          <Button className="rounded-xl bg-primary hover:bg-primary/90 shadow-lg shadow-sm font-bold h-11 px-6 transition-all active:scale-95">
+          <Button className="rounded-xl bg-primary hover:bg-primary/90 shadow-lg font-bold h-11 px-6 transition-all active:scale-95">
             Unduh Laporan
           </Button>
         </div>
@@ -338,7 +338,7 @@ export function AdminDashboardView() {
             </CardContent>
           </Card>
 
-          <Card className="border-none bg-background overflow-hidden shadow-lg shadow-sm">
+          <Card className="border-none bg-background overflow-hidden shadow-lg">
             <CardContent className="p-8">
                <div className="flex items-center justify-between mb-8">
                   <div className="w-12 h-12 rounded-2xl bg-card/10 flex items-center justify-center">

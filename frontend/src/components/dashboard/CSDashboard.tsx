@@ -87,7 +87,7 @@ export function CSDashboard() {
         </div>
         <div>
           <Link href="/dashboard/tickets">
-            <Button className="rounded-xl bg-primary hover:bg-primary/90 shadow-lg shadow-sm font-bold h-11 px-6 transition-all active:scale-95">
+            <Button className="rounded-xl bg-primary hover:bg-primary/90 shadow-lg font-bold h-11 px-6 transition-all active:scale-95">
               Buka Ruang CS <ArrowUpRight className="ml-2 w-4 h-4" />
             </Button>
           </Link>
@@ -164,7 +164,7 @@ export function CSDashboard() {
                         </td>
                         <td className="px-8 py-6 text-right">
                           <Link href="/dashboard/tickets">
-                            <Button size="sm" className="rounded-xl bg-primary hover:bg-primary/90 font-bold h-9 px-5 transition-all shadow-md shadow-sm">
+                            <Button size="sm" className="rounded-xl bg-primary hover:bg-primary/90 font-bold h-9 px-5 transition-all shadow-md">
                               Bantu Sekarang <ArrowUpRight className="ml-2 w-3.5 h-3.5" />
                             </Button>
                           </Link>

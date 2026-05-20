@@ -53,7 +53,7 @@ export function ContactForm() {
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             whileInView={{ opacity: 1, x: 0 }}
-            className="bg-card p-10 rounded-[2.5rem] shadow-lg shadow-sm border border-border"
+            className="bg-card p-10 rounded-[2.5rem] shadow-sm border border-border"
           >
             <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -90,7 +90,7 @@ export function ContactForm() {
                   className="w-full p-6 rounded-2xl bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-bold resize-none"
                 />
               </div>
-              <Button className="w-full h-14 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-lg shadow-md shadow-sm group transition-all active:scale-95">
+              <Button className="w-full h-14 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-lg shadow-md group transition-all active:scale-95">
                 Kirim Pesan
                 <Send className="ml-2 w-5 h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
               </Button>

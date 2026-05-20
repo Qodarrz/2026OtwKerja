@@ -50,7 +50,7 @@ export function FAQ() {
               transition={{ delay: i * 0.1 }}
               className={cn(
                 "border rounded-3xl transition-all duration-300 overflow-hidden bg-card",
-                openIndex === i ? "border-primary/30 shadow-md shadow-sm" : "border-border"
+                openIndex === i ? "border-primary/30 shadow-md" : "border-border"
               )}
             >
               <button

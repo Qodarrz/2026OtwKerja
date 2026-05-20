@@ -169,7 +169,7 @@ export function FeedbackForm({ applicationId, onSuccess }: FeedbackFormProps) {
               placeholder="Ceritakan pengalaman Anda atau berikan saran perbaikan..."
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              className="min-h-[100px] rounded-xl border-border focus:ring-primary/20 bg-background"
+              className="min-h-25 rounded-xl border-border focus:ring-primary/20 bg-background"
             />{" "}
           </div>{" "}
           {error && (

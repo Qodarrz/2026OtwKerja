@@ -180,7 +180,7 @@ export function InternalDashboard() {
                         </td>
                         <td className="px-8 py-6 text-right">
                           <Link href={`/dashboard/validate/${task.id}`}>
-                            <Button size="sm" className="rounded-xl bg-primary hover:bg-primary/90 font-bold h-9 px-5 transition-all shadow-md shadow-sm">
+                            <Button size="sm" className="rounded-xl bg-primary hover:bg-primary/90 font-bold h-9 px-5 transition-all shadow-md">
                               Proses <ArrowUpRight className="ml-2 w-3.5 h-3.5" />
                             </Button>
                           </Link>
@@ -208,7 +208,7 @@ export function InternalDashboard() {
           ) : (
             <div className="p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                {tasks.map(task => (
-                 <div key={task.id} className="p-6 rounded-2xl border border-border bg-background hover:bg-card hover:shadow-md hover:shadow-sm transition-all duration-300 group relative overflow-hidden">
+                 <div key={task.id} className="p-6 rounded-2xl border border-border bg-background hover:bg-card hover:shadow-md transition-all duration-300 group relative overflow-hidden">
                     {task.isPendingLong && <div className="absolute top-0 right-0 w-16 h-16 bg-rose-500/10 rotate-45 translate-x-8 -translate-y-8" />}
                     <div className="flex justify-between items-start mb-6">
                       <div className="p-2 bg-card rounded-xl shadow-sm border border-border group-hover:scale-110 transition-transform">
@@ -233,7 +233,7 @@ export function InternalDashboard() {
                         </div>
                       </div>
                       <Link href={`/dashboard/validate/${task.id}`} className="block">
-                        <Button className="w-full bg-primary hover:bg-primary/90 rounded-xl font-bold h-11 shadow-lg shadow-sm">
+                        <Button className="w-full bg-primary hover:bg-primary/90 rounded-xl font-bold h-11 shadow-lg">
                           Mulai Validasi
                         </Button>
                       </Link>
