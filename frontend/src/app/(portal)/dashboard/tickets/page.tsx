@@ -410,12 +410,12 @@ export default function TicketingPage() {
                       key={msg.id || index}
                       className={`flex gap-3 max-w-[80%] ${isAgent ? "ml-auto flex-row-reverse" : "mr-auto"}`}
                     >
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold ${isAgent ? "bg-primary text-primary-foreground" : msg.senderRole === "BOT" ? "bg-accent text-accent-foreground" : "bg-muted text-muted-foreground border border-border"}`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold ${isAgent ? "bg-primary text-primary-foreground" : msg.senderRole === "BOT" ? "bg-accent text-accent-foreground" : "bg-muted text-muted-foreground border border-border"}`}>
                         {isAgent ? <User className="w-4 h-4" /> : msg.senderRole === "BOT" ? <Bot className="w-4 h-4" /> : <User className="w-4 h-4" />}
                       </div>
                       <div className="space-y-1">
                         <div className={`text-[10px] text-muted-foreground font-bold px-1 ${isAgent ? "text-right" : "text-left"}`}>
-                          {msg.senderName} <span className="text-[8px] uppercase px-1 py-0.25 bg-muted rounded font-bold">{msg.senderRole}</span>
+                          {msg.senderName} <span className="text-[8px] uppercase px-1 py-px bg-muted rounded font-bold">{msg.senderRole}</span>
                         </div>
                         <div
                           className={`p-3.5 rounded-2xl text-xs leading-relaxed shadow-sm ${

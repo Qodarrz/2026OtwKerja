@@ -73,7 +73,7 @@ function LoginForm() {
     <div className="h-screen w-full bg-background flex overflow-hidden font-sans transition-colors duration-300">
 
       {/* Left Section: Form */}
-      <div className="w-full lg:w-[480px] xl:w-[550px] flex flex-col h-full bg-card relative z-10 border-r border-border">
+      <div className="w-full lg:w-120 xl:w-137.5 flex flex-col h-full bg-card relative z-10 border-r border-border">
         <div className="flex-1 flex flex-col justify-center px-8 sm:px-12 md:px-16 lg:px-14 xl:px-20 overflow-y-auto custom-scrollbar py-8">
           <div className="w-full max-w-sm mx-auto space-y-8">
             {/* Logo and Header */}
@@ -189,7 +189,7 @@ function LoginForm() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full h-11 xl:h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl transition-all flex items-center justify-center gap-2 group active:scale-[0.98] shadow-lg shadow-sm"
+                className="w-full h-11 xl:h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl transition-all flex items-center justify-center gap-2 group active:scale-[0.98] shadow-sm"
               >
                 {isLoading ? (
                   <Loader2 className="w-5 h-5 animate-spin" />

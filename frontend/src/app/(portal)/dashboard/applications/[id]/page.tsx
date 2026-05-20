@@ -139,7 +139,7 @@ export default function ApplicationDetailPage() {
           {" "}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 relative">
             {" "}
-            <div className="absolute top-[22px] left-6 right-6 h-[2px] bg-muted -z-0 hidden md:block" />{" "}
+            <div className="absolute top-5.5 left-6 right-6 h-0.5 bg-muted z-0 hidden md:block" />{" "}
             {stages.map((stage, idx) => {
               const isPast = idx < currentStageIndex;
               const isCurrent = idx === currentStageIndex;

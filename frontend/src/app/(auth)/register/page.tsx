@@ -48,7 +48,7 @@ export default function RegisterPage() {
 
   return (
     <div className="h-screen w-full bg-background flex overflow-hidden font-sans transition-colors duration-300 lg:flex-row-reverse">
-      <div className="w-full lg:w-[480px] xl:w-[550px] flex flex-col h-full bg-card relative z-10 border-border lg:border-l">
+      <div className="w-full lg:w-120 xl:w-137.5 flex flex-col h-full bg-card relative z-10 border-border lg:border-l">
         <div className="flex-1 flex flex-col justify-center px-8 sm:px-12 md:px-16 lg:px-14 xl:px-20 overflow-y-auto custom-scrollbar py-8">
           <div className="w-full max-sm mx-auto space-y-8">
 

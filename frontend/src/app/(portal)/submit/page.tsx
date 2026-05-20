@@ -24,7 +24,7 @@ import { cn, formatCurrency } from "@/lib/utils";
 // Dynamically import map to avoid SSR issues
 const MapPicker = dynamic(() => import("@/components/map/MapPicker"), { 
   ssr: false,
-  loading: () => <div className="w-full h-[500px] bg-muted animate-pulse rounded-3xl flex items-center justify-center">Loading Map...</div>
+  loading: () => <div className="w-full h-125 bg-muted animate-pulse rounded-3xl flex items-center justify-center">Loading Map...</div>
 });
 
 const STEPS = [
@@ -54,7 +54,7 @@ export default function SubmitPermitPage() {
       <div className="max-w-4xl mx-auto">
         {/* Stepper */}
         <div className="flex justify-between mb-12 relative">
-          <div className="absolute top-1/2 left-0 w-full h-[2px] bg-muted -z-10 -translate-y-1/2" />
+          <div className="absolute top-1/2 left-0 w-full h-0.5 bg-muted -z-10 -translate-y-1/2" />
           {STEPS.map((step) => {
             const isActive = currentStep === step.id;
             const isCompleted = currentStep > step.id;
@@ -63,7 +63,7 @@ export default function SubmitPermitPage() {
                 <div 
                   className={cn(
                     "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 border-2",
-                    isActive ? "bg-primary border-primary text-primary-foreground scale-110 shadow-lg shadow-sm" : 
+                    isActive ? "bg-primary border-primary text-primary-foreground scale-110 shadow-lg" : 
                     isCompleted ? "bg-emerald-500 border-emerald-500 text-primary-foreground" : 
                     "bg-background border-muted text-muted-foreground"
                   )}

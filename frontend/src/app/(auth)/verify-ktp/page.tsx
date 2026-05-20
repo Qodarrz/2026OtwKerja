@@ -122,7 +122,7 @@ export default function VerifyKtpPage() {
     <div className="min-h-screen bg-muted flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8 font-sans">
       <div className="max-w-2xl w-full">
         <div className="text-center mb-10 space-y-3">
-          <div className="inline-flex items-center justify-center w-16 h-16 bjg-indigo-600 rounded-2xl shadow-md shadow-sm mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 bjg-indigo-600 rounded-2xl shadow-sm mb-4">
             <ShieldCheck className="w-8 h-8 text-primary-foreground" />
           </div>
           <h1 className="text-3xl font-bold text-foreground tracking-tight">Verifikasi Identitas</h1>
@@ -130,7 +130,7 @@ export default function VerifyKtpPage() {
             Satu langkah lagi untuk mengaktifkan akun Anda secara penuh. Silakan verifikasi KTP Anda.
           </p>
         </div>
-        <div className="bg-card rounded-3xl shadow-lg shadow-sm overflow-hidden border border-border">
+        <div className="bg-card rounded-3xl shadow-lg overflow-hidden border border-border">
           <div className="h-1.5 w-full bg-secondary flex">
             <div className={`h-full transition-all duration-500 bg-primary ${step === 'upload' ? 'w-1/3' : step === 'scanning' ? 'w-2/3' : 'w-full'}`} />
           </div>
@@ -186,7 +186,7 @@ export default function VerifyKtpPage() {
                   <button
                     onClick={startScanning}
                     disabled={!file || isScanning}
-                    className="w-full h-14 bg-primary hover:bg-primary/90 disabled:bg-gray-200 disabled:text-muted-foreground text-primary-foreground font-bold rounded-2xl transition-all flex items-center justify-center gap-3 shadow-lg shadow-sm active:scale-[0.98]"
+                    className="w-full h-14 bg-primary hover:bg-primary/90 disabled:bg-gray-200 disabled:text-muted-foreground text-primary-foreground font-bold rounded-2xl transition-all flex items-center justify-center gap-3 shadow-sm active:scale-[0.98]"
                   >
                     {isScanning ? <Loader2 className="w-5 h-5 animate-spin" /> : <>Mulai Verifikasi <ArrowRight className="w-5 h-5" /></>}
                   </button>
@@ -314,7 +314,7 @@ export default function VerifyKtpPage() {
                   <button
                     onClick={confirmVerification}
                     disabled={isConfirming}
-                    className="w-full h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-2xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-sm active:scale-[0.98]"
+                    className="w-full h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-2xl transition-all flex items-center justify-center gap-2 shadow-sm active:scale-[0.98]"
                   >
                     {isConfirming ? <Loader2 className="w-5 h-5 animate-spin" /> : <>Konfirmasi & Selesai <CheckCircle2 className="w-5 h-5" /></>}
                   </button>

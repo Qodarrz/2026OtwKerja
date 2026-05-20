@@ -52,7 +52,7 @@ export default function PublicTracking() {
 
       {/* Hero Search */}
       <section className="pt-40 pb-20 px-6 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px] -z-10" />
+        <div className="absolute top-0 right-0 w-150 h-150 bg-primary/5 rounded-full blur-[120px] -z-10" />
 
         <div className="max-w-4xl mx-auto text-center">
           <motion.div
@@ -73,13 +73,13 @@ export default function PublicTracking() {
                 placeholder="Masukkan ID Permohonan (Contoh: PBG-2024-001)"
                 value={searchId}
                 onChange={(e) => setSearchId(e.target.value)}
-                className="w-full h-20 bg-card border-2 border-border rounded-[2rem] pl-16 pr-44 text-sm font-normal focus:border-primary outline-none transition-all shadow-lg shadow-sm"
+                className="w-full h-20 bg-card border-2 border-border rounded-4xl pl-16 pr-44 text-sm font-normal focus:border-primary outline-none transition-all shadow-sm"
               />
               <Button
                 type="submit"
                 disabled={isSearching}
                 size="lg"
-                className="absolute right-3 top-3 bottom-3 px-10 rounded-[1.5rem] shadow-md"
+                className="absolute right-3 top-3 bottom-3 px-10 rounded-3xl shadow-md"
               >
                 {isSearching ? "Mencari..." : "Lacak Berkas"}
                 {!isSearching && <ArrowRight className="ml-2 w-5 h-5" />}
@@ -141,7 +141,7 @@ export default function PublicTracking() {
                       <span className="text-sm font-bold">{result.submittedAt}</span>
                     </div>
 
-                    <div className="mt-8 p-4 bg-primary rounded-2xl text-primary-foreground shadow-md shadow-sm">
+                    <div className="mt-8 p-4 bg-primary rounded-2xl text-primary-foreground shadow-sm">
                       <div className="flex gap-3">
                         <ShieldCheck className="w-5 h-5 text-primary-foreground/80" />
                         <div>
@@ -167,7 +167,7 @@ export default function PublicTracking() {
                         className={cn(
                           "relative p-8 rounded-3xl border transition-all duration-500",
                           stage.completed ? "bg-emerald-500/5 border-emerald-500/20" :
-                            stage.active ? "bg-card border-primary shadow-lg shadow-sm scale-[1.02]" :
+                            stage.active ? "bg-card border-primary shadow-sm scale-[1.02]" :
                               "bg-background border-border opacity-50"
                         )}
                       >

@@ -272,7 +272,7 @@ export function ChatWidget() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 50, scale: 0.9 }}
             transition={{ duration: 0.2 }}
-            className="absolute bottom-18 right-0 w-96 h-[520px] bg-card/95 border border-border shadow-2xl rounded-2xl flex flex-col overflow-hidden backdrop-blur-xl"
+            className="absolute bottom-18 right-0 w-96 h-130 bg-card/95 border border-border shadow-2xl rounded-2xl flex flex-col overflow-hidden backdrop-blur-xl"
           >
             {/* Chat Header */}
             <div className="p-4 bg-primary text-primary-foreground flex items-center justify-between shadow-md">
@@ -316,7 +316,7 @@ export function ChatWidget() {
                     className={`flex gap-2.5 max-w-[85%] ${isUser ? "ml-auto flex-row-reverse" : "mr-auto"}`}
                   >
                     {!isUser && (
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold ${
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold ${
                         msg.senderRole === "BOT" 
                           ? "bg-primary text-primary-foreground" 
                           : "bg-secondary text-secondary-foreground border border-border"
