@@ -5,6 +5,8 @@ import { MapContainer, TileLayer, Marker, Popup, Polygon, useMapEvents } from "r
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Button } from "@/components/ui/button";
+import * as turf from "@turf/turf";
+import { Loader2 } from "lucide-react";
 
 // Fix Leaflet marker icons
 const icon = L.icon({
@@ -16,11 +18,12 @@ const icon = L.icon({
 });
 
 interface MapPickerProps {
-  onAreaChange: (points: [number, number][], area: number) => void;
+  onAreaChange: (points: [number, number][], area: number, addressDetails?: any) => void;
 }
 
 export default function MapPicker({ onAreaChange }: MapPickerProps) {
   const [points, setPoints] = useState<[number, number][]>([]);
+  const [isGeocoding, setIsGeocoding] = useState(false);
   const center: [number, number] = [-6.2088, 106.8456]; // Jakarta
 
   function MapEvents() {
@@ -28,30 +31,46 @@ export default function MapPicker({ onAreaChange }: MapPickerProps) {
       click(e) {
         const newPoints: [number, number][] = [...points, [e.latlng.lat, e.latlng.lng]];
         setPoints(newPoints);
-        calculateArea(newPoints);
+        calculateAreaAndFetchAddress(newPoints);
       },
     });
     return null;
   }
 
-  const calculateArea = (coords: [number, number][]) => {
+  const calculateAreaAndFetchAddress = async (coords: [number, number][]) => {
     if (coords.length < 3) {
       onAreaChange(coords, 0);
       return;
     }
-    
-    // Simple Shoelace formula for area (approximate m2)
-    // For more precision, we should use turf.js, but let's stick to a mock calculation for now
-    // based on lat/lng differences scaled to meters
-    let area = 0;
-    for (let i = 0; i < coords.length; i++) {
-      const j = (i + 1) % coords.length;
-      area += coords[i][1] * coords[j][0];
-      area -= coords[j][1] * coords[i][0];
+
+    // Accurate area calculation using Turf.js
+    // Turf requires [longitude, latitude] format and closed polygon
+    const turfCoords = [...coords.map(c => [c[1], c[0]]), [coords[0][1], coords[0][0]]];
+    const polygon = turf.polygon([turfCoords]);
+    const area = turf.area(polygon);
+
+    setIsGeocoding(true);
+    try {
+      // Reverse Geocoding using Nominatim
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords[0][0]}&lon=${coords[0][1]}`);
+      const data = await res.json();
+
+      const addressDetails = {
+        road: data.address?.road || '',
+        suburb: data.address?.suburb || data.address?.village || data.address?.neighbourhood || '',
+        city: data.address?.city || data.address?.county || data.address?.town || '',
+        state: data.address?.state || '',
+        postcode: data.address?.postcode || '',
+        full: data.display_name
+      };
+
+      onAreaChange(coords, area, addressDetails);
+    } catch (e) {
+      console.error("Reverse geocoding failed", e);
+      onAreaChange(coords, area, null);
+    } finally {
+      setIsGeocoding(false);
     }
-    area = Math.abs(area) * 111319 * 111319 / 2; // Very rough conversion
-    
-    onAreaChange(coords, area);
   };
 
   const clearPoints = () => {
@@ -60,33 +79,35 @@ export default function MapPicker({ onAreaChange }: MapPickerProps) {
   };
 
   return (
-    <div className="relative w-full h-125 rounded-3xl overflow-hidden border-2 border-border shadow-inner">
-      <MapContainer 
-        center={center} 
-        zoom={13} 
-        scrollWheelZoom={true} 
+    <div className="relative w-full h-[500px] rounded-3xl overflow-hidden border-2 border-border shadow-inner bg-muted">
+      <MapContainer
+        center={center}
+        zoom={16}
+        maxZoom={22}
+        scrollWheelZoom={true}
         className="w-full h-full z-0"
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; Google'
+          url="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
+          maxZoom={22}
         />
         <MapEvents />
-        
+
         {points.map((point, idx) => (
           <Marker key={idx} position={point} icon={icon} />
         ))}
-        
+
         {points.length >= 2 && (
-          <Polygon 
-            positions={points} 
-            pathOptions={{ 
+          <Polygon
+            positions={points}
+            pathOptions={{
               color: points.length >= 3 ? '#6366f1' : '#94a3b8',
               fillColor: '#818cf8',
               fillOpacity: 0.3,
               weight: 3,
               dashArray: points.length < 3 ? '5, 10' : ''
-            }} 
+            }}
           />
         )}
       </MapContainer>
@@ -98,9 +119,9 @@ export default function MapPicker({ onAreaChange }: MapPickerProps) {
             <span className="text-lg font-bold">{points.length}</span>
             <span className="text-xs text-muted-foreground">Titik</span>
           </div>
-          <Button 
-            size="sm" 
-            variant="outline" 
+          <Button
+            size="sm"
+            variant="outline"
             className="mt-2 h-8 text-xs rounded-lg"
             onClick={(e) => {
               e.stopPropagation();
@@ -116,11 +137,11 @@ export default function MapPicker({ onAreaChange }: MapPickerProps) {
         <div className="bg-primary/90 backdrop-blur-md text-primary-foreground p-4 rounded-2xl shadow-lg flex items-center justify-between border border-white/10">
           <div className="flex flex-col">
             <span className="text-[10px] uppercase font-bold opacity-80">Instruksi</span>
-            <span className="text-sm font-medium">Klik pada peta untuk menentukan batas lahan</span>
+            <span className="text-sm font-medium">Klik pada peta untuk batas presisi tinggi</span>
           </div>
           {points.length >= 3 && (
-            <div className="px-3 py-1 bg-card/20 rounded-lg text-xs font-bold">
-              Siap
+            <div className="px-3 py-1 bg-card/20 rounded-lg text-xs font-bold flex items-center gap-2">
+              {isGeocoding ? <Loader2 className="w-3 h-3 animate-spin" /> : "Akurat"}
             </div>
           )}
         </div>

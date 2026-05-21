@@ -62,7 +62,7 @@ function LoginForm() {
       } else if (!response.user.isKtpVerified) {
         router.push('/verify-ktp');
       } else {
-        router.push('/submit');
+        router.push('/');
       }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Login failed. Please check your credentials.');

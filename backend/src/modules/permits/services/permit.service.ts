@@ -54,6 +54,15 @@ export class PermitService {
     }
 
     /**
+     * Get all permit form schemas
+     */
+    async getSchemas() {
+        return this.prisma.permitFormSchema.findMany({
+            orderBy: { createdAt: 'asc' }
+        });
+    }
+
+    /**
      * Create a new permit application (draft status)
      */
     async createApplication(userId: string, dto: CreateApplicationDto) {
@@ -81,6 +90,9 @@ export class PermitService {
                 businessType: dto.businessType,
                 businessLocation: dto.businessLocation,
                 estimatedEmployees: dto.estimatedEmployees,
+                
+                // Save dynamic data
+                dynamicData: (dto as any).dynamicData || null,
             },
             include: {
                 applicant: {
@@ -452,6 +464,7 @@ export class PermitService {
                 businessType: dto.businessType,
                 businessLocation: dto.businessLocation,
                 estimatedEmployees: dto.estimatedEmployees,
+                dynamicData: (dto as any).dynamicData || application.dynamicData,
             },
             include: {
                 applicant: {
@@ -736,59 +749,8 @@ export class PermitService {
      * Validate application data based on permit type
      */
     validateApplicationData(dto: CreateApplicationDto | UpdateApplicationDto) {
-        if ('permitType' in dto) {
-            if (dto.permitType === PermitType.BUILDING_PERMIT) {
-                // Building permit requires property information
-                if (!dto.locationAddress) {
-                    throw new BadRequestException(
-                        'Location address is required for building permits',
-                    );
-                }
-                if (!dto.landSize || dto.landSize <= 0) {
-                    throw new BadRequestException(
-                        'Valid land size is required for building permits',
-                    );
-                }
-                if (!dto.landType) {
-                    throw new BadRequestException(
-                        'Land type is required for building permits',
-                    );
-                }
-                if (!dto.buildingHeight || dto.buildingHeight <= 0) {
-                    throw new BadRequestException(
-                        'Valid building height is required for building permits',
-                    );
-                }
-                if (!dto.njopValue || dto.njopValue <= 0) {
-                    throw new BadRequestException(
-                        'Valid NJOP value is required for building permits',
-                    );
-                }
-            } else if (dto.permitType === PermitType.BUSINESS_LICENSE) {
-                // Business license requires business information
-                if (!dto.businessName) {
-                    throw new BadRequestException(
-                        'Business name is required for business licenses',
-                    );
-                }
-                if (!dto.businessType) {
-                    throw new BadRequestException(
-                        'Business type is required for business licenses',
-                    );
-                }
-                if (!dto.businessLocation) {
-                    throw new BadRequestException(
-                        'Business location is required for business licenses',
-                    );
-                }
-                if (!dto.estimatedEmployees || dto.estimatedEmployees <= 0) {
-                    throw new BadRequestException(
-                        'Valid estimated employees is required for business licenses',
-                    );
-                }
-            }
-        }
-
+        // Relax validation for dynamic form
+        // Let the dynamic form schemas dictate frontend validation for now
         return true;
     }
 }

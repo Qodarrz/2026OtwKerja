@@ -54,6 +54,15 @@ export class PermitController {
     }
 
     /**
+     * GET /api/permits/applications/schemas
+     * Get permit schemas (dynamic form definitions)
+     */
+    @Get('schemas')
+    async getSchemas() {
+        return this.permitService.getSchemas();
+    }
+
+    /**
      * GET /api/permits/applications/search
      * Search across ALL applications (staff/admin).
      * Must be declared before `:id` to avoid NestJS treating "search" as an ID.

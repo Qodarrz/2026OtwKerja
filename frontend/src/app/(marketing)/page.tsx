@@ -137,10 +137,10 @@ export default function LandingPage() {
             className="grid grid-cols-2 md:grid-cols-4 gap-10"
           >
             {[
-              { label: "Efisiensi Proses", value: "40%", icon: Zap },
-              { label: "Kepatuhan SLA", value: "98%", icon: Shield },
-              { label: "Akuntabilitas", value: "100%", icon: CheckCircle2 },
-              { label: "Monitoring", value: "24/7", icon: Activity },
+              { label: "Efisiensi Proses", value: "40%" },
+              { label: "Kepatuhan SLA", value: "98%" },
+              { label: "Akuntabilitas", value: "100%" },
+              { label: "Monitoring", value: "24/7" },
             ].map((stat, i) => (
               <motion.div
                 key={i}
@@ -148,7 +148,6 @@ export default function LandingPage() {
                 className="flex flex-col items-center text-center justify-center"
               >
                 <div className="flex items-center justify-center gap-2.5 mb-1.5">
-                  <stat.icon className="w-4 h-4 text-primary/70" />
                   <span className="text-3xl font-bold tracking-tight text-foreground">{stat.value}</span>
                 </div>
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{stat.label}</p>

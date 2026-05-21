@@ -125,6 +125,18 @@ enum PermitType {
   BUSINESS_LICENSE
 }
 
+model PermitFormSchema {
+  id                String     @id @default(uuid())
+  permitType        PermitType @unique
+  title             String
+  description       String?
+  fields            Json       // Array of field definitions
+  requiresMap       Boolean    @default(false)
+  requiredDocuments Json       // Array of required document types
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+}
+
 enum LandType {
   RESIDENTIAL
   COMMERCIAL
@@ -174,6 +186,9 @@ model PermitApplication {
   // Applicant
   applicant         User             @relation(fields: [applicantId], references: [id])
   applicantId       String
+  
+  // Dynamic fields storage
+  dynamicData       Json?
   
   // Property Information (Building Permit)
   locationAddress   String?
