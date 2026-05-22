@@ -78,10 +78,6 @@ export class AnalyticsController {
         return this.analyticsService.getMonthlyReport(year, month);
     }
 
-    /**
-     * Get user dashboard metrics
-     * Regular users can access their own metrics
-     */
     @Get('user-dashboard')
     @Roles(Role.USER, Role.ADMIN)
     async getUserDashboard(@Req() req: any) {

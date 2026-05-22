@@ -407,13 +407,9 @@ export class AnalyticsService {
             });
         }
 
-        // Sort by overdue count (descending) - most critical first
         return bottlenecks.sort((a, b) => b.overdueCount - a.overdueCount);
     }
 
-    /**
-     * Get monthly report data
-     */
     async getMonthlyReport(year: number, month: number) {
         const startDate = new Date(year, month - 1, 1);
         const endDate = new Date(year, month, 0, 23, 59, 59);
@@ -446,7 +442,6 @@ export class AnalyticsService {
             (app) => app.status === WorkflowStage.REJECTED,
         ).length;
 
-        // Calculate average duration from stage histories
         const allStageHistories = applications.flatMap((app) => app.stageHistory);
         const totalDuration = allStageHistories.reduce(
             (sum, s) => sum + (s.durationHours || 0),
@@ -463,7 +458,6 @@ export class AnalyticsService {
                 ? (overdueCount / allStageHistories.length) * 100
                 : 0;
 
-        // Group by permit type
         const byPermitType = applications.reduce((acc, app) => {
             const type = app.permitType;
             if (!acc[type]) {
@@ -494,9 +488,7 @@ export class AnalyticsService {
             byPermitType: byPermitTypeArray,
         };
     }
-    /**
-     * Get dashboard metrics for a specific user
-     */
+    
     async getUserDashboardMetrics(userId: string) {
         const applications = await this.prisma.permitApplication.findMany({
             where: { applicantId: userId },

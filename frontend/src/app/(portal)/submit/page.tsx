@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
 import api from "@/lib/axios";
-import { 
-  Map as MapIcon, 
-  FileCheck, 
-  ChevronRight, 
+import {
+  Map as MapIcon,
+  FileCheck,
+  ChevronRight,
   ChevronLeft,
   AlertTriangle,
   CheckCircle2,
@@ -18,14 +19,15 @@ import {
   Loader2,
   FileText,
   Briefcase,
-  Building2
+  Building2,
+  Lock
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { cn, formatCurrency } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // Dynamically import map to avoid SSR issues
-const MapPicker = dynamic(() => import("@/components/map/MapPicker"), { 
+const MapPicker = dynamic(() => import("@/components/map/MapPicker"), {
   ssr: false,
   loading: () => <div className="w-full h-125 bg-muted animate-pulse rounded-3xl flex items-center justify-center">Loading Map...</div>
 });
@@ -34,13 +36,24 @@ export default function SubmitPermitPage() {
   const router = useRouter();
   const [schemas, setSchemas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   const [currentStep, setCurrentStep] = useState(0); // 0 = Select Type
   const [selectedSchema, setSelectedSchema] = useState<any>(null);
-  
+
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [mapData, setMapData] = useState({ area: 0, points: [] as [number, number][], addressDetails: null as any });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const { user } = useAuth();
+  const [showKtpModal, setShowKtpModal] = useState(false);
+  const isKtpVerified = user?.isKtpVerified;
+
+  useEffect(() => {
+    // Tampilkan modal otomatis pas halaman submit diload kalau KTP belum diverifikasi
+    if (user && !user.isKtpVerified && currentStep === 0) {
+      setShowKtpModal(true);
+    }
+  }, [user, currentStep]);
 
   useEffect(() => {
     const fetchSchemas = async () => {
@@ -76,7 +89,7 @@ export default function SubmitPermitPage() {
   const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 0));
 
   const estimatedNJOP = mapData.area * 2500000;
-  const hasOverlap = mapData.area > 5000;
+  const hasOverlap = mapData.area > 50000;
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
@@ -132,29 +145,86 @@ export default function SubmitPermitPage() {
               </Card>
             ))
           ) : (
-            schemas.map((schema) => (
-              <Card 
-                key={schema.id} 
-                className="cursor-pointer hover:border-primary transition-all hover:shadow-lg group"
-                onClick={() => handleSelectSchema(schema)}
-              >
-                <CardContent className="p-8 flex flex-col items-center text-center gap-4">
-                  <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                    {schema.permitType === "BUILDING_PERMIT" ? <Building2 className="w-8 h-8" /> : <Briefcase className="w-8 h-8" />}
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-xl">{schema.title}</h3>
-                    <p className="text-sm text-muted-foreground mt-2">{schema.description}</p>
-                  </div>
-                  <div className="flex gap-2 mt-2">
-                    <span className="text-[10px] font-bold px-2 py-1 bg-muted rounded-md">{schema.fields.length} Kolom Data</span>
-                    {schema.requiresMap && <span className="text-[10px] font-bold px-2 py-1 bg-blue-500/10 text-blue-600 rounded-md">Wajib Pemetaan</span>}
-                  </div>
-                </CardContent>
-              </Card>
-            ))
+            schemas.map((schema) => {
+              const isDisabled = !isKtpVerified;
+
+              return (
+                <Card
+                  key={schema.id}
+                  className={cn(
+                    "transition-all group relative overflow-hidden",
+                    isDisabled ? "opacity-50 cursor-not-allowed border-dashed bg-muted/30 grayscale-[50%]" : "cursor-pointer hover:border-primary hover:shadow-lg"
+                  )}
+                  onClick={() => {
+                    if (isDisabled) {
+                      setShowKtpModal(true);
+                    } else {
+                      handleSelectSchema(schema);
+                    }
+                  }}
+                >
+                  {isDisabled && (
+                    <div className="absolute top-4 right-4 bg-background border border-border p-2 rounded-full text-muted-foreground shadow-sm z-10">
+                      <Lock className="w-4 h-4" />
+                    </div>
+                  )}
+                  <CardContent className="p-8 flex flex-col items-center text-center gap-4 relative z-0">
+                    <div className={cn(
+                      "w-16 h-16 rounded-2xl flex items-center justify-center transition-transform",
+                      isDisabled ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary group-hover:scale-110"
+                    )}>
+                      {schema.permitType === "BUILDING_PERMIT" ? <Building2 className="w-8 h-8" /> : <Briefcase className="w-8 h-8" />}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-xl">{schema.title}</h3>
+                      <p className="text-sm text-muted-foreground mt-2">{schema.description}</p>
+                    </div>
+                    <div className="flex gap-2 mt-2">
+                      <span className="text-[10px] font-bold px-2 py-1 bg-muted rounded-md">{schema.fields.length} Kolom Data</span>
+                      {schema.requiresMap && <span className="text-[10px] font-bold px-2 py-1 bg-blue-500/10 text-blue-600 rounded-md">Wajib Pemetaan</span>}
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })
           )}
         </div>
+
+        {/* Modal KYC Alert */}
+        <AnimatePresence>
+          {showKtpModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                className="bg-background border border-border p-8 rounded-3xl max-w-md w-full shadow-2xl relative overflow-hidden"
+              >
+                <div className="w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-6">
+                  <AlertTriangle className="w-8 h-8" />
+                </div>
+                <h2 className="text-2xl font-bold mb-2">Data Diri Belum Lengkap!</h2>
+                <p className="text-muted-foreground mb-8 text-sm leading-relaxed">
+                  Untuk menjaga integritas data pengajuan izin, Anda diwajibkan untuk memverifikasi identitas menggunakan <b>KTP (Sistem OCR otomatis)</b> terlebih dahulu.
+                </p>
+                <div className="flex flex-col gap-3 w-full">
+                  <Button variant="premium" className="w-full rounded-xl h-12" onClick={() => router.push('/verify-ktp')}>
+                    Lengkapi Sekarang
+                  </Button>
+                  <Button variant="ghost" className="w-full rounded-xl h-12 text-muted-foreground" onClick={() => setShowKtpModal(false)}>
+                    Atur Nanti
+                  </Button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
       </div>
     );
   }
@@ -170,12 +240,12 @@ export default function SubmitPermitPage() {
             const isCompleted = currentStep > step.id;
             return (
               <div key={step.id} className="flex flex-col items-center gap-3">
-                <div 
+                <div
                   className={cn(
                     "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 border-2",
-                    isActive ? "bg-primary border-primary text-primary-foreground scale-110 shadow-lg" : 
-                    isCompleted ? "bg-emerald-500 border-emerald-500 text-primary-foreground" : 
-                    "bg-background border-muted text-muted-foreground"
+                    isActive ? "bg-primary border-primary text-primary-foreground scale-110 shadow-lg" :
+                      isCompleted ? "bg-emerald-500 border-emerald-500 text-primary-foreground" :
+                        "bg-background border-muted text-muted-foreground"
                   )}
                 >
                   {isCompleted ? <CheckCircle2 className="w-6 h-6" /> : <step.icon className="w-6 h-6" />}
@@ -209,9 +279,9 @@ export default function SubmitPermitPage() {
                       <label className="text-sm font-bold">
                         {field.label} {field.required && <span className="text-destructive">*</span>}
                       </label>
-                      
+
                       {field.type === "select" ? (
-                        <select 
+                        <select
                           className="w-full h-12 rounded-xl border border-input bg-background px-4 py-2"
                           value={formData[field.name]}
                           onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
@@ -223,9 +293,9 @@ export default function SubmitPermitPage() {
                           ))}
                         </select>
                       ) : (
-                        <Input 
+                        <Input
                           type={field.type === "number" ? "number" : "text"}
-                          placeholder={field.placeholder} 
+                          placeholder={field.placeholder}
                           value={formData[field.name]}
                           onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
                           required={field.required}
@@ -245,7 +315,7 @@ export default function SubmitPermitPage() {
                   <CardDescription>Gambarkan batas lahan Anda pada peta di bawah ini untuk kalkulasi presisi.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <MapPicker 
+                  <MapPicker
                     onAreaChange={(points, area, addressDetails) => {
                       setMapData({ points, area, addressDetails });
                       if (addressDetails && selectedSchema) {
@@ -254,16 +324,16 @@ export default function SubmitPermitPage() {
                           const updated = { ...prev };
                           const hasLocAddr = selectedSchema.fields.some((f: any) => f.name === 'locationAddress');
                           const hasBizLoc = selectedSchema.fields.some((f: any) => f.name === 'businessLocation');
-                          
+
                           if (hasLocAddr) updated.locationAddress = addressDetails.full;
                           if (hasBizLoc) updated.businessLocation = addressDetails.full;
-                          
+
                           return updated;
                         });
                       }
-                    }} 
+                    }}
                   />
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                     <div className="p-4 rounded-2xl bg-background border border-border">
                       <span className="text-xs font-bold text-muted-foreground uppercase">Luas Lahan Akurat (Turf.js)</span>
@@ -365,24 +435,24 @@ export default function SubmitPermitPage() {
 
         {/* Navigation Buttons */}
         <div className="flex justify-between mt-12">
-          <Button 
-            variant="ghost" 
-            onClick={prevStep} 
+          <Button
+            variant="ghost"
+            onClick={prevStep}
             className="rounded-xl"
           >
             <ChevronLeft className="mr-2 w-4 h-4" /> Kembali
           </Button>
-          
+
           {currentStep < STEPS.length ? (
             <Button onClick={nextStep} className="rounded-xl group">
               Lanjut
               <ChevronRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Button>
           ) : (
-            <Button 
-              variant="premium" 
-              className="rounded-xl shadow-md" 
-              disabled={(selectedSchema.requiresMap && hasOverlap) || isSubmitting}
+            <Button
+              variant="premium"
+              className="rounded-xl shadow-md"
+              disabled={isSubmitting}
               onClick={handleSubmit}
             >
               {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Kirim Pengajuan Sekarang"}

@@ -99,9 +99,9 @@ export class AuthController {
       path: '/',
     });
 
-    // Redirect to frontend without token in URL
+    // Redirect to frontend with token in URL (fixes cross-origin SameSite cookie drop on first load)
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    return res.redirect(`${frontendUrl}/auth/callback`);
+    return res.redirect(`${frontendUrl}/callback?token=${access_token}`);
   }
 
   @UseGuards(JwtAuthGuard)

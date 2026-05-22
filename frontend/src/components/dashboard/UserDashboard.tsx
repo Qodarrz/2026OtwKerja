@@ -77,18 +77,10 @@ export function UserDashboard() {
     },
   ];
 
-  // We will render static layout and use skeletons instead of a full page spinner
-
   return (
     <div className="space-y-10">
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-1">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="p-1.5 bg-primary/10 rounded-lg">
-              <Sparkles className="w-3.5 h-3.5 text-primary" />
-            </div>
-            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Portal Publik</span>
-          </div>
           <h1 className="text-4xl font-bold tracking-tight text-foreground">Halo, {user?.name?.split(' ')[0]}!</h1>
           <p className="text-muted-foreground font-medium">Pantau progres perizinan dan kewajiban administrasi Anda di sini.</p>
         </div>
@@ -105,7 +97,6 @@ export function UserDashboard() {
           Array.from({ length: 4 }).map((_, i) => (
             <Card key={i} className="border-none shadow-sm bg-card overflow-hidden">
               <CardContent className="p-6">
-                <Skeleton className="w-12 h-12 rounded-2xl mb-4" />
                 <div className="flex flex-col gap-2">
                   <Skeleton className="w-16 h-8" />
                   <Skeleton className="w-24 h-3 mt-1" />
@@ -124,9 +115,6 @@ export function UserDashboard() {
               <Card className="border-none shadow-sm bg-card overflow-hidden group hover:shadow-md transition-all">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <div className={cn("p-3 rounded-2xl transition-transform group-hover:scale-110 duration-300", stat.bg)}>
-                      <stat.icon className={cn("w-6 h-6", stat.color)} />
-                    </div>
                   </div>
                   <div className="flex flex-col">
                     <span className="text-3xl font-bold tracking-tight text-foreground">{stat.value}</span>

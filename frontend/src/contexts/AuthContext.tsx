@@ -1,4 +1,4 @@
-  'use client';
+'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, AuthState, Role } from '@/types/auth';
@@ -37,11 +37,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       } catch (e) {
         localStorage.removeItem('user_hint');
-        fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
+        if (window.location.pathname !== '/callback') {
+          fetch('/api/auth/logout', { method: 'POST' }).catch(() => { });
+        }
       }
     } else {
       // Force clear cookie if user_hint is missing so middleware doesn't redirect loop
-      fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
+      // But SKIP this on /callback because the cookie was just set by OAuth and user_hint isn't saved yet
+      if (typeof window !== 'undefined' && window.location.pathname !== '/callback') {
+        fetch('/api/auth/logout', { method: 'POST' }).catch(() => { });
+      }
     }
 
     // 2. Full background validation with the server
@@ -56,17 +61,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       } catch (err: any) {
         const isAuthError = err.response && err.response.status === 401;
-        
+
         if (isAuthError) {
           localStorage.removeItem('user_hint');
-          try {
-            // Force clear local cookie
-            await fetch('/api/auth/logout', { method: 'POST' });
-            // Attempt to logout from backend
-            await authService.logout();
-          } catch (e) {
-            // Ignore errors during cleanup
+
+          // DO NOT call logout API on /callback page to prevent race condition where 
+          // the cookie might not be sent yet by the browser, deleting the newly created session.
+          if (typeof window !== 'undefined' && window.location.pathname !== '/callback') {
+            try {
+              // Force clear local cookie
+              await fetch('/api/auth/logout', { method: 'POST' });
+              // Attempt to logout from backend
+              await authService.logout();
+            } catch (e) {
+              // Ignore errors during cleanup
+            }
           }
+
           setAuthState({
             user: null,
             isAuthenticated: false,
@@ -145,7 +156,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Skip redirection for certain pages
       const isExcluded = pathname === '/' || pathname.includes('/profile');
-      
+
       if (isExcluded) return;
 
       // 1. Check Gmail Verification
@@ -156,21 +167,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      // 2. Check KTP Verification (only for non-internal users)
-      if (!isInternalUser && !authState.user.isKtpVerified) {
-        if (!isKtpPage) {
-          router.push('/verify-ktp');
-        }
-        return;
-      }
+      // 2. We no longer force KTP verification on login. User can explore the dashboard.
+      // KTP check will be enforced when they try to apply for a permit.
 
-      // 3. Handle Login/Register/OTP/KTP page redirects if already fully verified
-      const isVerificationPage = isOtpPage || isKtpPage;
+      // 3. Handle Login/Register/OTP page redirects if already fully verified
+      const isVerificationPage = isOtpPage;
       if (isAuthPage || isVerificationPage) {
         router.push(isInternalUser ? '/dashboard' : '/submit');
       }
     }
-  }, [authState.isAuthenticated, authState.user?.verify_gmail, authState.user?.isKtpVerified, authState.isLoading, router]);
+  }, [authState.isAuthenticated, authState.user?.verify_gmail, authState.isLoading, router]);
 
   return (
     <AuthContext.Provider value={{ ...authState, login, logout, isAdmin, isInternal, isVerified, hasRole }}>

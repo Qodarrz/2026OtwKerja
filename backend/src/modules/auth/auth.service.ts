@@ -15,7 +15,7 @@ import {
   VerifyOtpDto,
   ResendOtpDto,
 } from './dto/auth.dto';
-import { AuthProvider } from '@prisma/client';
+import { AuthProvider, Role } from '@prisma/client';
 import { MailerService } from '../mailer/mailer.service';
 import { AuditLogService } from '../audit-log/services/audit-log.service';
 import {
@@ -63,6 +63,7 @@ export class AuthService {
             password: hashedPassword,
             provider: AuthProvider.LOCAL,
             verify_gmail: false,
+            roles: [Role.USER],
             userDetail: {
               create: {},
             },
@@ -348,28 +349,14 @@ export class AuthService {
           name: details.name,
           provider: details.provider,
           providerId: details.providerId,
-          verify_gmail: false, // Set to false to require OTP even for OAuth
+          verify_gmail: true, // Auto-verify email for Google Auth
+          roles: [Role.USER],
           userDetail: {
             create: {},
           },
         },
         include: { userDetail: true },
       });
-
-      // Send initial OTP for OAuth if needed
-      const otp = this.generateOtp();
-      const otpExpires = new Date();
-      otpExpires.setMinutes(otpExpires.getMinutes() + 10);
-      await this.prisma.otpVerification.create({
-        data: {
-          userId: user.id,
-          otp_code: otp,
-          otp_expires_at: otpExpires,
-          otp_attempts: 1,
-          last_otp_requested_at: new Date(),
-        },
-      });
-      await this.mailerService.sendOtpEmail(user.email, otp);
     }
 
     const payload = { 
@@ -433,6 +420,8 @@ export class AuthService {
   }
 
   async logout(token: string) {
+    if (!token) return { message: 'Logged out successfully' };
+
     const logoutTime = new Date();
     
     // Get session to find user and calculate session duration

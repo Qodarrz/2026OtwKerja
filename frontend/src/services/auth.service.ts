@@ -22,8 +22,9 @@ export const authService = {
     return data;
   },
 
-  async getProfile(): Promise<any> {
-    const { data } = await api.get('/auth/profile');
+  async getProfile(token?: string): Promise<any> {
+    const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+    const { data } = await api.get('/auth/profile', config);
     return data;
   },
 

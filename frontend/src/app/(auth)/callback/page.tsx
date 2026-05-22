@@ -14,8 +14,9 @@ function AuthCallbackContent() {
   useEffect(() => {
     const handleAuth = async () => {
       try {
-        const userData = await authService.getProfile();
-        login('', userData); // token is in cookie
+        const token = searchParams.get('token');
+        const userData = await authService.getProfile(token || undefined);
+        login(token || '', userData); 
         
         const internalRoles = ['ADMIN', 'DOCUMENT_VALIDATOR', 'FIELD_INSPECTOR', 'LEGALIZER'];
         const isInternal = userData.roles.some((role: any) => internalRoles.includes(role));
@@ -24,8 +25,6 @@ function AuthCallbackContent() {
           router.push(`/verify-otp?email=${encodeURIComponent(userData.email)}`);
         } else if (isInternal) {
           router.push('/dashboard');
-        } else if (!userData.isKtpVerified) {
-          router.push('/verify-ktp');
         } else {
           router.push('/submit');
         }
