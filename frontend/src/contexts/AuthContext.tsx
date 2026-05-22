@@ -55,7 +55,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           isLoading: false,
         });
       } catch (err: any) {
-        const isAuthError = err.response && (err.response.status === 401 || err.response.status === 403);
+        const isAuthError = err.response && err.response.status === 401;
         
         if (isAuthError) {
           localStorage.removeItem('user_hint');
