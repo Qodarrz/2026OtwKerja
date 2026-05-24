@@ -32,6 +32,10 @@ export const usersService = {
     const { data } = await api.get("/users/me/profile");
     return data;
   },
+  updateProfile: async (profileData: any) => {
+    const { data } = await api.patch("/users/me/profile", profileData);
+    return data;
+  },
   getActivityHistory: async () => {
     const { data } = await api.get("/users/me/history");
     return data;

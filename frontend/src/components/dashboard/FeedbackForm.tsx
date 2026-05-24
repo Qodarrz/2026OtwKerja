@@ -29,8 +29,8 @@ export function FeedbackForm({ applicationId, onSuccess }: FeedbackFormProps) {
   const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState("");
   const [type, setType] = useState<
-    "GENERAL" | "BOTTLENECK_REPORT" | "APPRECIATION" | "COMPLAINT"
-  >("GENERAL");
+    "OTHER" | "SUGGESTION" | "APPRECIATION" | "COMPLAINT"
+  >("OTHER");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -138,9 +138,9 @@ export function FeedbackForm({ applicationId, onSuccess }: FeedbackFormProps) {
             <div className="flex flex-wrap gap-2">
               {" "}
               {[
-                { id: "GENERAL", label: "Umum" },
+                { id: "OTHER", label: "Umum" },
                 { id: "APPRECIATION", label: "Apresiasi" },
-                { id: "BOTTLENECK_REPORT", label: "Lapor Hambatan" },
+                { id: "SUGGESTION", label: "Lapor Hambatan" },
                 { id: "COMPLAINT", label: "Keluhan" },
               ].map((t) => (
                 <button

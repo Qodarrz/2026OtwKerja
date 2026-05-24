@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ChatSessionStatus } from '@prisma/client';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class ChatService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private configService: ConfigService
+  ) {}
 
   async getOrCreateSession(userId: string) {
     const user = await this.prisma.user.findUnique({
@@ -255,5 +259,75 @@ export class ChatService {
         },
       },
     });
+  }
+
+  async generateBotReply(sessionId: string, userMessage: string) {
+    // Note: We check API_KEY first because the local shell environment seems to have an exported 
+    // OPENROUTER_API_KEY that overrides the .env file with an old, invalid token!
+    const apiKey = this.configService.get<string>('API_KEY')?.trim() || this.configService.get<string>('OPENROUTER_API_KEY')?.trim();
+    if (!apiKey) {
+      console.warn("OPENROUTER_API_KEY is not set.");
+      return null;
+    }
+
+    try {
+      // Get conversation history for context
+      const session = await this.prisma.chatSession.findUnique({
+        where: { id: sessionId },
+        include: {
+          messages: {
+            orderBy: { createdAt: 'asc' },
+            take: 10, // context window
+          }
+        }
+      });
+
+      const messages = [
+        {
+          role: "system",
+          content: "You are a helpful and professional customer service virtual assistant for FlowGov, an e-government permit portal. Answer questions briefly, politely, and use Indonesian language."
+        },
+        ...(session?.messages.map(m => ({
+          role: m.senderRole === 'USER' ? 'user' : 'assistant',
+          content: m.content
+        })) || []),
+        { role: "user", content: userMessage }
+      ];
+
+      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": process.env.FRONTEND_URL || "http://localhost:3001",
+          "X-Title": "FlowGov Portal"
+        },
+        body: JSON.stringify({
+          model: "nvidia/nemotron-3-super-120b-a12b:free",
+          messages: messages
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`OpenRouter failed with status ${response.status}. API Key length: ${apiKey?.length}. Error body:`, errorText);
+        throw new Error(`OpenRouter error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const botResponse = data.choices[0]?.message?.content || "Maaf, saya tidak dapat merespons saat ini.";
+
+      return await this.createMessage(
+        sessionId,
+        null,
+        'Virtual Assistant',
+        'BOT',
+        botResponse
+      );
+
+    } catch (error) {
+      console.error("Failed to generate bot reply via OpenRouter:", error);
+      return null;
+    }
   }
 }

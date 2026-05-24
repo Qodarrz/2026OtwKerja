@@ -60,7 +60,7 @@ export function ChatWidget() {
         setMessages(formattedMessages);
         setUnreadCount(0);
 
-        if (data.status === "OPEN") {
+        if (data.status === "OPEN" || data.status === "BOT") {
           connectWebSocket(data.id);
         }
       } catch (e) {
@@ -218,15 +218,15 @@ export function ChatWidget() {
   const handleSendMessage = () => {
     if (!inputValue.trim()) return;
 
-    // Send through WebSocket if escalated (Live Chat with CS)
-    if (isEscalated && socketRef.current && session) {
+    // Send through WebSocket (Backend handles both CS and AI Bot replies)
+    if (socketRef.current && session) {
       socketRef.current.emit("send_message", {
         sessionId: session.id,
         content: inputValue.trim(),
       });
       setInputValue("");
     } else {
-      // Offline/Bot mode: User types a custom question
+      // Fallback if socket disconnected
       const userMsg: Message = {
         senderName: user?.name || "Citizen",
         senderRole: "USER",
@@ -237,7 +237,7 @@ export function ChatWidget() {
       const botReply: Message = {
         senderName: "Virtual Assistant",
         senderRole: "BOT",
-        content: "Maaf, saya belum memahami pertanyaan kustom Anda. Silakan gunakan tombol opsi di atas atau hubungi Customer Service kami untuk bantuan lebih lanjut.",
+        content: "Koneksi terputus. Silakan muat ulang halaman.",
         createdAt: new Date(),
       };
 

@@ -62,6 +62,34 @@ export class PermitService {
         });
     }
 
+    async getAllPolygons() {
+        // Fetch all applications
+        const apps = await this.prisma.permitApplication.findMany({
+            select: {
+                id: true,
+                status: true,
+                referenceNumber: true,
+                dynamicData: true,
+            }
+        });
+
+        // Filter and map out only those with mapPoints
+        const polygons = apps
+            .filter(app => {
+                const data = app.dynamicData as any;
+                return data && Array.isArray(data.mapPoints) && data.mapPoints.length > 0;
+            })
+            .map(app => ({
+                id: app.id,
+                referenceNumber: app.referenceNumber,
+                status: app.status,
+                mapPoints: (app.dynamicData as any).mapPoints
+            }));
+
+        return polygons;
+    }
+
+
     /**
      * Create a new permit application (draft status)
      */

@@ -252,10 +252,10 @@ export default function LandingPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {[
-                  { icon: Globe, title: "Akses Inklusif", desc: "Menjangkau seluruh lapisan masyarakat dengan sistem ramah pengguna." },
-                  { icon: Users, title: "Kolaborasi Tim", desc: "Memfasilitasi koordinasi antar instansi secara terintegrasi." },
-                  { icon: Users, title: "Kolaborasi Tim", desc: "Memfasilitasi koordinasi antar instansi secara terintegrasi." },
-                  { icon: Users, title: "Kolaborasi Tim", desc: "Memfasilitasi koordinasi antar instansi secara terintegrasi." }
+                  { icon: Globe, title: "Akses Inklusif", desc: "Menjangkau seluruh lapisan masyarakat dengan antarmuka yang ramah dan mudah digunakan." },
+                  { icon: Shield, title: "Keamanan Terjamin", desc: "Melindungi data privasi Anda dengan infrastruktur enkripsi berskala enterprise." },
+                  { icon: Zap, title: "Akselerasi Proses", desc: "Memangkas jalur birokrasi konvensional, menghadirkan layanan publik yang lebih responsif." },
+                  { icon: Scale, title: "Transparansi Penuh", desc: "Standar kepastian hukum dan SOP yang setara, menghapus zona abu-abu dalam pelayanan." }
                 ].map((item, i) => (
                   <div key={i} className="p-6 rounded-2xl bg-card border border-border/60 hover:bg-background transition-all">
                     <item.icon className="w-5 h-5 text-primary mb-4" />

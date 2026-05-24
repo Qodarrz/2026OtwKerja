@@ -111,6 +111,14 @@ export class UsersController {
     }
 
     /**
+     * PATCH /api/users/me/profile
+     */
+    @Patch('me/profile')
+    async updateMyProfile(@Request() req: any, @Body() data: any) {
+        return this.usersService.updateMyProfile(req.user.sub, data);
+    }
+
+    /**
      * GET /api/users/me/history
      */
     @Get('me/history')

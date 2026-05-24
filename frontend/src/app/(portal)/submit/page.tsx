@@ -47,6 +47,7 @@ export default function SubmitPermitPage() {
   const [documentFiles, setDocumentFiles] = useState<Record<string, File | string>>({});
   const [useVerifiedKtp, setUseVerifiedKtp] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [existingPolygons, setExistingPolygons] = useState<any[]>([]);
 
   const { user } = useAuth();
   const [showKtpModal, setShowKtpModal] = useState(false);
@@ -81,6 +82,14 @@ export default function SubmitPermitPage() {
     };
     fetchSchemas();
   }, []);
+
+  useEffect(() => {
+    if (currentStep === 2 && selectedSchema?.requiresMap) {
+      api.get('/permits/applications/polygons').then(res => {
+        setExistingPolygons(res.data);
+      }).catch(err => console.error("Failed to fetch polygons", err));
+    }
+  }, [currentStep, selectedSchema]);
 
   const handleSelectSchema = (schema: any) => {
     setSelectedSchema(schema);
@@ -151,8 +160,8 @@ export default function SubmitPermitPage() {
   };
   const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 0));
 
-  const estimatedNJOP = mapData.area * 2500000;
-  const hasOverlap = mapData.area > 50000;
+  const estimatedRetribusi = mapData.area * 15000;
+  const hasOverlap = !!formData.hasMapOverlap;
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
@@ -163,12 +172,15 @@ export default function SubmitPermitPage() {
         landSize: mapData.area || Number(formData.estimatedArea) || 1,
         landType: formData.buildingType === "Residensial" ? "RESIDENTIAL" : "COMMERCIAL",
         buildingHeight: 10,
-        njopValue: mapData.area > 0 ? estimatedNJOP : 1000000,
+        njopValue: mapData.area > 0 ? estimatedRetribusi : 1000000,
         isStrategicLocation: false,
         businessName: formData.businessName || "N/A",
         businessType: formData.businessType || "N/A",
         businessLocation: formData.businessLocation || formData.locationAddress || "N/A",
         estimatedEmployees: Number(formData.estimatedEmployees) || 1,
+        dynamicData: {
+          mapPoints: mapData.points || [],
+        }
       };
 
       // Create the application in DRAFT state first
@@ -401,8 +413,15 @@ export default function SubmitPermitPage() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <MapPicker
-                    onAreaChange={(points, area, addressDetails) => {
+                    existingPolygons={existingPolygons}
+                    onAreaChange={(points, area, addressDetails, isOverlap) => {
                       setMapData({ points, area, addressDetails });
+                      
+                      // Also store the overlap boolean if you want to block submission
+                      if (isOverlap !== undefined) {
+                        setFormData(prev => ({ ...prev, hasMapOverlap: isOverlap }));
+                      }
+
                       if (addressDetails && selectedSchema) {
                         // Hanya autofill field yang ada di schema
                         setFormData(prev => {
@@ -631,6 +650,12 @@ export default function SubmitPermitPage() {
                         <span className="text-sm font-bold text-right max-w-[60%]">{formData[field.name] ? String(formData[field.name]) : '-'}</span>
                       </div>
                     ))}
+                    {selectedSchema.requiresMap && mapData.area > 0 && (
+                      <div className="flex justify-between p-3 border-b border-border last:border-0">
+                        <span className="text-sm text-muted-foreground font-medium">Luas Lahan (Hasil Pemetaan)</span>
+                        <span className="text-sm font-bold text-right text-primary">{Math.round(mapData.area).toLocaleString()} m²</span>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -639,17 +664,20 @@ export default function SubmitPermitPage() {
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <Wallet className="w-6 h-6 text-primary" />
-                        Estimasi Biaya & NJOP
+                        Estimasi Retribusi Daerah
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="flex justify-between p-4 rounded-2xl bg-background border border-border">
-                        <span className="text-muted-foreground">Estimasi NJOP Lahan</span>
-                        <span className="font-bold">{formatCurrency(estimatedNJOP)}</span>
+                        <span className="text-muted-foreground">Estimasi Biaya Retribusi (Berdasarkan Luas)</span>
+                        <span className="font-bold">{formatCurrency(estimatedRetribusi)}</span>
                       </div>
                       <div className="pt-4 flex justify-between items-center">
-                        <span className="text-lg font-bold">Total Pembayaran Awal</span>
-                        <span className="text-2xl font-bold text-primary">{formatCurrency(estimatedNJOP)}</span>
+                        <span className="text-lg font-bold">Perhitungan Sementara</span>
+                        <span className="text-2xl font-bold text-primary">{formatCurrency(estimatedRetribusi)}</span>
+                      </div>
+                      <div className="mt-4 p-4 bg-muted/50 rounded-xl border border-border text-sm text-muted-foreground leading-relaxed">
+                        <span className="font-bold text-foreground">Catatan Birokrasi:</span> Angka di atas adalah estimasi sistem berdasarkan luasan poligon pemetaan. Tagihan retribusi resmi akan diterbitkan setelah proses verifikasi dokumen dan validasi teknis oleh petugas terkait selesai (Status: Menunggu Pembayaran).
                       </div>
                     </CardContent>
                   </Card>

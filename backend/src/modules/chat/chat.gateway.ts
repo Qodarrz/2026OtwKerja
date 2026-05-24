@@ -155,6 +155,18 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
       sessionId: data.sessionId,
       latestMessage: savedMessage,
     });
+
+    // If session is still with BOT and sender is USER, generate AI reply
+    if (session.status === 'BOT' && senderRole === 'USER') {
+      const botReply = await this.chatService.generateBotReply(data.sessionId, data.content);
+      if (botReply) {
+        this.server.to(`session_${data.sessionId}`).emit('new_message', botReply);
+        this.server.emit('ticket_activity', {
+          sessionId: data.sessionId,
+          latestMessage: botReply,
+        });
+      }
+    }
   }
 
   // Gateway triggered broadcast for external actions (like controller resolves)

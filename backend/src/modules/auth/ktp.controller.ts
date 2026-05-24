@@ -15,7 +15,7 @@ import { OcrService, KtpData } from './ocr.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { put } from '@vercel/blob';
-import { Response } from 'express';
+import express from 'express';
 
 @Controller('auth/ktp')
 @UseGuards(JwtAuthGuard)
@@ -59,7 +59,7 @@ export class KtpController {
   async confirmKtp(
     @Request() req: any,
     @Body() body: KtpData & { ktpImageUrl: string },
-    @Res({ passthrough: true }) res: Response
+    @Res({ passthrough: true }) res: express.Response
   ) {
     const userId = req.user.userId;
     const user = await this.prisma.user.findUnique({

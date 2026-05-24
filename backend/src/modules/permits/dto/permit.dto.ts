@@ -17,6 +17,9 @@ export class CreateApplicationDto {
     @IsEnum(PermitType)
     permitType: PermitType;
 
+    @IsOptional()
+    dynamicData?: any;
+
     // Building Permit fields
     @IsOptional()
     @IsString()

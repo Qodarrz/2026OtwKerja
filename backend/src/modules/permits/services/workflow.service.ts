@@ -403,13 +403,13 @@ export class WorkflowService {
         const slaRuleMap = new Map(slaRules.map(r => [r.stage, r]));
         const now = new Date();
 
-        return applications.map((app) => {
+        const mappedApplications = applications.map((app) => {
             const activeStage = app.stageHistory[0];
             const startTime = activeStage?.transitionedAt || app.submittedAt || app.createdAt;
             const hoursPending = Math.floor((now.getTime() - startTime.getTime()) / (1000 * 60 * 60));
             const slaRule = slaRuleMap.get(app.currentStage);
             const maxHours = slaRule?.maxDurationHours || 24;
-            const remainingHours = Math.max(0, maxHours - hoursPending);
+            const remainingHours = maxHours - ((now.getTime() - startTime.getTime()) / (1000 * 60 * 60));
 
             return {
                 ...app,
@@ -421,6 +421,12 @@ export class WorkflowService {
                 activeStageHistory: activeStage,
             };
         });
+
+        if (filters.status === 'EXPIRED') {
+            return mappedApplications.filter(app => app.slaStatus === 'OVERDUE');
+        }
+
+        return mappedApplications;
     }
 
     async getPendingCount(userId: string): Promise<number> {

@@ -63,6 +63,15 @@ export class PermitController {
     }
 
     /**
+     * GET /api/permits/applications/polygons
+     * Get all mapped polygons for collision detection
+     */
+    @Get('polygons')
+    async getPolygons() {
+        return this.permitService.getAllPolygons();
+    }
+
+    /**
      * GET /api/permits/applications/search
      * Search across ALL applications (staff/admin).
      * Must be declared before `:id` to avoid NestJS treating "search" as an ID.

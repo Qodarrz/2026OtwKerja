@@ -26,6 +26,12 @@ import { SLACountdown } from "@/components/dashboard/SLACountdown";
 import { FeedbackForm } from "@/components/dashboard/FeedbackForm";
 import { permitService } from "@/services/permit.service";
 import { cn, formatCurrency } from "@/lib/utils";
+import dynamic from "next/dynamic";
+
+const ReadOnlyMap = dynamic(() => import("@/components/map/ReadOnlyMap"), {
+  ssr: false,
+  loading: () => <div className="h-[300px] w-full rounded-2xl bg-muted animate-pulse flex items-center justify-center text-muted-foreground">Memuat Peta...</div>
+});
 export default function ApplicationDetailPage() {
   const { id } = useParams();
   const router = useRouter();
@@ -257,32 +263,76 @@ export default function ApplicationDetailPage() {
             <CardContent className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
               {" "}
               <div className="space-y-1">
-                {" "}
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                   Alamat Lokasi
-                </p>{" "}
-                <p className="font-bold text-foreground leading-tight">
-                  {application.locationAddress || "-"}
-                </p>{" "}
-              </div>{" "}
-              <div className="space-y-1">
-                {" "}
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                  Luas Lahan
-                </p>{" "}
-                <p className="font-bold text-foreground">
-                  {application.landSize || 0} m²
-                </p>{" "}
-              </div>{" "}
-              <div className="space-y-1">
-                {" "}
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                  Tipe Lahan
-                </p>{" "}
-                <p className="font-bold text-foreground">
-                  {application.landType || "-"}
-                </p>{" "}
-              </div>{" "}
+                </p>
+                <div className="flex flex-col items-start gap-1">
+                  <p className="font-bold text-foreground leading-tight">
+                    {application.locationAddress || "-"}
+                  </p>
+                  {application.locationAddress && (
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(application.locationAddress)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center text-xs font-bold text-primary hover:underline"
+                    >
+                      <MapPin className="w-3 h-3 mr-1" /> Buka di Maps
+                    </a>
+                  )}
+                </div>
+              </div>
+              
+              {application.landSize !== null && application.landSize !== undefined && (
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                    Luas Lahan
+                  </p>
+                  <p className="font-bold text-foreground">
+                    {application.landSize || 0} m²
+                  </p>
+                </div>
+              )}
+
+              {application.landType && (
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                    Tipe Lahan
+                  </p>
+                  <p className="font-bold text-foreground">
+                    {application.landType || "-"}
+                  </p>
+                </div>
+              )}
+              
+              {application.dynamicData && (application.dynamicData as any).mapPoints && (application.dynamicData as any).mapPoints.length > 0 && (
+                <div className="col-span-1 md:col-span-2 mt-4">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">
+                    Visualisasi Lahan
+                  </p>
+                  <ReadOnlyMap points={(application.dynamicData as any).mapPoints} />
+                </div>
+              )}
+              
+              {application.dynamicData && Object.entries(application.dynamicData as Record<string, any>).map(([key, value]) => {
+                if (key === 'mapPoints') return null; // Skip map points from textual list
+                
+                // Map common keys to better labels if needed, or just format the key
+                const formattedKey = key
+                  .replace(/([A-Z])/g, ' $1')
+                  .replace(/^./, str => str.toUpperCase());
+                  
+                return (
+                  <div key={key} className="space-y-1">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                      {formattedKey}
+                    </p>
+                    <p className="font-bold text-foreground line-clamp-2">
+                      {String(value || "-")}
+                    </p>
+                  </div>
+                );
+              })}
               <div className="space-y-1">
                 {" "}
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
@@ -302,11 +352,7 @@ export default function ApplicationDetailPage() {
             {" "}
             <CardContent className="p-8 space-y-4">
               {" "}
-              <div className="p-2.5 bg-card/10 rounded-xl w-fit">
-                {" "}
-                <AlertTriangle className="w-5 h-5 text-amber-400" />{" "}
-              </div>{" "}
-              <h3 className="text-lg font-bold tracking-tight">
+              <h3 className="text-lg font-bold text-foreground tracking-tight">
                 Butuh Bantuan?
               </h3>{" "}
               <p className="text-sm text-muted-foreground leading-relaxed">

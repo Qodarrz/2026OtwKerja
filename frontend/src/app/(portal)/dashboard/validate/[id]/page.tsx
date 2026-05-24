@@ -23,9 +23,18 @@ import {
   Calendar,
   Activity,
   ShieldCheck,
+  FileImage,
+  ExternalLink,
 } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
 import api from "@/lib/axios";
+import dynamic from "next/dynamic";
+
+const ReadOnlyMap = dynamic(() => import("@/components/map/ReadOnlyMap"), {
+  ssr: false,
+  loading: () => <div className="h-[300px] w-full rounded-2xl bg-muted animate-pulse flex items-center justify-center text-muted-foreground">Memuat Peta...</div>
+});
+
 export default function ValidatePermitPage() {
   const params = useParams();
   const router = useRouter();
@@ -223,8 +232,62 @@ export default function ValidatePermitPage() {
                   </p>{" "}
                 </div>
               )}{" "}
+              
+              {application.dynamicData && (application.dynamicData as any).mapPoints && (application.dynamicData as any).mapPoints.length > 0 && (
+                <div className="md:col-span-2 mt-4 space-y-2">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2">
+                    Visualisasi Peta & Titik Lahan
+                  </p>
+                  <ReadOnlyMap points={(application.dynamicData as any).mapPoints} />
+                </div>
+              )}
             </CardContent>{" "}
           </Card>{" "}
+
+          {application.documents && application.documents.length > 0 && (
+            <Card className="border-none shadow-sm">
+              <CardHeader className="border-b border-slate-50 bg-background">
+                <CardTitle className="text-xl flex items-center gap-2">
+                  <FileImage className="w-5 h-5 text-primary" /> Dokumen Lampiran
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {application.documents.map((doc: any) => (
+                    <div key={doc.id} className="relative overflow-hidden rounded-xl border border-border bg-background flex flex-col">
+                      {doc.fileUrl?.match(/\.(jpeg|jpg|gif|png|webp)$/i) || doc.mimeType?.startsWith('image/') ? (
+                        <div className="w-full h-48 bg-muted/50 p-2 flex items-center justify-center">
+                          <img
+                            src={doc.fileUrl}
+                            alt={doc.documentType}
+                            className="max-w-full max-h-full object-contain rounded-lg shadow-sm"
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-full h-48 bg-muted/50 p-2 flex flex-col items-center justify-center gap-3">
+                          <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center shadow-sm">
+                            <FileText className="w-8 h-8 text-primary" />
+                          </div>
+                          <span className="text-xs font-bold text-muted-foreground uppercase">{doc.documentType || 'Dokumen'}</span>
+                        </div>
+                      )}
+                      <div className="p-4 border-t border-border flex items-center justify-between bg-muted/10 mt-auto">
+                        <div className="overflow-hidden flex-1 mr-4">
+                          <p className="text-sm font-bold truncate" title={doc.documentType || 'Dokumen'}>{(doc.documentType || 'Dokumen').replace(/_/g, ' ')}</p>
+                        </div>
+                        <Button variant="outline" size="sm" asChild className="shrink-0 rounded-full shadow-sm hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors">
+                          <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="w-4 h-4 mr-2" /> Buka
+                          </a>
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <Card className="border-none shadow-sm ">
             {" "}
             <CardHeader className="border-b border-slate-50 bg-background">
@@ -271,8 +334,8 @@ export default function ValidatePermitPage() {
                           <Calendar className="w-3.5 h-3.5" />{" "}
                           {history.completedAt
                             ? new Date(history.completedAt).toLocaleString(
-                                "id-ID",
-                              )
+                              "id-ID",
+                            )
                             : "Sedang diproses..."}{" "}
                         </p>{" "}
                       </div>{" "}
@@ -287,7 +350,7 @@ export default function ValidatePermitPage() {
           {" "}
           <Card className="border-none shadow-sm sticky top-6">
             {" "}
-            <CardHeader className="border-b border-slate-50 bg-background rounded-t-xl text-primary-foreground">
+            <CardHeader className="border-b border-slate-50 bg-background rounded-t-xl text-foreground">
               {" "}
               <CardTitle className="text-xl">Aksi Validasi</CardTitle>{" "}
               <CardDescription className="text-muted-foreground">

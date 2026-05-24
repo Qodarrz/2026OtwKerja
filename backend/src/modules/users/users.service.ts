@@ -171,6 +171,36 @@ export class UsersService {
   }
 
   /**
+   * Update my profile
+   */
+  async updateMyProfile(userId: string, data: { phone?: string, address?: string }) {
+    const updateData: any = {};
+    if (data.phone !== undefined) updateData.phone = data.phone;
+    if (data.address !== undefined) updateData.address = data.address;
+    
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        userDetail: {
+          upsert: {
+            create: updateData,
+            update: updateData
+          }
+        }
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        roles: true,
+        isKtpVerified: true,
+        createdAt: true,
+        userDetail: true,
+      }
+    });
+  }
+
+  /**
    * Get user activity history from audit logs
    */
   async getActivityHistory(userId: string) {

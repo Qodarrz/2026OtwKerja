@@ -5,11 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { usersService } from "@/services/users.service";
-import { 
-  User as UserIcon, 
-  Mail, 
-  MapPin, 
-  Shield, 
+import {
+  User as UserIcon,
+  Mail,
+  MapPin,
+  Shield,
   Camera,
   CheckCircle2,
   Loader2,
@@ -71,7 +71,7 @@ export default function ProfilePage() {
   }
 
   const formatAction = (action: string) => {
-    switch(action) {
+    switch (action) {
       case 'CREATE': return 'Membuat';
       case 'UPDATE': return 'Memperbarui';
       case 'DELETE': return 'Menghapus';
@@ -82,7 +82,7 @@ export default function ProfilePage() {
   };
 
   const getEntityLabel = (entityType: string) => {
-    switch(entityType) {
+    switch (entityType) {
       case 'PermitApplication': return 'Permohonan';
       case 'User': return 'Pengguna';
       default: return entityType;
@@ -101,16 +101,11 @@ export default function ProfilePage() {
           {/* Left Column: Profile Card */}
           <div className="lg:col-span-1 space-y-6">
             <Card className="text-center border-none shadow-sm bg-card overflow-hidden">
-              <div className="h-24 bg-linear-to-tr from-primary/20 to-accent/20" />
-              <CardContent className="pt-0 pb-8 flex flex-col items-center -mt-12">
+              <CardContent className="pt-0 pb-8 flex flex-col items-center mt-12">
                 <div className="relative group cursor-pointer">
                   <div className="w-32 h-32 rounded-full bg-background p-1 border border-border shadow-xl">
                     <div className="w-full h-full rounded-full bg-secondary flex items-center justify-center overflow-hidden">
-                      {profile?.userDetail?.ktpImageUrl ? (
-                        <img src={profile.userDetail.ktpImageUrl} alt="Profile" className="w-full h-full object-cover" />
-                      ) : (
-                        <UserIcon className="w-16 h-16 text-muted-foreground" />
-                      )}
+                      <UserIcon className="w-16 h-16 text-muted-foreground" />
                     </div>
                   </div>
                   <div className="absolute bottom-1 right-1 p-2 bg-primary text-primary-foreground rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-all transform group-hover:scale-110">
@@ -121,15 +116,13 @@ export default function ProfilePage() {
                 <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest mt-1">
                   {profile?.roles?.[0]?.replace('_', ' ') || 'Warga Negara'}
                 </p>
-                
+
                 {profile?.isKtpVerified ? (
                   <div className="mt-6 flex items-center gap-2 px-4 py-1.5 bg-emerald-500/10 text-emerald-500 rounded-full border border-emerald-500/20">
-                    <CheckCircle2 className="w-4 h-4" />
                     <span className="text-[10px] font-bold uppercase tracking-wider">Terverifikasi KTP</span>
                   </div>
                 ) : (
                   <div className="mt-6 flex items-center gap-2 px-4 py-1.5 bg-amber-500/10 text-amber-500 rounded-full border border-amber-500/20">
-                    <Shield className="w-4 h-4" />
                     <span className="text-[10px] font-bold uppercase tracking-wider">Belum Verifikasi</span>
                   </div>
                 )}
@@ -137,26 +130,75 @@ export default function ProfilePage() {
             </Card>
 
             <Card className="border-none shadow-sm bg-card">
-              <CardHeader className="pb-2">
+              <CardHeader className="pb-2 flex flex-row items-center justify-between">
                 <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Informasi Kontak</CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-xs font-bold"
+                  onClick={async () => {
+                    if (isEditing) {
+                      try {
+                        const updated = await usersService.updateProfile({
+                          phone: profile.userDetail?.phone,
+                          address: profile.userDetail?.address
+                        });
+                        setProfile(updated);
+                      } catch (e) {
+                        console.error(e);
+                      }
+                    }
+                    setIsEditing(!isEditing);
+                  }}
+                >
+                  {isEditing ? 'Simpan' : 'Edit'}
+                </Button>
               </CardHeader>
               <CardContent className="space-y-4 pt-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-background border border-border rounded-lg">
-                    <Mail className="w-4 h-4 text-primary" />
-                  </div>
                   <div>
                     <p className="text-[10px] font-bold text-muted-foreground uppercase">Email</p>
                     <p className="text-sm font-bold">{profile?.email}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-background border border-border rounded-lg">
-                    <MapPin className="w-4 h-4 text-primary" />
-                  </div>
                   <div>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase">NIK</p>
+                    <p className="text-sm font-bold">{profile?.userDetail?.nik || "Belum diatur"}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase">No. Telepon</p>
+                    {isEditing ? (
+                      <Input
+                        className="h-8 mt-1"
+                        value={profile?.userDetail?.phone || ''}
+                        onChange={(e) => setProfile({
+                          ...profile,
+                          userDetail: { ...profile.userDetail, phone: e.target.value }
+                        })}
+                      />
+                    ) : (
+                      <p className="text-sm font-bold">{profile?.userDetail?.phone || "Belum diatur"}</p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1">
                     <p className="text-[10px] font-bold text-muted-foreground uppercase">Domisili</p>
-                    <p className="text-sm font-bold">{profile?.userDetail?.address || "Belum diatur"}</p>
+                    {isEditing ? (
+                      <Input
+                        className="h-8 mt-1"
+                        value={profile?.userDetail?.address || profile?.userDetail?.ktpAddress || ''}
+                        onChange={(e) => setProfile({
+                          ...profile,
+                          userDetail: { ...profile.userDetail, address: e.target.value }
+                        })}
+                      />
+                    ) : (
+                      <p className="text-sm font-bold">{profile?.userDetail?.address || profile?.userDetail?.ktpAddress || "Belum diatur"}</p>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -165,21 +207,18 @@ export default function ProfilePage() {
 
           {/* Right Column: History & Details */}
           <div className="lg:col-span-2 space-y-8">
-            <Card className="border-none shadow-sm bg-card">
+            <Card className="border-none shadow-sm bg-card overflow-hidden">
               <CardHeader className="flex flex-row items-center justify-between border-b border-border bg-background">
                 <div>
                   <CardTitle className="text-xl">Riwayat Aktivitas</CardTitle>
                   <CardDescription>Daftar tindakan terakhir yang Anda lakukan di sistem.</CardDescription>
                 </div>
-                <div className="p-2 bg-primary/10 text-primary rounded-lg">
-                  <Activity className="w-5 h-5" />
-                </div>
               </CardHeader>
               <CardContent className="p-0">
-                <div className="divide-y divide-border">
+                <div className="divide-y divide-border max-h-[400px] overflow-y-auto">
                   {history.length > 0 ? history.map((log, i) => (
-                    <motion.div 
-                      key={log.id} 
+                    <motion.div
+                      key={log.id}
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.05 }}
@@ -203,7 +242,6 @@ export default function ProfilePage() {
                           </div>
                         </div>
                       </div>
-                      <ChevronRight className="w-5 h-5 text-muted-foreground/30 mt-2 group-hover:text-primary group-hover:translate-x-1 transition-all" />
                     </motion.div>
                   )) : (
                     <div className="py-20 text-center flex flex-col items-center gap-4">

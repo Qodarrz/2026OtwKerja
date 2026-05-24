@@ -39,6 +39,7 @@ export function TaskListView({
       try {
         const data = await permitService.getStaffTasks({
           status: filterStatus,
+          _t: Date.now(),
         });
         setTasks(data);
       } catch (error) {
@@ -129,61 +130,49 @@ export function TaskListView({
             <div className="overflow-x-auto">
               {" "}
               <table className="w-full text-left">
-                {" "}
                 <thead className="bg-background text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground border-b border-border">
-                  {" "}
                   <tr>
-                    {" "}
-                    <th className="px-8 py-5">Pemohon & No. Ref</th>{" "}
-                    <th className="px-8 py-5">Tipe Izin</th>{" "}
-                    <th className="px-8 py-5">Waktu Masuk</th>{" "}
-                    <th className="px-8 py-5">Status / SLA</th>{" "}
-                    <th className="px-8 py-5 text-right">Tindakan</th>{" "}
-                  </tr>{" "}
-                </thead>{" "}
+                    <th className="px-8 py-5">Pemohon & No. Ref</th>
+                    <th className="px-8 py-5">Tipe Izin</th>
+                    <th className="px-8 py-5">Waktu Masuk</th>
+                    <th className="px-8 py-5">Status / SLA</th>
+                    <th className="px-8 py-5 text-right">Tindakan</th>
+                  </tr>
+                </thead>
                 <tbody className="divide-y divide-slate-50">
-                  {" "}
                   {tasks.length > 0 ? (
                     tasks.map((task) => (
                       <tr
                         key={task.id}
                         className="hover:bg-accent/80 transition-colors group"
                       >
-                        {" "}
                         <td className="px-8 py-6">
-                          {" "}
                           <div className="flex flex-col gap-1">
-                            {" "}
                             <span className="font-bold text-foreground tracking-tight">
                               {task.applicant?.name || "Unknown User"}
-                            </span>{" "}
+                            </span>
                             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                               {task.referenceNumber}
-                            </span>{" "}
-                          </div>{" "}
-                        </td>{" "}
+                            </span>
+                          </div>
+                        </td>
                         <td className="px-8 py-6">
-                          {" "}
                           <span className="inline-flex items-center px-3 py-1 bg-secondary text-muted-foreground text-[10px] font-bold uppercase tracking-widest rounded-lg border border-border">
-                            {" "}
-                            {task.permitType.replace("_", " ")}{" "}
-                          </span>{" "}
-                        </td>{" "}
+                            {task.permitType.replace("_", " ")}
+                          </span>
+                        </td>
                         <td className="px-8 py-6 text-sm font-bold text-muted-foreground">
-                          {" "}
                           <div className="flex items-center gap-2">
-                            {" "}
-                            <Calendar className="w-4 h-4 text-slate-300" />{" "}
+                            <Calendar className="w-4 h-4 text-slate-300" />
                             {new Date(
                               task.submittedAt || task.createdAt,
                             ).toLocaleDateString("id-ID", {
                               day: "numeric",
                               month: "short",
-                            })}{" "}
-                          </div>{" "}
-                        </td>{" "}
+                            })}
+                          </div>
+                        </td>
                         <td className="px-8 py-6 w-64">
-                          {" "}
                           {task.status === "APPROVED" ||
                           task.status === "REJECTED" ? (
                             <span
@@ -194,10 +183,9 @@ export function TaskListView({
                                   : "bg-rose-50 text-rose-600 border-rose-200",
                               )}
                             >
-                              {" "}
                               {task.status === "APPROVED"
                                 ? "Disetujui"
-                                : "Ditolak"}{" "}
+                                : "Ditolak"}
                             </span>
                           ) : (
                             <SLACountdown
@@ -205,49 +193,41 @@ export function TaskListView({
                               maxHours={task.maxHours}
                               status={task.slaStatus}
                             />
-                          )}{" "}
-                        </td>{" "}
+                          )}
+                        </td>
                         <td className="px-8 py-6 text-right">
-                          {" "}
                           <Link href={`/dashboard/validate/${task.id}`}>
-                            {" "}
                             <Button
                               size="sm"
                               className="rounded-xl bg-primary hover:bg-primary/90 font-bold h-9 px-5 transition-all shadow-md "
                             >
-                              {" "}
-                              Detail{" "}
-                              <ArrowUpRight className="ml-2 w-3.5 h-3.5" />{" "}
-                            </Button>{" "}
-                          </Link>{" "}
-                        </td>{" "}
+                              Detail
+                              <ArrowUpRight className="ml-2 w-3.5 h-3.5" />
+                            </Button>
+                          </Link>
+                        </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      {" "}
                       <td colSpan={5} className="py-32 text-center">
-                        {" "}
                         <div className="flex flex-col items-center gap-4">
-                          {" "}
                           <div className="p-6 bg-muted rounded-full">
-                            {" "}
-                            <FileText className="w-10 h-10 text-slate-200" />{" "}
-                          </div>{" "}
+                            <FileText className="w-10 h-10 text-slate-200" />
+                          </div>
                           <div className="space-y-1">
-                            {" "}
                             <p className="text-lg font-bold text-foreground tracking-tight">
                               Tidak Ada Berkas
-                            </p>{" "}
+                            </p>
                             <p className="text-sm font-medium text-muted-foreground">
                               Semua pekerjaan telah selesai untuk kategori ini.
-                            </p>{" "}
-                          </div>{" "}
-                        </div>{" "}
-                      </td>{" "}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
                     </tr>
-                  )}{" "}
-                </tbody>{" "}
+                  )}
+                </tbody>
               </table>{" "}
             </div>
           ) : (

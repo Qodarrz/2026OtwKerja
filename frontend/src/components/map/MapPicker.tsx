@@ -18,10 +18,11 @@ const icon = L.icon({
 });
 
 interface MapPickerProps {
-  onAreaChange: (points: [number, number][], area: number, addressDetails?: any) => void;
+  existingPolygons?: any[];
+  onAreaChange: (points: [number, number][], area: number, addressDetails?: any, hasOverlap?: boolean) => void;
 }
 
-export default function MapPicker({ onAreaChange }: MapPickerProps) {
+export default function MapPicker({ onAreaChange, existingPolygons = [] }: MapPickerProps) {
   const [points, setPoints] = useState<[number, number][]>([]);
   const [isGeocoding, setIsGeocoding] = useState(false);
   const center: [number, number] = [-6.2088, 106.8456]; // Jakarta
@@ -49,6 +50,25 @@ export default function MapPicker({ onAreaChange }: MapPickerProps) {
     const polygon = turf.polygon([turfCoords]);
     const area = turf.area(polygon);
 
+    let hasOverlap = false;
+    // Check overlap with existing polygons
+    for (const ep of existingPolygons) {
+      if (ep.mapPoints && ep.mapPoints.length >= 3) {
+        try {
+          const epCoords = [...ep.mapPoints.map((c: any) => [c[1], c[0]]), [ep.mapPoints[0][1], ep.mapPoints[0][0]]];
+          const epPolygon = turf.polygon([epCoords]);
+          // turf.intersect returns null if they don't intersect, or a feature if they do
+          const intersection = turf.intersect(turf.featureCollection([polygon, epPolygon]));
+          if (intersection) {
+            hasOverlap = true;
+            break;
+          }
+        } catch(e) {
+          console.error("Error calculating intersection", e);
+        }
+      }
+    }
+
     setIsGeocoding(true);
     try {
       // Reverse Geocoding using Nominatim
@@ -64,10 +84,10 @@ export default function MapPicker({ onAreaChange }: MapPickerProps) {
         full: data.display_name
       };
 
-      onAreaChange(coords, area, addressDetails);
+      onAreaChange(coords, area, addressDetails, hasOverlap);
     } catch (e) {
       console.error("Reverse geocoding failed", e);
-      onAreaChange(coords, area, null);
+      onAreaChange(coords, area, null, hasOverlap);
     } finally {
       setIsGeocoding(false);
     }
@@ -75,7 +95,7 @@ export default function MapPicker({ onAreaChange }: MapPickerProps) {
 
   const clearPoints = () => {
     setPoints([]);
-    onAreaChange([], 0);
+    onAreaChange([], 0, null, false);
   };
 
   return (
@@ -93,6 +113,24 @@ export default function MapPicker({ onAreaChange }: MapPickerProps) {
           maxZoom={22}
         />
         <MapEvents />
+
+        {/* Render existing polygons */}
+        {existingPolygons.map((ep) => {
+          if (!ep.mapPoints || ep.mapPoints.length < 3) return null;
+          return (
+            <Polygon
+              key={ep.id}
+              positions={ep.mapPoints}
+              pathOptions={{
+                color: '#ef4444',
+                fillColor: '#ef4444',
+                fillOpacity: 0.2,
+                weight: 1,
+                dashArray: '4,4'
+              }}
+            />
+          );
+        })}
 
         {points.map((point, idx) => (
           <Marker key={idx} position={point} icon={icon} />

@@ -19,9 +19,7 @@ export function ContactForm() {
 
             <div className="space-y-8">
               <div className="flex items-center gap-6 group">
-                <div className="w-14 h-14 rounded-2xl bg-card shadow-sm border border-border flex items-center justify-center text-primary group-hover:scale-110 transition-transform duration-300">
-                  <MapPin className="w-6 h-6" />
-                </div>
+
                 <div>
                   <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Kantor Pusat</p>
                   <p className="font-bold text-foreground">G-Gov Tower, Jl. Jend. Sudirman No. 1, Jakarta</p>
@@ -29,9 +27,7 @@ export function ContactForm() {
               </div>
 
               <div className="flex items-center gap-6 group">
-                <div className="w-14 h-14 rounded-2xl bg-card shadow-sm border border-border flex items-center justify-center text-primary group-hover:scale-110 transition-transform duration-300">
-                  <Mail className="w-6 h-6" />
-                </div>
+
                 <div>
                   <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Email Dukungan</p>
                   <p className="font-bold text-foreground">support@flowgov.id</p>
@@ -39,9 +35,7 @@ export function ContactForm() {
               </div>
 
               <div className="flex items-center gap-6 group">
-                <div className="w-14 h-14 rounded-2xl bg-card shadow-sm border border-border flex items-center justify-center text-primary group-hover:scale-110 transition-transform duration-300">
-                  <Phone className="w-6 h-6" />
-                </div>
+
                 <div>
                   <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Telepon</p>
                   <p className="font-bold text-foreground">(021) 555-0123</p>

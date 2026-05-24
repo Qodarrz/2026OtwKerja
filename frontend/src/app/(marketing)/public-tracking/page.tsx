@@ -23,28 +23,61 @@ export default function PublicTracking() {
   const [isSearching, setIsSearching] = useState(false);
   const [result, setResult] = useState<any>(null);
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!searchId) return;
     setIsSearching(true);
-    // Simulate API call
-    setTimeout(() => {
-      setResult({
-        id: searchId || "APP-2026-882",
-        status: "Sedang Diproses",
-        type: "Izin Mendirikan Bangunan (IMB)",
-        submittedAt: "24 Apr 2026",
-        currentStage: "Validasi Lapangan",
-        slaStatus: "Sesuai Jadwal",
-        stages: [
-          { name: "Submission", completed: true, date: "24 Apr" },
-          { name: "Verifikasi Dokumen", completed: true, date: "25 Apr" },
-          { name: "Validasi Lapangan", completed: false, active: true },
-          { name: "Legalitas", completed: false },
-          { name: "Selesai", completed: false },
-        ]
-      });
+    setResult(null);
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/public/transparency/status/${encodeURIComponent(searchId)}`);
+      const data = await response.json();
+
+      if (response.ok && data.referenceNumber) {
+        const stageOrder = [
+          { key: 'DRAFT', name: 'Submission' },
+          { key: 'DOCUMENT_CHECK', name: 'Verifikasi Dokumen' },
+          { key: 'FIELD_INSPECTION', name: 'Validasi Lapangan' },
+          { key: 'LEGALIZATION', name: 'Legalitas' },
+          { key: 'APPROVED', name: 'Selesai' }
+        ];
+
+        let foundActive = false;
+        const isCompleted = ['APPROVED', 'REJECTED'].includes(data.currentStage);
+        
+        const stages = stageOrder.map(s => {
+          if (isCompleted && s.key === 'APPROVED') {
+             foundActive = true;
+             return { name: data.currentStage === 'REJECTED' ? 'Ditolak' : 'Selesai', completed: true, date: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) };
+          }
+          if (s.key === data.currentStage) {
+            foundActive = true;
+            return { name: s.name, completed: false, active: true };
+          } else if (!foundActive) {
+            return { name: s.name, completed: true, date: "Selesai" };
+          } else {
+            return { name: s.name, completed: false, active: false };
+          }
+        });
+
+        setResult({
+          id: data.referenceNumber,
+          status: data.currentStage.replace(/_/g, ' '),
+          type: data.permitType.replace(/_/g, ' '),
+          submittedAt: new Date(data.submittedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
+          currentStage: data.currentStage,
+          slaStatus: data.status === 'ON_TRACK' ? 'Sesuai Jadwal' : (data.status === 'COMPLETED' ? 'Selesai' : 'Terlambat'),
+          stages: stages
+        });
+      } else {
+        alert("Nomor Referensi tidak ditemukan!");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Terjadi kesalahan saat mencari status izin.");
+    } finally {
       setIsSearching(false);
-    }, 1000);
+    }
   };
 
   return (
