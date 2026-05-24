@@ -177,19 +177,16 @@ export default function LandingPage() {
           >
             {[
               {
-                icon: Eye,
                 title: "End-to-End Visibility",
                 desc: "Pantau setiap tahapan internal birokrasi secara transparan dari awal hingga akhir proses.",
                 color: "bg-primary"
               },
               {
-                icon: Clock,
                 title: "Real-Time SLA Control",
                 desc: "Sistem otomatis yang memastikan setiap proses selesai sesuai standar pelayanan prima.",
                 color: "bg-primary"
               },
               {
-                icon: CheckCircle2,
                 title: "Accountability by Design",
                 desc: "Jejak digital permanen yang menjamin akuntabilitas setiap individu pelaksana organisasi.",
                 color: "bg-primary"
@@ -200,9 +197,6 @@ export default function LandingPage() {
                 variants={fadeInUp}
                 className="group p-10 rounded-3xl bg-card border border-border/60 hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300"
               >
-                <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center mb-8 text-primary-foreground shadow-md", feature.color)}>
-                  <feature.icon className="w-6 h-6" />
-                </div>
                 <h3 className="text-xl font-bold mb-4">{feature.title}</h3>
                 <p className="text-muted-foreground leading-relaxed font-medium">
                   {feature.desc}

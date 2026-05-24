@@ -6,9 +6,8 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { WorkflowStage, Role } from '@prisma/client';
-import * as fs from 'fs/promises';
 import * as path from 'path';
-import { createReadStream } from 'fs';
+import { put, del } from '@vercel/blob';
 import { AuditLogService } from '../../audit-log/services/audit-log.service';
 import {
     AuditEntityType,
@@ -117,13 +116,12 @@ export class FileService {
             sanitizedFilename,
         );
 
-        // Ensure directory exists
-        const fullPath = path.join(process.cwd(), storagePath);
-        const directory = path.dirname(fullPath);
-        await fs.mkdir(directory, { recursive: true });
+        // Save file to Vercel Blob
+        const blob = await put(storagePath, file.buffer, {
+            access: 'public', // Using public to allow easy download redirect
+        });
 
-        // Save file to filesystem
-        await fs.writeFile(fullPath, file.buffer);
+        const blobUrl = blob.url;
 
         // Create document record in database
         const document = await this.prisma.document.create({
@@ -132,7 +130,7 @@ export class FileService {
                 originalFilename: file.originalname,
                 mimeType: file.mimetype,
                 fileSize: file.size,
-                storagePath,
+                storagePath: blobUrl,
                 applicationId,
             },
         });
@@ -155,8 +153,7 @@ export class FileService {
     }
 
     /**
-     * Get document with access control
-     * Returns file stream and document metadata
+     * Get document metadata (which includes the Vercel Blob URL)
      */
     async getDocument(documentId: string, userId: string) {
         const document = await this.prisma.document.findUnique({
@@ -181,13 +178,7 @@ export class FileService {
             }
         }
 
-        // Check if file exists
-        const fullPath = path.join(process.cwd(), document.storagePath);
-        try {
-            await fs.access(fullPath);
-        } catch (error) {
-            throw new NotFoundException('File not found on disk');
-        }
+        // Vercel Blob file should be available via storagePath url
 
         // Create audit log for download
         await this.auditLogService.createAuditLog({
@@ -203,11 +194,7 @@ export class FileService {
             },
         });
 
-        // Return file stream
-        const stream = createReadStream(fullPath);
-
         return {
-            stream,
             document,
         };
     }
@@ -239,13 +226,12 @@ export class FileService {
             );
         }
 
-        // Delete file from filesystem
-        const fullPath = path.join(process.cwd(), document.storagePath);
+        // Delete file from Vercel Blob
         try {
-            await fs.unlink(fullPath);
+            await del(document.storagePath);
         } catch (error) {
-            // File might not exist, continue with database deletion
-            console.error('Error deleting file from disk:', error);
+            // File might not exist on blob, continue with database deletion
+            console.error('Error deleting file from Blob:', error);
         }
 
         // Delete document record from database
@@ -333,10 +319,7 @@ export class FileService {
      */
     generateStoragePath(applicationId: string, filename: string): string {
         const timestamp = Date.now();
-        return path.join(
-            this.uploadDir,
-            applicationId,
-            `${timestamp}-${filename}`,
-        );
+        // Just return the path fragment for Vercel Blob
+        return `permits/${applicationId}/${timestamp}-${filename}`;
     }
 }

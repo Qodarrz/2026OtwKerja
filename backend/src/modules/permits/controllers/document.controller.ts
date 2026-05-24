@@ -56,21 +56,13 @@ export class DocumentController {
         @Res() res: Response,
     ) {
         const userId = req.user.sub;
-        const { stream, document } = await this.fileService.getDocument(
+        const { document } = await this.fileService.getDocument(
             documentId,
             userId,
         );
 
-        // Set response headers
-        res.setHeader('Content-Type', document.mimeType);
-        res.setHeader(
-            'Content-Disposition',
-            `attachment; filename="${document.originalFilename}"`,
-        );
-        res.setHeader('Content-Length', document.fileSize);
-
-        // Pipe file stream to response
-        stream.pipe(res);
+        // Redirect to Vercel Blob URL
+        res.redirect(document.storagePath);
     }
 
     /**

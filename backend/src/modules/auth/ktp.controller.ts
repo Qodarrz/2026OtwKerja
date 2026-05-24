@@ -7,12 +7,15 @@ import {
   Body,
   Request,
   BadRequestException,
+  Res,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { OcrService, KtpData } from './ocr.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
+import { put } from '@vercel/blob';
+import { Response } from 'express';
 
 @Controller('auth/ktp')
 @UseGuards(JwtAuthGuard)
@@ -31,12 +34,13 @@ export class KtpController {
         throw new BadRequestException('KTP image is required');
       }
 
-      // Run OCR
       const data = await this.ocrService.extractKtpData(file);
       
-      // In real app, we would also save the image to storage (S3/local)
-      // and return the image URL
-      const ktpImageUrl = `https://placehold.co/600x400?text=KTP+${data.nik}`;
+      const blob = await put(`ktp/${Date.now()}-${file.originalname}`, file.buffer, {
+        access: 'public',
+      });
+
+      const ktpImageUrl = blob.url;
 
       return {
         success: true,
@@ -52,7 +56,11 @@ export class KtpController {
   }
 
   @Post('confirm')
-  async confirmKtp(@Request() req: any, @Body() body: KtpData & { ktpImageUrl: string }) {
+  async confirmKtp(
+    @Request() req: any,
+    @Body() body: KtpData & { ktpImageUrl: string },
+    @Res({ passthrough: true }) res: Response
+  ) {
     const userId = req.user.userId;
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -106,6 +114,14 @@ export class KtpController {
         token: token,
         expiresAt: expiresAt,
       },
+    });
+
+    res.cookie('access_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/',
     });
 
     return {

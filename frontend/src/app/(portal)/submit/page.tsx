@@ -20,7 +20,9 @@ import {
   FileText,
   Briefcase,
   Building2,
-  Lock
+  Lock,
+  User as UserIcon,
+  X
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -42,16 +44,27 @@ export default function SubmitPermitPage() {
 
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [mapData, setMapData] = useState({ area: 0, points: [] as [number, number][], addressDetails: null as any });
+  const [documentFiles, setDocumentFiles] = useState<Record<string, File | string>>({});
+  const [useVerifiedKtp, setUseVerifiedKtp] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { user } = useAuth();
   const [showKtpModal, setShowKtpModal] = useState(false);
   const isKtpVerified = user?.isKtpVerified;
 
+  const [userProfile, setUserProfile] = useState<any>(null);
+
   useEffect(() => {
     // Tampilkan modal otomatis pas halaman submit diload kalau KTP belum diverifikasi
     if (user && !user.isKtpVerified && currentStep === 0) {
       setShowKtpModal(true);
+    }
+
+    // Fetch profile if KTP is verified to get userDetail
+    if (user && user.isKtpVerified) {
+      api.get('/auth/profile').then(res => {
+        setUserProfile(res.data);
+      }).catch(err => console.error("Failed to fetch profile", err));
     }
   }, [user, currentStep]);
 
@@ -82,10 +95,60 @@ export default function SubmitPermitPage() {
   const STEPS = selectedSchema ? [
     { id: 1, title: "Isi Data", icon: FileText },
     ...(selectedSchema.requiresMap ? [{ id: 2, title: "Pemetaan", icon: MapIcon }] : []),
-    { id: selectedSchema.requiresMap ? 3 : 2, title: "Review", icon: FileCheck },
+    { id: selectedSchema.requiresMap ? 3 : 2, title: "Biodata", icon: UserIcon },
+    { id: selectedSchema.requiresMap ? 4 : 3, title: "Dokumen", icon: FileCheck },
+    { id: selectedSchema.requiresMap ? 5 : 4, title: "Review", icon: FileCheck },
   ] : [];
 
-  const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
+  const nextStep = () => {
+    // Validate Step 1: Form Fields
+    if (currentStep === 1) {
+      let missingFields = false;
+      for (const field of selectedSchema?.fields || []) {
+        if (field.required && !formData[field.name]) {
+          missingFields = true;
+          break;
+        }
+      }
+      if (missingFields) {
+        alert("Mohon lengkapi semua data wajib yang ditandai dengan bintang merah (*).");
+        return;
+      }
+    }
+
+    // Validate Step 2: Map
+    if (currentStep === 2 && selectedSchema?.requiresMap) {
+      if (mapData.area <= 0) {
+        alert("Anda wajib menggambar poligon pemetaan pada peta sebelum melanjutkan.");
+        return;
+      }
+      if (hasOverlap) {
+        alert("Terdapat konflik lahan pada pemetaan Anda. Silakan sesuaikan kembali area pemetaan.");
+        return;
+      }
+    }
+
+    // Validate required documents before proceeding to review
+    const isDocStep = currentStep === (selectedSchema?.requiresMap ? 4 : 3);
+    if (isDocStep) {
+      let missingDocs = false;
+      const requiredDocs = selectedSchema?.requiredDocuments || [];
+      for (const doc of requiredDocs) {
+        if (doc.id === 'ktp' && useVerifiedKtp && isKtpVerified) {
+          continue;
+        }
+        if (doc.required && !documentFiles[doc.id]) {
+          missingDocs = true;
+          break;
+        }
+      }
+      if (missingDocs) {
+        alert("Mohon lengkapi semua dokumen persyaratan terlebih dahulu.");
+        return;
+      }
+    }
+    setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
+  };
   const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 0));
 
   const estimatedNJOP = mapData.area * 2500000;
@@ -106,10 +169,32 @@ export default function SubmitPermitPage() {
         businessType: formData.businessType || "N/A",
         businessLocation: formData.businessLocation || formData.locationAddress || "N/A",
         estimatedEmployees: Number(formData.estimatedEmployees) || 1,
-        dynamicData: { ...formData, mapData }
       };
 
-      await api.post('/permits/applications', payload);
+      // Create the application in DRAFT state first
+      const res = await api.post('/permits/applications', payload);
+
+      if (res.data && res.data.id) {
+        const appId = res.data.id;
+
+        // Upload physical documents
+        for (const [key, val] of Object.entries(documentFiles)) {
+          if (val instanceof File) {
+            const formDataUpload = new FormData();
+            formDataUpload.append('file', val);
+
+            // Post to document controller endpoint
+            await api.post(`/permits/applications/${appId}/documents`, formDataUpload, {
+              headers: {
+                'Content-Type': 'multipart/form-data',
+              },
+            });
+          }
+        }
+
+        // Immediately submit the application out of DRAFT
+        await api.post(`/permits/applications/${appId}/submit`);
+      }
       router.push('/dashboard'); // Go back to dashboard on success
     } catch (error) {
       console.error("Failed to submit", error);
@@ -350,6 +435,148 @@ export default function SubmitPermitPage() {
                       </div>
                     )}
                   </div>
+
+                  {mapData.area > 0 && (
+                    <div className={cn("mt-4 p-4 rounded-2xl flex items-start gap-4", hasOverlap ? "bg-destructive/10 text-destructive" : "bg-emerald-50 text-emerald-700 border border-emerald-200")}>
+                      {hasOverlap ? (
+                        <>
+                          <AlertTriangle className="w-8 h-8 shrink-0" />
+                          <div>
+                            <h3 className="text-lg font-bold">Konflik Lahan Terdeteksi</h3>
+                            <p className="text-sm mt-1">Sistem mendeteksi area yang Anda pilih tumpang tindih dengan hak kepemilikan pihak lain. Anda <b>tidak dapat</b> melanjutkan proses ini sebelum lahan dipastikan Clean & Clear.</p>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="w-8 h-8 shrink-0" />
+                          <div>
+                            <h3 className="text-lg font-bold">Lahan Clean & Clear</h3>
+                            <p className="text-sm mt-1">Tidak ditemukan indikasi tumpang tindih dengan hak tanah orang lain. Lahan siap digunakan.</p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Dynamic Step: Biodata (Read-only) */}
+            {currentStep === (selectedSchema.requiresMap ? 3 : 2) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Biodata Pembuat Izin</CardTitle>
+                  <CardDescription>Data ini ditarik secara otomatis dari hasil verifikasi KTP Anda dan tidak dapat diubah secara manual.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-muted-foreground uppercase">NIK</label>
+                      <Input value={userProfile?.userDetail?.nik || '-'} disabled className="bg-muted font-bold text-foreground opacity-100" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-muted-foreground uppercase">Nama Lengkap</label>
+                      <Input value={userProfile?.userDetail?.ktpFullName || '-'} disabled className="bg-muted font-bold text-foreground opacity-100" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-muted-foreground uppercase">Tempat Lahir</label>
+                      <Input value={userProfile?.userDetail?.ktpBirthPlace || '-'} disabled className="bg-muted font-bold text-foreground opacity-100" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-muted-foreground uppercase">Tanggal Lahir</label>
+                      <Input value={userProfile?.userDetail?.ktpBirthDate ? new Date(userProfile.userDetail.ktpBirthDate).toLocaleDateString('id-ID') : '-'} disabled className="bg-muted font-bold text-foreground opacity-100" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-muted-foreground uppercase">Jenis Kelamin</label>
+                      <Input value={userProfile?.userDetail?.ktpGender || '-'} disabled className="bg-muted font-bold text-foreground opacity-100" />
+                    </div>
+                    <div className="space-y-2 sm:col-span-2">
+                      <label className="text-xs font-bold text-muted-foreground uppercase">Alamat Sesuai KTP</label>
+                      <textarea
+                        value={userProfile?.userDetail?.ktpAddress || '-'}
+                        disabled
+                        rows={3}
+                        className="w-full bg-muted border border-border rounded-xl p-4 text-sm font-bold text-foreground opacity-100 resize-none outline-none"
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Dynamic Step 4: Document Upload */}
+            {currentStep === (selectedSchema.requiresMap ? 4 : 3) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Upload Dokumen Persyaratan</CardTitle>
+                  <CardDescription>Silakan unggah dokumen yang diperlukan untuk memproses perizinan ini.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {selectedSchema.requiredDocuments?.map((doc: any) => (
+                    <div key={doc.id} className="space-y-3 p-4 border border-border rounded-xl bg-muted/20">
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-bold flex items-center gap-2">
+                          <FileCheck className="w-4 h-4 text-primary" /> {doc.label} {doc.required && <span className="text-destructive">*</span>}
+                        </label>
+                      </div>
+
+                      {doc.id === 'ktp' ? (
+                        <div className="space-y-4 mt-2">
+                          <div className="p-4 bg-emerald-50 text-emerald-700 rounded-xl text-sm font-medium border border-emerald-200 flex items-center gap-3">
+                            <CheckCircle2 className="w-5 h-5 shrink-0" />
+                            KTP Pemohon sudah terverifikasi secara otomatis melalui sistem OCR. Identitas terjamin valid.
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <Input
+                            type="file"
+                            accept=".pdf,image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) setDocumentFiles(prev => ({ ...prev, [doc.id]: file }));
+                            }}
+                            required={doc.required && !documentFiles[doc.id]}
+                          />
+                          {documentFiles[doc.id] && documentFiles[doc.id] instanceof File && (
+                            <div className="relative overflow-hidden rounded-xl border border-border bg-background">
+                              {(documentFiles[doc.id] as File).type.startsWith('image/') ? (
+                                <div className="w-full h-48 bg-muted/50 p-2 flex items-center justify-center">
+                                  <img
+                                    src={URL.createObjectURL(documentFiles[doc.id] as File)}
+                                    alt="Preview"
+                                    className="max-w-full max-h-full object-contain rounded-lg shadow-sm"
+                                  />
+                                </div>
+                              ) : (
+                                <div className="p-4 flex items-center gap-3">
+                                  <div className="w-12 h-12 rounded-xl bg-red-50 text-red-600 flex items-center justify-center shrink-0">
+                                    <FileText className="w-6 h-6" />
+                                  </div>
+                                  <div className="overflow-hidden flex-1">
+                                    <p className="text-sm font-bold truncate">{(documentFiles[doc.id] as File).name}</p>
+                                    <p className="text-xs text-muted-foreground mt-0.5">{((documentFiles[doc.id] as File).size / 1024 / 1024).toFixed(2)} MB • PDF Document</p>
+                                  </div>
+                                </div>
+                              )}
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                className="absolute top-2 right-2 h-8 w-8 p-0 rounded-full"
+                                onClick={() => {
+                                  const newFiles = { ...documentFiles };
+                                  delete newFiles[doc.id];
+                                  setDocumentFiles(newFiles);
+                                }}
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </CardContent>
               </Card>
             )}
@@ -357,39 +584,38 @@ export default function SubmitPermitPage() {
             {/* Final Step: Review */}
             {currentStep === STEPS.length && (
               <div className="space-y-6">
-                {selectedSchema.requiresMap && (
-                  <Card className={cn(hasOverlap ? "border-destructive/50 bg-destructive/5" : "border-emerald-500/50 bg-emerald-50/5")}>
-                    <CardContent className="pt-6">
-                      <div className="flex items-start gap-4">
-                        {hasOverlap ? (
-                          <>
-                            <div className="p-3 bg-destructive/10 rounded-2xl text-destructive">
-                              <AlertTriangle className="w-8 h-8" />
-                            </div>
-                            <div>
-                              <h3 className="text-lg font-bold text-destructive">Konflik Lahan Terdeteksi</h3>
-                              <p className="text-sm text-muted-foreground mt-1">
-                                Sistem mendeteksi area yang Anda pilih tumpang tindih dengan Hak Guna Bangunan (HGB) milik PT. Pembangunan Jaya.
-                              </p>
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <div className="p-3 bg-emerald-100 rounded-2xl text-emerald-600">
-                              <CheckCircle2 className="w-8 h-8" />
-                            </div>
-                            <div>
-                              <h3 className="text-lg font-bold text-emerald-700">Lahan Clean & Clear</h3>
-                              <p className="text-sm text-muted-foreground mt-1">
-                                Tidak ditemukan tumpang tindih dengan hak tanah orang lain.
-                              </p>
-                            </div>
-                          </>
-                        )}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <UserIcon className="w-6 h-6 text-primary" />
+                      Biodata Pembuat Izin (OCR KTP)
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="flex flex-col border-b border-border pb-2">
+                        <span className="text-xs text-muted-foreground font-medium uppercase">NIK</span>
+                        <span className="text-sm font-bold">{userProfile?.userDetail?.nik || '-'}</span>
                       </div>
-                    </CardContent>
-                  </Card>
-                )}
+                      <div className="flex flex-col border-b border-border pb-2">
+                        <span className="text-xs text-muted-foreground font-medium uppercase">Nama Lengkap</span>
+                        <span className="text-sm font-bold">{userProfile?.userDetail?.ktpFullName || '-'}</span>
+                      </div>
+                      <div className="flex flex-col border-b border-border pb-2">
+                        <span className="text-xs text-muted-foreground font-medium uppercase">Tempat, Tanggal Lahir</span>
+                        <span className="text-sm font-bold">{userProfile?.userDetail?.ktpBirthPlace || '-'}, {userProfile?.userDetail?.ktpBirthDate ? new Date(userProfile.userDetail.ktpBirthDate).toLocaleDateString('id-ID') : '-'}</span>
+                      </div>
+                      <div className="flex flex-col border-b border-border pb-2">
+                        <span className="text-xs text-muted-foreground font-medium uppercase">Jenis Kelamin</span>
+                        <span className="text-sm font-bold">{userProfile?.userDetail?.ktpGender || '-'}</span>
+                      </div>
+                      <div className="flex flex-col col-span-2 border-b border-border pb-2">
+                        <span className="text-xs text-muted-foreground font-medium uppercase">Alamat Sesuai KTP</span>
+                        <span className="text-sm font-bold">{userProfile?.userDetail?.ktpAddress || '-'}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
                 <Card>
                   <CardHeader>
