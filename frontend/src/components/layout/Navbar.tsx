@@ -95,7 +95,7 @@ export function Navbar() {
           {mounted && (
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="p-2 rounded-xl hover:bg-muted transition-colors text-muted-foreground hover:text-primary"
+              className="hidden md:block p-2 rounded-xl hover:bg-muted transition-colors text-muted-foreground hover:text-primary"
             >
               {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
@@ -108,9 +108,9 @@ export function Navbar() {
                 <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-primary rounded-full border-2 border-background" />
               </button>
 
-              <div className="h-8 w-px bg-border mx-2 hidden sm:block" />
+              <div className="h-8 w-px bg-border mx-2 hidden md:block" />
 
-              <Link href="/dashboard/profile">
+              <Link href="/dashboard/profile" className="hidden md:block">
                 <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center overflow-hidden hover:scale-105 transition-transform group">
                   {user?.name ? (
                     <span className="text-xs font-bold text-primary">{user.name.charAt(0)}</span>
@@ -122,7 +122,7 @@ export function Navbar() {
 
               <button
                 onClick={logout}
-                className="p-2 text-muted-foreground hover:text-rose-500 transition-colors"
+                className="hidden md:block p-2 text-muted-foreground hover:text-rose-500 transition-colors"
                 title="Logout"
               >
                 <LogOut className="w-5 h-5" />
@@ -130,12 +130,12 @@ export function Navbar() {
             </>
           ) : (
             <>
-              <Link href="/login" className="hidden sm:block">
+              <Link href="/login" className="hidden md:block">
                 <Button variant="ghost" size="sm" className="rounded-xl">
                   Masuk
                 </Button>
               </Link>
-              <Link href="/register">
+              <Link href="/register" className="hidden md:block">
                 <Button size="sm" className="rounded-xl shadow-lg">
                   Daftar
                 </Button>
@@ -173,16 +173,52 @@ export function Navbar() {
                 {item.name}
               </Link>
             ))}
-            {!isAuthenticated && (
-              <div className="pt-4 border-t border-border flex flex-col gap-3">
-                <Link href="/login">
-                  <Button variant="outline" className="w-full rounded-xl">Masuk</Button>
+
+            {/* Mobile Actions: Profile, Theme, Logout */}
+            <div className="pt-4 border-t border-border flex flex-col gap-2">
+              {isAuthenticated && (
+                <Link
+                  href="/dashboard/profile"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 text-lg font-medium p-3 hover:bg-muted rounded-xl transition-colors"
+                >
+                  <User className="w-5 h-5 text-primary" />
+                  Profil Saya
                 </Link>
-                <Link href="/register">
-                  <Button className="w-full rounded-xl">Mulai Sekarang</Button>
-                </Link>
-              </div>
-            )}
+              )}
+
+              {mounted && (
+                <button
+                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                  className="flex items-center gap-3 text-lg font-medium p-3 hover:bg-muted rounded-xl transition-colors text-left"
+                >
+                  {theme === "dark" ? <Sun className="w-5 h-5 text-primary" /> : <Moon className="w-5 h-5 text-primary" />}
+                  {theme === "dark" ? "Mode Terang" : "Mode Gelap"}
+                </button>
+              )}
+
+              {isAuthenticated ? (
+                <button
+                  onClick={() => {
+                    logout();
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="flex items-center gap-3 text-lg font-medium p-3 hover:bg-rose-500/10 text-rose-500 rounded-xl transition-colors text-left mt-2"
+                >
+                  <LogOut className="w-5 h-5" />
+                  Keluar
+                </button>
+              ) : (
+                <div className="flex flex-col gap-3 mt-2">
+                  <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Button variant="outline" className="w-full rounded-xl h-12">Masuk</Button>
+                  </Link>
+                  <Link href="/register" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Button className="w-full rounded-xl h-12">Mulai Sekarang</Button>
+                  </Link>
+                </div>
+              )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
