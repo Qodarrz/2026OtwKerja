@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageSquare, X, Send, Bot, Headset, LogIn, Loader2, MessageCircle } from "lucide-react";
+import { MessageSquare, X, Send, Bot, Headset, LogIn, Loader2, MessageCircle, RefreshCcw } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/lib/axios";
 import { io, Socket } from "socket.io-client";
@@ -38,11 +38,22 @@ export function ChatWidget() {
 
   // Load session from backend if logged in and widget is open
   useEffect(() => {
-    if (!isAuthenticated || !isOpen) {
-      // Close socket when widget closes
+    if (!isOpen) {
       if (socketRef.current) {
         socketRef.current.disconnect();
         socketRef.current = null;
+      }
+      return;
+    }
+
+    if (!isAuthenticated) {
+      if (messages.length === 0) {
+        setMessages([{
+          senderName: "Virtual Assistant",
+          senderRole: "BOT",
+          content: "Halo! Saya adalah asisten virtual FlowGov. Ada yang bisa saya bantu hari ini?",
+          createdAt: new Date(),
+        }]);
       }
       return;
     }
@@ -217,8 +228,64 @@ export function ChatWidget() {
     setMessages((prev) => [...prev, userMsg, botMsg]);
   };
 
-  const handleSendMessage = () => {
+  const handleResetConversation = () => {
+    if (!isAuthenticated) {
+      setMessages([{
+        senderName: "Virtual Assistant",
+        senderRole: "BOT",
+        content: "Halo! Saya adalah asisten virtual FlowGov. Ada yang bisa saya bantu hari ini?",
+        createdAt: new Date(),
+      }]);
+    } else {
+      // For auth users, we'd ideally reset backend session. For now just clear local view.
+      setMessages([]);
+    }
+  };
+
+  const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
+
+    if (!isAuthenticated) {
+      const userMsg: Message = {
+        senderName: "Citizen",
+        senderRole: "USER",
+        content: inputValue.trim(),
+        createdAt: new Date(),
+      };
+
+      setMessages((prev) => [...prev, userMsg]);
+      setInputValue("");
+      setIsLoading(true);
+
+      try {
+        const { data } = await api.post("/chat/guest", {
+          message: userMsg.content,
+          history: messages
+        });
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            ...data,
+            createdAt: new Date(data.createdAt),
+          }
+        ]);
+      } catch (e) {
+        console.error("Guest chat error:", e);
+        setMessages((prev) => [
+          ...prev,
+          {
+            senderName: "Virtual Assistant",
+            senderRole: "BOT",
+            content: "Maaf, terjadi kesalahan. Silakan coba lagi.",
+            createdAt: new Date(),
+          }
+        ]);
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
 
     // Send through WebSocket (Backend handles both CS and AI Bot replies)
     if (socketRef.current && session) {
@@ -316,12 +383,21 @@ export function ChatWidget() {
                   <p className="text-[10px] text-primary-foreground/80 font-bold uppercase tracking-wider">Virtual Support</p>
                 </div>
               </div>
-              <button
-                onClick={() => setIsOpen(false)}
-                className="p-1.5 hover:bg-primary-foreground/10 rounded-full transition-all text-primary-foreground/80 hover:text-primary-foreground"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={handleResetConversation}
+                  title="Reset Percakapan"
+                  className="p-1.5 hover:bg-primary-foreground/10 rounded-full transition-all text-primary-foreground/80 hover:text-primary-foreground"
+                >
+                  <RefreshCcw className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="p-1.5 hover:bg-primary-foreground/10 rounded-full transition-all text-primary-foreground/80 hover:text-primary-foreground"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             {/* Chat Message List Body */}
@@ -410,43 +486,37 @@ export function ChatWidget() {
 
             {/* Inactive Resolved State Panel (Removed for seamless transition) */}
 
-            {/* Login Prompt for Guests */}
+            {/* Login Prompt for Guests (Only for CS) */}
             {!isAuthenticated && (
-              <div className="p-4 border-t border-border bg-card text-center space-y-3">
-                <p className="text-xs text-muted-foreground font-medium">Log in ke FlowGov untuk mengakses live chat bersama staf Customer Service kami.</p>
-                <Link
-                  href="/login"
-                  className="inline-flex items-center gap-2 justify-center text-xs bg-primary text-primary-foreground font-bold px-4 py-2.5 rounded-xl w-full hover:bg-primary/90 transition-all shadow-sm"
-                >
-                  <LogIn className="w-4 h-4" /> Log In Sekarang
-                </Link>
+              <div className="px-4 py-2 border-t border-border bg-muted/30 text-center">
+                <p className="text-[10px] text-muted-foreground font-medium flex items-center justify-center gap-1.5">
+                  <LogIn className="w-3 h-3" /> Log in untuk menghubungi staf Customer Service
+                </p>
               </div>
             )}
 
             {/* Chat Text Input Bar */}
-            {isAuthenticated && (
-              <div className="p-3 border-t border-border bg-card flex gap-2 items-center">
-                <input
-                  type="text"
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-                  placeholder={
-                    isEscalated
-                      ? "Ketik pesan ke Customer Service..."
-                      : "Ketik pesan untuk asisten virtual..."
-                  }
-                  className="flex-1 text-xs bg-muted/50 border border-border focus:border-primary/50 focus:ring-1 focus:ring-primary/20 px-3.5 py-2.5 rounded-xl outline-none transition-all"
-                />
-                <button
-                  onClick={handleSendMessage}
-                  disabled={!inputValue.trim()}
-                  className="p-2.5 bg-primary text-primary-foreground disabled:bg-muted disabled:text-muted-foreground rounded-xl hover:bg-primary/90 transition-all cursor-pointer shadow-sm"
-                >
-                  <Send className="w-4 h-4" />
-                </button>
-              </div>
-            )}
+            <div className="p-3 border-t border-border bg-card flex gap-2 items-center">
+              <input
+                type="text"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+                placeholder={
+                  isEscalated
+                    ? "Ketik pesan ke Customer Service..."
+                    : "Ketik pesan untuk asisten virtual..."
+                }
+                className="flex-1 text-xs bg-muted/50 border border-border focus:border-primary/50 focus:ring-1 focus:ring-primary/20 px-3.5 py-2.5 rounded-xl outline-none transition-all"
+              />
+              <button
+                onClick={handleSendMessage}
+                disabled={!inputValue.trim() || isLoading}
+                className="p-2.5 bg-primary text-primary-foreground disabled:bg-muted disabled:text-muted-foreground rounded-xl hover:bg-primary/90 transition-all cursor-pointer shadow-sm"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

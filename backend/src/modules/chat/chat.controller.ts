@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Patch, Param, UseGuards, Request, ForbiddenException, Inject, forwardRef } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Param, UseGuards, Request, ForbiddenException, Inject, forwardRef, Body } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { ChatGateway } from './chat.gateway';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -7,7 +7,6 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { Role } from '@prisma/client';
 
 @Controller('chat')
-@UseGuards(JwtAuthGuard)
 export class ChatController {
   constructor(
     private readonly chatService: ChatService,
@@ -17,19 +16,21 @@ export class ChatController {
 
   // Citizens: Get or create active session
   @Post('sessions')
+  @UseGuards(JwtAuthGuard)
   async getOrCreateSession(@Request() req: any) {
     return this.chatService.getOrCreateSession(req.user.userId);
   }
 
   // Citizens: Get active session
   @Get('sessions/my-active')
+  @UseGuards(JwtAuthGuard)
   async getMyActiveSession(@Request() req: any) {
     return this.chatService.getOrCreateSession(req.user.userId);
   }
 
   // Admin/Staff: Get all chat sessions
   @Get('sessions/admin/all')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.CS, Role.ADMIN)
   async getAllSessionsForCS() {
     return this.chatService.getAllSessionsForCS();
@@ -37,6 +38,7 @@ export class ChatController {
 
   // Citizens & Admin/Staff: Get detail by sessionId
   @Get('sessions/:sessionId')
+  @UseGuards(JwtAuthGuard)
   async getSessionById(@Param('sessionId') sessionId: string, @Request() req: any) {
     const session = await this.chatService.getSessionById(sessionId);
     
@@ -53,6 +55,7 @@ export class ChatController {
 
   // Citizens: Escalate chatbot session to Customer Service (Live Chat)
   @Patch('sessions/:sessionId/escalate')
+  @UseGuards(JwtAuthGuard)
   async escalateToCS(@Param('sessionId') sessionId: string, @Request() req: any) {
     const session = await this.chatService.getSessionById(sessionId);
     if (session.userId !== req.user.userId) {
@@ -69,7 +72,7 @@ export class ChatController {
 
   // Admin/Staff: Assign ticket to self
   @Patch('sessions/:sessionId/assign')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.CS, Role.ADMIN)
   async assignSession(@Param('sessionId') sessionId: string, @Request() req: any) {
     const session = await this.chatService.assignSession(sessionId, req.user.userId);
@@ -90,7 +93,7 @@ export class ChatController {
   }
 
   @Patch('sessions/:sessionId/resolve')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.CS, Role.ADMIN)
   async resolveSession(@Param('sessionId') sessionId: string, @Request() req: any) {
     const session = await this.chatService.getSessionById(sessionId);
@@ -108,5 +111,11 @@ export class ChatController {
     this.chatGateway.emitSessionUpdated(sessionId, 'RESOLVED', systemMsg);
     
     return updatedSession;
+  }
+
+  // Guest AI Chat (No authentication required)
+  @Post('guest')
+  async guestChat(@Body() body: { message: string, history: any[] }) {
+    return this.chatService.generateGuestBotReply(body.message, body.history);
   }
 }
