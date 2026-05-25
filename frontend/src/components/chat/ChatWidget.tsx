@@ -338,7 +338,7 @@ export function ChatWidget() {
   }
 
   // Also disable for roles other than "USER" (case insensitive)
-  if (isAuthenticated && user?.role && user.role.toLowerCase() !== "user") {
+  if (isAuthenticated && user?.roles && !user.roles.some(r => r.toLowerCase() === "user")) {
     return null;
   }
 
