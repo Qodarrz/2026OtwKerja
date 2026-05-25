@@ -69,14 +69,14 @@ export default function LandingPage() {
           initial={{ opacity: 0, x: -60 }}
           animate={{ opacity: 0.25, x: 0 }}
           transition={{ duration: 1.2, delay: 0.2, ease: "easeOut" }}
-          className="absolute left-[-2%] top-[25%] w-60 lg:w-95 xl:w-112.5 h-auto hidden lg:block pointer-events-none select-none grayscale hover:grayscale-0 transition-all duration-1000"
+          className="absolute left-[-2%] top-[30%] w-60 lg:w-95 xl:w-112.5 h-auto hidden lg:block pointer-events-none select-none grayscale hover:grayscale-0 transition-all duration-1000"
         >
           <Image
-            src="/skyscraper-hero.png"
+            src="/skyscrape.png"
             alt=""
             width={600}
             height={800}
-            className="w-full h-auto mix-blend-multiply scale-150 pt-5"
+            className="w-full h-auto mix-blend-multiply scale-150 pt-5 [mask-image:linear-gradient(to_bottom,black_40%,transparent_100%)]"
           />
         </motion.div>
 
@@ -84,14 +84,14 @@ export default function LandingPage() {
           initial={{ opacity: 0, x: 60 }}
           animate={{ opacity: 0.25, x: 0 }}
           transition={{ duration: 1.2, delay: 0.4, ease: "easeOut" }}
-          className="absolute right-[-2%] top-[20%] w-70 lg:w-105 xl:w-125 h-auto hidden lg:block pointer-events-none select-none grayscale hover:grayscale-0 transition-all duration-1000"
+          className="absolute right-[-2%] top-[30%] w-70 lg:w-105 xl:w-125 h-auto hidden lg:block pointer-events-none select-none grayscale hover:grayscale-0 transition-all duration-1000"
         >
           <Image
             src="/pngegg.png"
             alt=""
             width={1200}
             height={1400}
-            className="w-full h-auto mix-blend-multiply scale-200 pt-10"
+            className="w-full h-auto mix-blend-multiply scale-200 pt-10 [mask-image:linear-gradient(to_bottom,black_40%,transparent_100%)]"
           />
         </motion.div>
 
@@ -112,16 +112,17 @@ export default function LandingPage() {
             <p className="text-lg lg:text-xl text-muted-foreground max-w-2xl mx-auto mb-12 leading-relaxed font-medium">
               FlowGov mengeliminasi hambatan internal birokrasi dengan transparansi real-time, kontrol SLA otomatis, dan akuntabilitas berbasis data terpadu.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-5">
-              <Link href="/register">
-                <Button size="lg" className="rounded-xl px-10 h-14 text-base font-bold shadow-lg shadow-primary/10 bg-primary hover:bg-primary/90 transition-all">
-                  Mulai Sekarang
-                  <ArrowRight className="ml-2 w-5 h-5" />
+            <div className="flex flex-row items-center justify-center gap-3 sm:gap-5 w-full">
+              <Link href="/register" className="flex-1 sm:flex-none">
+                <Button size="lg" className="w-full rounded-xl px-2 sm:px-10 h-12 sm:h-14 text-sm sm:text-base font-bold shadow-lg shadow-primary/10 bg-primary hover:bg-primary/90 transition-all">
+                  Mulai <span className="hidden sm:inline ml-1">Sekarang</span>
+                  <ArrowRight className="ml-1 sm:ml-2 w-4 h-4 sm:w-5 sm:h-5" />
                 </Button>
               </Link>
-              <Link href="/public-tracking">
-                <Button size="lg" variant="outline" className="rounded-xl px-10 h-14 text-base font-bold border-border hover:bg-background transition-all">
-                  Lacak Izin Publik
+              <Link href="/public-tracking" className="flex-1 sm:flex-none">
+                <Button size="lg" variant="outline" className="w-full rounded-xl px-2 sm:px-10 h-12 sm:h-14 text-[13px] sm:text-base font-bold border-border hover:bg-background transition-all">
+                  Lacak <span className="hidden sm:inline ml-1">Izin Publik</span>
+                  <span className="sm:hidden ml-1">Izin</span>
                 </Button>
               </Link>
             </div>
@@ -134,7 +135,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-6">
           <motion.div
             {...staggerContainer}
-            className="grid grid-cols-2 md:grid-cols-4 gap-10"
+            className="grid grid-cols-4 gap-2 sm:gap-6 md:gap-10"
           >
             {[
               { label: "Efisiensi Proses", value: "40%" },
@@ -147,10 +148,10 @@ export default function LandingPage() {
                 variants={fadeInUp}
                 className="flex flex-col items-center text-center justify-center"
               >
-                <div className="flex items-center justify-center gap-2.5 mb-1.5">
-                  <span className="text-3xl font-bold tracking-tight text-foreground">{stat.value}</span>
+                <div className="flex items-center justify-center gap-1 sm:gap-2.5 mb-1 sm:mb-1.5">
+                  <span className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-foreground">{stat.value}</span>
                 </div>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{stat.label}</p>
+                <p className="text-[7px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-tight">{stat.label}</p>
               </motion.div>
             ))}
           </motion.div>
@@ -173,7 +174,7 @@ export default function LandingPage() {
             initial="initial"
             whileInView="whileInView"
             viewport={{ once: true }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-8"
+            className="flex md:grid md:grid-cols-3 gap-6 md:gap-8 overflow-x-auto snap-x snap-mandatory pb-8 md:pb-0 -mx-6 px-6 md:mx-0 md:px-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
           >
             {[
               {
@@ -195,7 +196,7 @@ export default function LandingPage() {
               <motion.div
                 key={i}
                 variants={fadeInUp}
-                className="group p-10 rounded-3xl bg-card border border-border/60 hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300"
+                className="min-w-[85vw] sm:min-w-[320px] md:min-w-0 snap-center group p-8 md:p-10 rounded-3xl bg-card border border-border/60 hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300"
               >
                 <h3 className="text-xl font-bold mb-4">{feature.title}</h3>
                 <p className="text-muted-foreground leading-relaxed font-medium">
@@ -280,15 +281,15 @@ export default function LandingPage() {
       {/* Footer Section */}
       <footer className="pt-24 pb-12 bg-card border-t border-border/50">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-20 text-center md:text-left">
-            <div className="md:col-span-1 space-y-6">
-              <div className="flex items-center justify-center md:justify-start gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 mb-16 md:mb-20 text-left">
+            <div className="col-span-2 md:col-span-1 space-y-4 md:space-y-6">
+              <div className="flex items-center gap-2">
                 <span className="text-2xl font-bold tracking-tighter">FlowGov</span>
               </div>
-              <p className="text-muted-foreground font-medium text-sm leading-relaxed">
+              <p className="text-muted-foreground font-medium text-sm leading-relaxed max-w-sm">
                 Transformasi digital pelayanan publik untuk Indonesia yang lebih transparan dan akuntabel.
               </p>
-              <div className="flex items-center justify-center md:justify-start gap-3">
+              <div className="flex items-center gap-3">
                 {[Target, Target, Target, Target].map((Icon, i) => (
                   <Link key={i} href="#" className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center hover:bg-primary/10 hover:text-primary transition-all shadow-sm">
                     <Icon className="w-5 h-5" />
@@ -340,16 +341,16 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="pt-12 border-t border-border/40 text-center">
-            <div className="flex flex-wrap justify-center items-center gap-12 opacity-50 grayscale hover:grayscale-0 transition-all duration-500 mb-12">
-              <div className="flex items-center gap-2.5">
-                <Image src="/dinas-pupr.png" alt="Dinas PUPR" width={120} height={40} className="object-contain" />
+          <div className="pt-10 md:pt-12 border-t border-border/40 text-center">
+            <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12 opacity-50 grayscale hover:grayscale-0 transition-all duration-500 mb-10 md:mb-12">
+              <div className="flex items-center">
+                <Image src="/dinas-pupr.png" alt="Dinas PUPR" width={100} height={40} className="object-contain md:w-[120px]" />
               </div>
-              <div className="flex items-center gap-2.5">
-                <Image src="/bpn-ri.png" alt="BPN RI" width={120} height={40} className="object-contain" />
+              <div className="flex items-center">
+                <Image src="/bpn-ri.png" alt="BPN RI" width={100} height={40} className="object-contain md:w-[120px]" />
               </div>
-              <div className="flex items-center gap-2.5">
-                <Image src="/ombudsman.png" alt="Ombudsman RI" width={120} height={40} className="object-contain" />
+              <div className="flex items-center">
+                <Image src="/ombudsman.png" alt="Ombudsman RI" width={100} height={40} className="object-contain md:w-[120px]" />
               </div>
             </div>
             <p className="text-muted-foreground text-xs font-medium">

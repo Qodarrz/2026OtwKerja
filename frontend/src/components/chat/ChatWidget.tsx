@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import api from "@/lib/axios";
 import { io, Socket } from "socket.io-client";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 interface Message {
   id?: string;
@@ -18,6 +19,7 @@ interface Message {
 
 export function ChatWidget() {
   const { user, isAuthenticated } = useAuth();
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [session, setSession] = useState<any>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -263,6 +265,15 @@ export function ChatWidget() {
       answer: "Proses verifikasi dibagi menjadi tiga tahap SLA utama: 1) Document Check memakan waktu maksimal 24 jam. 2) Field Inspection (peninjauan lokasi lapangan) maksimal 48 jam. 3) Legalization (pengesahan) memakan waktu maksimal 24 jam.",
     },
   ];
+
+  if (pathname?.startsWith("/login") || pathname?.startsWith("/register")) {
+    return null;
+  }
+
+  // Also disable for roles other than "USER" (case insensitive)
+  if (isAuthenticated && user?.role && user.role.toLowerCase() !== "user") {
+    return null;
+  }
 
   return (
     <div className="fixed bottom-6 right-6 z-50 font-sans">
