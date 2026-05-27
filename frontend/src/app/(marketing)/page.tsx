@@ -218,12 +218,12 @@ export default function LandingPage() {
               viewport={{ once: true }}
               className="relative"
             >
-              <div className="relative rounded-3xl overflow-hidden border border-border/50 shadow-xl">
+              <div className="relative">
                 <Image
-                  src="/about-bg.png"
+                  src="/about.png"
                   alt="FlowGov Transformation"
-                  width={800}
-                  height={800}
+                  width={1000}
+                  height={1000}
                   className="w-full h-auto object-cover"
                 />
               </div>
