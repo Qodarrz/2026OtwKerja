@@ -50,8 +50,11 @@ export function Sidebar() {
     {
       title: "Customer Service",
       icon: Headset,
-      href: "/dashboard/tickets",
-      roles: [Role.ADMIN, Role.CS]
+      roles: [Role.ADMIN, Role.CS],
+      subItems: [
+        { title: "Daftar Tiket", icon: Headset, href: "/dashboard/tickets" },
+        { title: "Ulasan & Feedback", icon: ClipboardList, href: "/dashboard/feedbacks" }
+      ]
     },
     {
       title: "Antrean Berkas",

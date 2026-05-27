@@ -22,9 +22,10 @@ import { cn } from "@/lib/utils";
 import api from "@/lib/axios";
 interface FeedbackFormProps {
   applicationId: string;
+  feedbacks?: any[];
   onSuccess?: () => void;
 }
-export function FeedbackForm({ applicationId, onSuccess }: FeedbackFormProps) {
+export function FeedbackForm({ applicationId, feedbacks, onSuccess }: FeedbackFormProps) {
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState("");
@@ -193,6 +194,39 @@ export function FeedbackForm({ applicationId, onSuccess }: FeedbackFormProps) {
           </Button>{" "}
         </form>{" "}
       </CardContent>{" "}
+      
+      {feedbacks && feedbacks.length > 0 && (
+        <div className="bg-muted/30 border-t border-border p-6 space-y-4">
+          <h4 className="text-sm font-bold text-foreground mb-4">Riwayat Ulasan & Balasan</h4>
+          <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
+            {feedbacks.map((fb, idx) => (
+              <div key={idx} className="space-y-3 bg-background border border-border p-4 rounded-xl shadow-sm">
+                <div className="flex justify-between items-start">
+                  <div className="flex items-center gap-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star key={star} className={cn("w-3 h-3", fb.rating >= star ? "fill-amber-400 text-amber-400" : "text-slate-200")} />
+                    ))}
+                  </div>
+                  <span className="text-[10px] text-muted-foreground font-medium">
+                    {new Date(fb.createdAt).toLocaleDateString('id-ID')}
+                  </span>
+                </div>
+                <p className="text-sm text-foreground">{fb.comment}</p>
+                
+                {fb.response && (
+                  <div className="mt-3 bg-primary/5 p-3 rounded-lg border border-primary/10">
+                    <div className="flex items-center gap-2 mb-1">
+                      <MessageSquare className="w-3 h-3 text-primary" />
+                      <span className="text-[10px] font-bold text-primary uppercase">Balasan Admin</span>
+                    </div>
+                    <p className="text-sm text-foreground leading-relaxed">{fb.response}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </Card>
   );
 }

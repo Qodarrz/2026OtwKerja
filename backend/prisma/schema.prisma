@@ -48,6 +48,7 @@ model User {
   validationActions ValidationAction[]
   notifications   Notification[]
   feedbacks       Feedback[]
+  feedbackResponses Feedback[] @relation("FeedbackResponder")
   notificationSetting NotificationSetting?
   
   // Chat relationships
@@ -168,6 +169,7 @@ enum NotificationType {
   SLA_WARNING
   SLA_OVERDUE
   SLA_ESCALATION
+  FEEDBACK_RESPONSE
 }
 
 enum SLAStatus {
@@ -599,6 +601,11 @@ model Feedback {
   
   application     PermitApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   applicationId   String
+  
+  response        String?
+  respondedAt     DateTime?
+  respondedBy     User?            @relation("FeedbackResponder", fields: [respondedById], references: [id])
+  respondedById   String?
   
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt

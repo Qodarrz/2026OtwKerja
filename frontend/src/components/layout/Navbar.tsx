@@ -31,6 +31,44 @@ export function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [selectedNotif, setSelectedNotif] = useState<any>(null);
+
+  const fetchNotifications = async () => {
+    if (!isAuthenticated) return;
+    try {
+      const { notificationService } = await import('@/services/notification.service');
+      const countRes = await notificationService.getUnreadCount();
+      setUnreadCount(countRes.count || 0);
+
+      if (isNotifOpen) {
+        const listRes = await notificationService.getAll({ limit: 10 });
+        setNotifications(listRes.data || []);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 30000); // Polling every 30s
+    return () => clearInterval(interval);
+  }, [isAuthenticated, isNotifOpen]);
+
+  const handleMarkAsRead = async (id: string, isRead: boolean) => {
+    if (isRead) return;
+    try {
+      const { notificationService } = await import('@/services/notification.service');
+      await notificationService.markAsRead(id);
+      fetchNotifications();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   useEffect(() => {
     setMounted(true);
     const handleScroll = () => {
@@ -103,10 +141,74 @@ export function Navbar() {
 
           {isAuthenticated ? (
             <>
-              <button className="relative p-2 text-muted-foreground hover:text-primary transition-colors">
-                <Bell className="w-5 h-5" />
-                <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-primary rounded-full border-2 border-background" />
-              </button>
+              <div className="relative">
+                <button 
+                  onClick={() => setIsNotifOpen(!isNotifOpen)}
+                  className="relative p-2 text-muted-foreground hover:text-primary transition-colors"
+                >
+                  <Bell className="w-5 h-5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-1 right-1 w-4 h-4 bg-primary text-[10px] font-bold text-primary-foreground flex items-center justify-center rounded-full border-2 border-background">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </button>
+
+                <AnimatePresence>
+                  {isNotifOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      transition={{ duration: 0.2 }}
+                      className="absolute top-full right-0 mt-2 w-80 bg-background border border-border rounded-xl shadow-xl overflow-hidden z-50"
+                    >
+                      <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30">
+                        <h3 className="font-bold text-sm">Notifikasi</h3>
+                        {unreadCount > 0 && (
+                          <span className="text-xs text-primary font-medium">{unreadCount} baru</span>
+                        )}
+                      </div>
+                      <div className="max-h-[300px] overflow-y-auto">
+                        {notifications.length === 0 ? (
+                          <div className="p-8 text-center text-muted-foreground text-sm flex flex-col items-center">
+                            <Bell className="w-8 h-8 opacity-20 mb-2" />
+                            Belum ada notifikasi
+                          </div>
+                        ) : (
+                          <div className="divide-y divide-border">
+                            {notifications.map((notif) => (
+                              <div 
+                                key={notif.id} 
+                                onClick={() => {
+                                  handleMarkAsRead(notif.id, notif.isRead);
+                                  setSelectedNotif(notif);
+                                  setIsNotifOpen(false); // optional: close dropdown
+                                }}
+                                className={cn(
+                                  "p-4 hover:bg-muted/50 transition-colors cursor-pointer text-left w-full",
+                                  !notif.isRead ? "bg-primary/5" : ""
+                                )}
+                              >
+                                <div className="flex justify-between items-start mb-1">
+                                  <h4 className={cn("text-sm font-semibold", !notif.isRead ? "text-foreground" : "text-muted-foreground")}>
+                                    {notif.title}
+                                  </h4>
+                                  {!notif.isRead && <span className="w-2 h-2 rounded-full bg-primary shrink-0 mt-1.5 ml-2" />}
+                                </div>
+                                <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{notif.message}</p>
+                                <span className="text-[10px] text-muted-foreground/70 font-medium">
+                                  {new Date(notif.createdAt).toLocaleDateString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
 
               <div className="h-8 w-px bg-border mx-2 hidden md:block" />
 
@@ -152,6 +254,62 @@ export function Navbar() {
           </button>
         </div>
       </div>
+
+      {/* Notification Modal */}
+      <AnimatePresence>
+        {selectedNotif && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="bg-background border border-border p-6 rounded-3xl max-w-md w-full shadow-2xl relative"
+            >
+              <button
+                onClick={() => setSelectedNotif(null)}
+                className="absolute top-4 right-4 p-2 rounded-full hover:bg-muted text-muted-foreground transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              
+              <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-4">
+                <Bell className="w-6 h-6" />
+              </div>
+              
+              <h2 className="text-xl font-bold mb-2 pr-8">{selectedNotif.title}</h2>
+              <p className="text-muted-foreground mb-4 leading-relaxed">
+                {selectedNotif.message}
+              </p>
+              
+              <div className="flex items-center justify-between mt-6 pt-6 border-t border-border">
+                <span className="text-xs text-muted-foreground font-medium">
+                  {new Date(selectedNotif.createdAt).toLocaleString('id-ID', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </span>
+                
+                {selectedNotif.applicationId && (
+                  <Link href={`/dashboard/applications/${selectedNotif.applicationId}`} onClick={() => setSelectedNotif(null)}>
+                    <Button variant="outline" size="sm" className="rounded-full">
+                      Lihat Aplikasi
+                    </Button>
+                  </Link>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Mobile Menu */}
       <AnimatePresence>

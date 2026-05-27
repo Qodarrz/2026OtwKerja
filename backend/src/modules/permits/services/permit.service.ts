@@ -17,6 +17,7 @@ import {
     AuditEntityType,
     AuditActionType,
 } from '../../audit-log/dto/audit-log.dto';
+import { TaxCalculatorService } from './tax-calculator.service';
 
 export interface PaginatedResult<T> {
     data: T[];
@@ -31,6 +32,7 @@ export class PermitService {
     constructor(
         private prisma: PrismaService,
         private auditLogService: AuditLogService,
+        private taxCalculatorService: TaxCalculatorService,
     ) { }
 
     /**
@@ -103,7 +105,7 @@ export class PermitService {
                 applicantId: userId,
                 status: WorkflowStage.DRAFT,
                 currentStage: WorkflowStage.DRAFT,
-                referenceNumber: '', // Will be set on submission
+                referenceNumber: this.generateReferenceNumber(dto.permitType),
 
                 // Building permit fields
                 locationAddress: dto.locationAddress,
@@ -186,6 +188,18 @@ export class PermitService {
                     orderBy: {
                         transitionedAt: 'desc',
                     },
+                },
+                feedbacks: {
+                    orderBy: {
+                        createdAt: 'desc',
+                    },
+                    include: {
+                        respondedBy: {
+                            select: {
+                                name: true,
+                            }
+                        }
+                    }
                 },
             },
         });
@@ -627,6 +641,17 @@ export class PermitService {
             application.permitType,
         );
 
+        // Calculate tax before updating
+        const taxResult = this.taxCalculatorService.calculateTax({
+            permitType: application.permitType,
+            landSize: application.landSize || undefined,
+            njopValue: application.njopValue || undefined,
+            isStrategicLocation: application.isStrategicLocation || undefined,
+            landType: application.landType || undefined,
+            buildingHeight: application.buildingHeight || undefined,
+            estimatedEmployees: application.estimatedEmployees || undefined,
+        });
+
         // Update application
         const updated = await this.prisma.permitApplication.update({
             where: { id },
@@ -635,6 +660,12 @@ export class PermitService {
                 status: WorkflowStage.DOCUMENT_CHECK,
                 currentStage: WorkflowStage.DOCUMENT_CHECK,
                 submittedAt: new Date(),
+                baseTax: taxResult.baseTax,
+                strategicSurcharge: taxResult.strategicSurcharge,
+                landTypeSurcharge: taxResult.landTypeSurcharge,
+                highRiseSurcharge: taxResult.highRiseSurcharge,
+                administrativeFee: taxResult.administrativeFee,
+                totalCost: taxResult.totalCost,
             },
             include: {
                 applicant: {
@@ -726,7 +757,7 @@ export class PermitService {
                 applicantId: userId,
                 status: WorkflowStage.DRAFT,
                 currentStage: WorkflowStage.DRAFT,
-                referenceNumber: '', // Will be set on submission
+                referenceNumber: this.generateReferenceNumber(original.permitType),
                 originalApplicationId: originalId,
 
                 // Use updated values or fall back to original

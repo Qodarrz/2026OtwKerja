@@ -26,6 +26,7 @@ import { SLACountdown } from "@/components/dashboard/SLACountdown";
 import { FeedbackForm } from "@/components/dashboard/FeedbackForm";
 import { permitService } from "@/services/permit.service";
 import { cn, formatCurrency } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 import dynamic from "next/dynamic";
 
 const ReadOnlyMap = dynamic(() => import("@/components/map/ReadOnlyMap"), {
@@ -52,12 +53,63 @@ export default function ApplicationDetailPage() {
   }, [id]);
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        {" "}
-        <Loader2 className="w-10 h-10 text-primary animate-spin" />{" "}
-        <p className="text-sm font-bold text-muted-foreground animate-pulse">
-          Memuat Detail Pengajuan...
-        </p>{" "}
+      <div className="space-y-10 animate-in fade-in duration-500">
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <Skeleton className="w-10 h-10 rounded-xl" />
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-8 w-48" />
+            </div>
+          </div>
+          <Skeleton className="h-10 w-32 rounded-2xl" />
+        </header>
+
+        <Card className="border-none shadow-sm bg-card overflow-hidden">
+          <CardContent className="p-8">
+            <div className="flex justify-between items-center gap-8">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="flex flex-col items-center gap-4">
+                  <Skeleton className="w-12 h-12 rounded-2xl" />
+                  <Skeleton className="h-3 w-20" />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-8">
+            <Card className="border-none shadow-sm">
+              <CardHeader className="border-b border-slate-50">
+                <Skeleton className="h-6 w-48" />
+              </CardHeader>
+              <CardContent className="p-8">
+                <Skeleton className="h-32 w-full rounded-3xl" />
+              </CardContent>
+            </Card>
+            <Card className="border-none shadow-sm">
+              <CardHeader className="border-b border-slate-50">
+                <Skeleton className="h-6 w-48" />
+              </CardHeader>
+              <CardContent className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div key={i} className="space-y-2">
+                    <Skeleton className="h-3 w-24" />
+                    <Skeleton className="h-5 w-full" />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+          <div className="space-y-8">
+            <Card className="border-none shadow-sm">
+              <CardContent className="p-6">
+                <Skeleton className="h-64 w-full" />
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     );
   }
@@ -347,7 +399,7 @@ export default function ApplicationDetailPage() {
         </div>{" "}
         <div className="space-y-8">
           {" "}
-          <FeedbackForm applicationId={application.id} />{" "}
+          <FeedbackForm applicationId={application.id} feedbacks={application.feedbacks} />{" "}
           <Card className="bg-background text-primary-foreground border-none shadow-md">
             {" "}
             <CardContent className="p-8 space-y-4">
