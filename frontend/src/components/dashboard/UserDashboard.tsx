@@ -31,7 +31,7 @@ export function UserDashboard() {
     activeCount: 0,
     approvedCount: 0,
     waitingCount: 0,
-    draftCount: 0,
+    rejectedCount: 0,
     totalCost: 0
   });
   const [loading, setLoading] = useState(true);
@@ -71,9 +71,9 @@ export function UserDashboard() {
       icon: Clock, color: "text-amber-600", bg: "bg-amber-50"
     },
     {
-      label: "Draft",
-      value: metrics.draftCount.toString(),
-      icon: FileText, color: "text-muted-foreground", bg: "bg-muted"
+      label: "Ditolak",
+      value: (metrics.rejectedCount || 0).toString(),
+      icon: FileText, color: "text-rose-600", bg: "bg-rose-50"
     },
   ];
 
@@ -171,7 +171,7 @@ export function UserDashboard() {
                           <FileText className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors" />
                         </div>
                         <div>
-                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">{sub.referenceNumber || 'DRAFT'}</p>
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">{sub.referenceNumber || '-'}</p>
                           <p className="font-bold text-foreground tracking-tight">{sub.permitType.replace('_', ' ')}</p>
                         </div>
                       </div>
@@ -182,8 +182,7 @@ export function UserDashboard() {
                             "text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-lg mt-1.5 border",
                             ['APPROVED'].includes(sub.status) ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
                               ['REJECTED'].includes(sub.status) ? "bg-rose-50 text-rose-600 border-rose-100" :
-                                ['DRAFT'].includes(sub.status) ? "bg-secondary text-muted-foreground border-border" :
-                                  "bg-amber-50 text-amber-600 border-amber-100"
+                                "bg-amber-50 text-amber-600 border-amber-100"
                           )}>
                             {sub.status.replace('_', ' ')}
                           </span>

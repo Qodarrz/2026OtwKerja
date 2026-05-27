@@ -71,7 +71,7 @@ export class AnalyticsService {
             this.prisma.permitApplication.count({
                 where: {
                     status: {
-                        notIn: [WorkflowStage.APPROVED, WorkflowStage.REJECTED, WorkflowStage.DRAFT],
+                        notIn: [WorkflowStage.APPROVED, WorkflowStage.REJECTED],
                     },
                 },
             }),
@@ -310,36 +310,34 @@ export class AnalyticsService {
             WorkflowStage.LEGALIZATION,
         ];
 
-        // Fetch all necessary data in parallel to avoid N+1 issues
-        const [slaRules, activeCounts, allCompletedStages, allStaff] = await Promise.all([
-            this.prisma.sLARule.findMany({
-                where: { stage: { in: stages } }
-            }),
-            this.prisma.permitApplication.groupBy({
-                by: ['currentStage'],
-                where: { currentStage: { in: stages } },
-                _count: true
-            }),
-            this.prisma.stageHistory.findMany({
-                where: {
-                    toStage: { in: stages },
-                    completedAt: { not: null },
-                },
-                select: {
-                    toStage: true,
-                    durationHours: true,
-                    slaStatus: true,
-                },
-            }),
-            this.prisma.user.findMany({
-                where: {
-                    roles: {
-                        hasSome: [Role.DOCUMENT_VALIDATOR, Role.FIELD_INSPECTOR, Role.LEGALIZER]
-                    }
-                },
-                select: { roles: true }
-            })
-        ]);
+        // Fetch sequentially to prevent connection pool timeouts (NeonDB limits)
+        const slaRules = await this.prisma.sLARule.findMany({
+            where: { stage: { in: stages } }
+        });
+        const activeCounts = await this.prisma.permitApplication.groupBy({
+            by: ['currentStage'],
+            where: { currentStage: { in: stages } },
+            _count: true
+        });
+        const allCompletedStages = await this.prisma.stageHistory.findMany({
+            where: {
+                toStage: { in: stages },
+                completedAt: { not: null },
+            },
+            select: {
+                toStage: true,
+                durationHours: true,
+                slaStatus: true,
+            },
+        });
+        const allStaff = await this.prisma.user.findMany({
+            where: {
+                roles: {
+                    hasSome: [Role.DOCUMENT_VALIDATOR, Role.FIELD_INSPECTOR, Role.LEGALIZER]
+                }
+            },
+            select: { roles: true }
+        });
 
         const slaRuleMap = new Map(slaRules.map(r => [r.stage, r]));
         const activeCountMap = new Map(activeCounts.map(c => [c.currentStage, c._count]));
@@ -500,7 +498,7 @@ export class AnalyticsService {
         });
 
         const activeCount = applications.filter(a => 
-            !([WorkflowStage.APPROVED, WorkflowStage.REJECTED, WorkflowStage.DRAFT] as WorkflowStage[]).includes(a.status)
+            !([WorkflowStage.APPROVED, WorkflowStage.REJECTED] as WorkflowStage[]).includes(a.status)
         ).length;
 
         const approvedCount = applications.filter(a => a.status === WorkflowStage.APPROVED).length;
@@ -509,7 +507,7 @@ export class AnalyticsService {
             ([WorkflowStage.DOCUMENT_CHECK, WorkflowStage.FIELD_INSPECTION, WorkflowStage.LEGALIZATION] as WorkflowStage[]).includes(a.status)
         ).length;
 
-        const draftCount = applications.filter(a => a.status === WorkflowStage.DRAFT).length;
+        const rejectedCount = applications.filter(a => a.status === WorkflowStage.REJECTED).length;
 
         const totalCost = applications.reduce((acc, app) => acc + (app.totalCost || 0), 0);
 
@@ -517,7 +515,7 @@ export class AnalyticsService {
             activeCount,
             approvedCount,
             waitingCount,
-            draftCount,
+            rejectedCount,
             totalCost,
         };
     }
@@ -664,7 +662,7 @@ export class AnalyticsService {
         const pendingApplications = await this.prisma.permitApplication.count({
             where: {
                 status: {
-                    notIn: [WorkflowStage.APPROVED, WorkflowStage.REJECTED, WorkflowStage.DRAFT],
+                    notIn: [WorkflowStage.APPROVED, WorkflowStage.REJECTED],
                 },
             },
         });
@@ -718,7 +716,7 @@ export class AnalyticsService {
         const activeApplications = await this.prisma.permitApplication.count({
             where: {
                 status: {
-                    notIn: [WorkflowStage.APPROVED, WorkflowStage.REJECTED, WorkflowStage.DRAFT],
+                    notIn: [WorkflowStage.APPROVED, WorkflowStage.REJECTED],
                 },
             },
         });

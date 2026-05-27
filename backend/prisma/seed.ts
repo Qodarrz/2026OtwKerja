@@ -1,4 +1,4 @@
-import { PrismaClient, WorkflowStage, Role, PermitType, LandType, AuthProvider, ActionType, SLAStatus } from '@prisma/client';
+import { PrismaClient, WorkflowStage, Role, PermitType, LandType, AuthProvider, ActionType, SLAStatus, BottleneckSeverity, BottleneckStatus, RecommendationType, RecommendationPriority } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
@@ -161,53 +161,76 @@ async function main() {
   });
 
   // 5. Seed Logical Applications with History (for Analytics)
-  console.log('📑 Skipping Logical Applications Seeding...');
+  console.log('📑 Seeding Realistic Logical Applications...');
 
-  if (false) {
-    // Helper to create full application life cycle
-    const createFullApp = async (
-      ref: string,
-      type: PermitType,
-      applicantEmail: string,
-      finalStatus: WorkflowStage,
-      daysAgo: number
-    ) => {
-      const applicant = allUsers[applicantEmail];
-      const submittedAt = new Date();
-      submittedAt.setDate(submittedAt.getDate() - daysAgo);
+  // Helper to create full application life cycle
+  const createFullApp = async (
+    ref: string,
+    type: PermitType,
+    applicantEmail: string,
+    finalStatus: WorkflowStage,
+    daysAgo: number
+  ) => {
+    const applicant = allUsers[applicantEmail];
+    const submittedAt = new Date();
+    submittedAt.setDate(submittedAt.getDate() - daysAgo);
 
-      const app = await prisma.permitApplication.create({
-        data: {
-          referenceNumber: ref,
-          permitType: type,
-          applicantId: applicant.id,
-          status: finalStatus,
-          currentStage: finalStatus,
-          locationAddress: 'Jl. Ahmad Yani No. ' + Math.floor(Math.random() * 100),
-          landSize: 150,
-          landType: LandType.RESIDENTIAL,
-          totalCost: type === PermitType.BUILDING_PERMIT ? 15000000 : 2500000,
-          submittedAt: submittedAt,
-        }
-      });
-      
-      const docCheckStart = new Date(submittedAt);
-      const docCheckEnd = new Date(docCheckStart);
-      docCheckEnd.setHours(docCheckEnd.getHours() + 4); // Fast check
+    const app = await prisma.permitApplication.create({
+      data: {
+        referenceNumber: ref,
+        permitType: type,
+        applicantId: applicant.id,
+        status: finalStatus,
+        currentStage: finalStatus,
+        locationAddress: 'Jl. ' + ['Ahmad Yani', 'Sudirman', 'Thamrin', 'Gatot Subroto', 'Merdeka'][Math.floor(Math.random() * 5)] + ' No. ' + Math.floor(Math.random() * 100),
+        landSize: type === PermitType.BUILDING_PERMIT ? Math.floor(Math.random() * 500) + 100 : null,
+        landType: type === PermitType.BUILDING_PERMIT ? LandType.RESIDENTIAL : null,
+        totalCost: type === PermitType.BUILDING_PERMIT ? Math.floor(Math.random() * 20000000) + 5000000 : Math.floor(Math.random() * 5000000) + 1000000,
+        businessName: type === PermitType.BUSINESS_LICENSE ? 'Usaha ' + ['Maju Jaya', 'Berkah', 'Sentosa', 'Makmur'][Math.floor(Math.random() * 4)] : null,
+        submittedAt: submittedAt,
+      }
+    });
+    
+    // Simulate DOCUMENT_CHECK stage
+    const docCheckStart = new Date(submittedAt);
+    let docCheckDuration = Math.floor(Math.random() * 18) + 2; // 2 to 20 hours (mostly ON_TIME or WARNING)
+    // Make 1/4 of doc checks completely overdue
+    if (Math.random() > 0.75) docCheckDuration = Math.floor(Math.random() * 24) + 25; // 25 to 48 hours
+    const docCheckEnd = new Date(docCheckStart);
+    docCheckEnd.setHours(docCheckEnd.getHours() + docCheckDuration);
+    const docSlaStatus = docCheckDuration > 24 ? SLAStatus.OVERDUE : (docCheckDuration > 19 ? SLAStatus.WARNING : SLAStatus.ON_TIME);
 
-      await prisma.stageHistory.create({
-        data: {
-          applicationId: app.id,
-          fromStage: WorkflowStage.DRAFT,
-          toStage: WorkflowStage.DOCUMENT_CHECK,
-          transitionedAt: docCheckStart,
-          completedAt: docCheckEnd,
-          durationHours: 4,
-          slaStatus: SLAStatus.ON_TIME,
-          transitionedBy: applicant.id
-        }
-      });
+    await prisma.stageHistory.create({
+      data: {
+        applicationId: app.id,
+        toStage: WorkflowStage.DOCUMENT_CHECK,
+        transitionedAt: docCheckStart,
+        completedAt: finalStatus === WorkflowStage.DOCUMENT_CHECK ? null : docCheckEnd,
+        durationHours: finalStatus === WorkflowStage.DOCUMENT_CHECK ? null : docCheckDuration,
+        slaStatus: finalStatus === WorkflowStage.DOCUMENT_CHECK ? null : docSlaStatus,
+      }
+    });
 
+    if (finalStatus === WorkflowStage.REJECTED && daysAgo > 10) {
+        // Rejected at doc check
+        await prisma.permitApplication.update({
+            where: { id: app.id },
+            data: { status: WorkflowStage.REJECTED, currentStage: WorkflowStage.REJECTED, rejectionReason: 'Dokumen KTP tidak jelas atau kadaluarsa.' }
+        });
+        await prisma.validationAction.create({
+          data: {
+            applicationId: app.id,
+            actionType: ActionType.REJECT,
+            stage: WorkflowStage.DOCUMENT_CHECK,
+            performedById: allUsers['andi.validator@flowgov.id'].id,
+            performedAt: docCheckEnd,
+            notes: 'Dokumen tidak valid.'
+          }
+        });
+        return;
+    }
+
+    if (finalStatus !== WorkflowStage.DOCUMENT_CHECK) {
       await prisma.validationAction.create({
         data: {
           applicationId: app.id,
@@ -215,37 +238,35 @@ async function main() {
           stage: WorkflowStage.DOCUMENT_CHECK,
           performedById: allUsers['andi.validator@flowgov.id'].id,
           performedAt: docCheckEnd,
-          notes: 'Dokumen lengkap dan valid.'
+          notes: 'Dokumen lengkap dan valid sesuai persyaratan.'
         }
       });
+    } else {
+      return; // Stop here if stuck in doc check
+    }
 
-      if (finalStatus === WorkflowStage.REJECTED && daysAgo > 10) {
-          // If rejected at doc check
-          await prisma.permitApplication.update({
-              where: { id: app.id },
-              data: { status: WorkflowStage.REJECTED, currentStage: WorkflowStage.REJECTED, rejectionReason: 'Dokumen KTP tidak jelas.' }
-          });
-          return;
-      }
+    // Stage 2: Field Inspection (if IMB)
+    let nextStart = new Date(docCheckEnd);
+    if (type === PermitType.BUILDING_PERMIT) {
+        let inspectionDuration = Math.floor(Math.random() * 30) + 10; // 10 to 40 hours (SLA is 48)
+        if (Math.random() > 0.6) inspectionDuration = Math.floor(Math.random() * 48) + 49; // 49 to 96 hours (Overdue)
+        const inspectionEnd = new Date(nextStart);
+        inspectionEnd.setHours(inspectionEnd.getHours() + inspectionDuration);
+        const insSlaStatus = inspectionDuration > 48 ? SLAStatus.OVERDUE : (inspectionDuration > 38 ? SLAStatus.WARNING : SLAStatus.ON_TIME);
 
-      // Stage 2: Field Inspection (if IMB)
-      let nextStart = new Date(docCheckEnd);
-      if (type === PermitType.BUILDING_PERMIT) {
-          const inspectionEnd = new Date(nextStart);
-          inspectionEnd.setHours(inspectionEnd.getHours() + 30); // 30 hours later
+        await prisma.stageHistory.create({
+            data: {
+                applicationId: app.id,
+                fromStage: WorkflowStage.DOCUMENT_CHECK,
+                toStage: WorkflowStage.FIELD_INSPECTION,
+                transitionedAt: nextStart,
+                completedAt: finalStatus === WorkflowStage.FIELD_INSPECTION ? null : inspectionEnd,
+                durationHours: finalStatus === WorkflowStage.FIELD_INSPECTION ? null : inspectionDuration,
+                slaStatus: finalStatus === WorkflowStage.FIELD_INSPECTION ? null : insSlaStatus,
+            }
+        });
 
-          await prisma.stageHistory.create({
-              data: {
-                  applicationId: app.id,
-                  fromStage: WorkflowStage.DOCUMENT_CHECK,
-                  toStage: WorkflowStage.FIELD_INSPECTION,
-                  transitionedAt: nextStart,
-                  completedAt: inspectionEnd,
-                  durationHours: 30,
-                  slaStatus: SLAStatus.ON_TIME,
-              }
-          });
-
+        if (finalStatus !== WorkflowStage.FIELD_INSPECTION) {
           await prisma.validationAction.create({
               data: {
                   applicationId: app.id,
@@ -253,113 +274,114 @@ async function main() {
                   stage: WorkflowStage.FIELD_INSPECTION,
                   performedById: allUsers['candra.inspector@flowgov.id'].id,
                   performedAt: inspectionEnd,
-                  notes: 'Lokasi sesuai dengan dokumen permohonan.'
+                  notes: 'Lokasi dan zonasi sesuai dengan dokumen permohonan.'
               }
           });
-          nextStart = inspectionEnd;
-      }
+        } else {
+          return;
+        }
+        nextStart = inspectionEnd;
+    }
 
-      // Stage 3: Legalization
-      if (finalStatus === WorkflowStage.APPROVED) {
-          const legalEnd = new Date(nextStart);
-          legalEnd.setHours(legalEnd.getHours() + 10);
+    // Stage 3: Legalization
+    let legalDuration = Math.floor(Math.random() * 20) + 2; // 2 to 22 hours
+    if (Math.random() > 0.8) legalDuration = Math.floor(Math.random() * 24) + 25; // 25 to 48 hours (Overdue)
+    const legalEnd = new Date(nextStart);
+    legalEnd.setHours(legalEnd.getHours() + legalDuration);
+    const legSlaStatus = legalDuration > 24 ? SLAStatus.OVERDUE : (legalDuration > 19 ? SLAStatus.WARNING : SLAStatus.ON_TIME);
 
-          await prisma.stageHistory.create({
-              data: {
-                  applicationId: app.id,
-                  fromStage: type === PermitType.BUILDING_PERMIT ? WorkflowStage.FIELD_INSPECTION : WorkflowStage.DOCUMENT_CHECK,
-                  toStage: WorkflowStage.LEGALIZATION,
-                  transitionedAt: nextStart,
-                  completedAt: legalEnd,
-                  durationHours: 10,
-                  slaStatus: SLAStatus.ON_TIME,
-              }
-          });
+    await prisma.stageHistory.create({
+        data: {
+            applicationId: app.id,
+            fromStage: type === PermitType.BUILDING_PERMIT ? WorkflowStage.FIELD_INSPECTION : WorkflowStage.DOCUMENT_CHECK,
+            toStage: WorkflowStage.LEGALIZATION,
+            transitionedAt: nextStart,
+            completedAt: finalStatus === WorkflowStage.LEGALIZATION ? null : legalEnd,
+            durationHours: finalStatus === WorkflowStage.LEGALIZATION ? null : legalDuration,
+            slaStatus: finalStatus === WorkflowStage.LEGALIZATION ? null : legSlaStatus,
+        }
+    });
 
-          await prisma.validationAction.create({
-              data: {
-                  applicationId: app.id,
-                  actionType: ActionType.APPROVE,
-                  stage: WorkflowStage.LEGALIZATION,
-                  performedById: allUsers['eka.legalizer@flowgov.id'].id,
-                  performedAt: legalEnd,
-                  notes: 'Izin telah disahkan secara digital.'
-              }
-          });
-
-          // Add Feedback for approved app
-          await prisma.feedback.create({
+    if (finalStatus === WorkflowStage.APPROVED) {
+        await prisma.validationAction.create({
             data: {
-              applicationId: app.id,
-              userId: applicant.id,
-              rating: 5,
-              comment: 'Proses sangat cepat dan transparan. Terima kasih FlowGov!',
-              type: 'APPRECIATION'
+                applicationId: app.id,
+                actionType: ActionType.APPROVE,
+                stage: WorkflowStage.LEGALIZATION,
+                performedById: allUsers['eka.legalizer@flowgov.id'].id,
+                performedAt: legalEnd,
+                notes: 'Izin telah disahkan dan diterbitkan secara digital.'
             }
-          });
-      }
-    };
+        });
 
-    // Create several approved apps
-    await createFullApp('IMB-2026-001', PermitType.BUILDING_PERMIT, 'citizen1@gmail.com', WorkflowStage.APPROVED, 20);
-    await createFullApp('IMB-2026-002', PermitType.BUILDING_PERMIT, 'citizen2@gmail.com', WorkflowStage.APPROVED, 15);
-    await createFullApp('IUMK-2026-001', PermitType.BUSINESS_LICENSE, 'citizen3@gmail.com', WorkflowStage.APPROVED, 5);
-    
-    // Create an app waiting in Document Check (for Andi)
-    const appWaiting1 = await prisma.permitApplication.create({
-      data: {
-          referenceNumber: 'IMB-2026-NEW-01',
-          permitType: PermitType.BUILDING_PERMIT,
-          applicantId: allUsers['citizen4@gmail.com'].id,
-          status: WorkflowStage.DOCUMENT_CHECK,
-          currentStage: WorkflowStage.DOCUMENT_CHECK,
-          locationAddress: 'Jl. Semeru No. 12',
-          landSize: 200,
-          submittedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // make it overdue for real
-      }
-    });
-    await prisma.stageHistory.create({
-      data: { applicationId: appWaiting1.id, toStage: WorkflowStage.DOCUMENT_CHECK, transitionedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000) }
-    });
+        // Add Feedback for approved app
+        const ratings = [5, 5, 4, 5, 3, 4, 5];
+        const randomRating = ratings[Math.floor(Math.random() * ratings.length)];
+        const comments = [
+          'Proses sangat cepat dan transparan. Terima kasih FlowGov!',
+          'Pelayanan memuaskan, sangat membantu.',
+          'Sistemnya gampang dipakai.',
+          'Bagus, tapi bisa dipercepat lagi di bagian legalisasi.',
+          'Luar biasa cepat.',
+        ];
+        await prisma.feedback.create({
+          data: {
+            applicationId: app.id,
+            userId: applicant.id,
+            rating: randomRating,
+            comment: comments[Math.floor(Math.random() * comments.length)],
+            type: 'APPRECIATION'
+          }
+        });
+    }
+  };
 
-    // Create an app waiting in Legalization
-    const appWaiting2 = await prisma.permitApplication.create({
-      data: {
-          referenceNumber: 'IUMK-2026-WAIT-01',
-          permitType: PermitType.BUSINESS_LICENSE,
-          applicantId: allUsers['user@flowgov.id'].id,
-          status: WorkflowStage.LEGALIZATION,
-          currentStage: WorkflowStage.LEGALIZATION,
-          businessName: 'Toko Heidar',
-          submittedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-      }
-    });
-    // Add history for doc check (already completed)
-    const wait2DocEnd = new Date(Date.now() - 1 * 24 * 60 * 60 * 1000);
-    await prisma.stageHistory.create({
-      data: { 
-          applicationId: appWaiting2.id, 
-          toStage: WorkflowStage.DOCUMENT_CHECK, 
-          transitionedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-          completedAt: wait2DocEnd,
-          durationHours: 24,
-          slaStatus: SLAStatus.ON_TIME
-      }
-    });
-    await prisma.validationAction.create({
-      data: {
-          applicationId: appWaiting2.id,
-          actionType: ActionType.APPROVE,
-          stage: WorkflowStage.DOCUMENT_CHECK,
-          performedById: allUsers['budi.validator@flowgov.id'].id,
-          performedAt: wait2DocEnd,
-          notes: 'Data usaha valid.'
-      }
-    });
-    await prisma.stageHistory.create({
-      data: { applicationId: appWaiting2.id, toStage: WorkflowStage.LEGALIZATION, transitionedAt: wait2DocEnd }
-    });
+  // Generate 20+ realistic applications
+  console.log('Generating realistic applications...');
+  for (let i = 1; i <= 8; i++) {
+    await createFullApp(`IMB-2026-A00${i}`, PermitType.BUILDING_PERMIT, `citizen${(i%4)+1}@gmail.com`, WorkflowStage.APPROVED, 15 + i);
+    await createFullApp(`IUMK-2026-A00${i}`, PermitType.BUSINESS_LICENSE, `citizen${(i%4)+1}@gmail.com`, WorkflowStage.APPROVED, 10 + i);
   }
+  
+  await createFullApp('IMB-2026-R01', PermitType.BUILDING_PERMIT, 'citizen1@gmail.com', WorkflowStage.REJECTED, 25);
+  await createFullApp('IUMK-2026-R01', PermitType.BUSINESS_LICENSE, 'citizen2@gmail.com', WorkflowStage.REJECTED, 18);
+
+  // Active Applications (Various stages)
+  await createFullApp('IMB-2026-DOC-01', PermitType.BUILDING_PERMIT, 'citizen3@gmail.com', WorkflowStage.DOCUMENT_CHECK, 2);
+  await createFullApp('IMB-2026-DOC-02', PermitType.BUILDING_PERMIT, 'user@flowgov.id', WorkflowStage.DOCUMENT_CHECK, 4); // Overdue
+  await createFullApp('IUMK-2026-DOC-01', PermitType.BUSINESS_LICENSE, 'citizen1@gmail.com', WorkflowStage.DOCUMENT_CHECK, 1);
+
+  await createFullApp('IMB-2026-INS-01', PermitType.BUILDING_PERMIT, 'citizen2@gmail.com', WorkflowStage.FIELD_INSPECTION, 3);
+  await createFullApp('IMB-2026-INS-02', PermitType.BUILDING_PERMIT, 'citizen4@gmail.com', WorkflowStage.FIELD_INSPECTION, 5); // Overdue
+  await createFullApp('IMB-2026-INS-03', PermitType.BUILDING_PERMIT, 'user@flowgov.id', WorkflowStage.FIELD_INSPECTION, 2);
+
+  await createFullApp('IMB-2026-LEG-01', PermitType.BUILDING_PERMIT, 'citizen1@gmail.com', WorkflowStage.LEGALIZATION, 4);
+  await createFullApp('IUMK-2026-LEG-01', PermitType.BUSINESS_LICENSE, 'citizen3@gmail.com', WorkflowStage.LEGALIZATION, 6); // Overdue
+
+  // Explicit Bottleneck Event Generation
+  console.log('Generating active bottlenecks for analytics...');
+  await prisma.bottleneckEvent.create({
+    data: {
+      stage: WorkflowStage.FIELD_INSPECTION,
+      score: 85,
+      severity: BottleneckSeverity.HIGH,
+      queueLength: 15,
+      queueWeight: 30.5,
+      avgProcessingTime: 52.4, // Overdue SLA (48h max)
+      processingWeight: 45.2,
+      slaViolationRate: 65.0,
+      slaWeight: 15.0,
+      staffWorkload: 8.5,
+      workloadWeight: 9.3,
+      status: BottleneckStatus.ACTIVE,
+      detectedAt: new Date(Date.now() - 5 * 60 * 60 * 1000), // Detected 5 hours ago
+      recommendations: {
+        create: [
+          { type: RecommendationType.ADD_STAFF, priority: RecommendationPriority.HIGH, description: 'Tambahkan 2 staff ke Field Inspection segera.', specificMetrics: { staffToAdd: 2 }, estimatedImpact: 'HIGH' }
+        ]
+      }
+    }
+  });
 
   // 6. Seed Bottleneck Thresholds
   console.log('⚙️ Seeding Bottleneck Thresholds...');

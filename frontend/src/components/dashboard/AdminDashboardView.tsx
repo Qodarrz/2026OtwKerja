@@ -232,17 +232,17 @@ export function AdminDashboardView() {
                       <p className="text-md font-bold text-foreground">{item.stage.replace('_', ' ')}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-2xl font-bold text-foreground leading-none">{(item.avgDurationHours || 0).toFixed(1)} <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Jam</span></p>
+                      <p className="text-2xl font-bold text-foreground leading-none">{(item.averageDurationHours || 0).toFixed(1)} <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Jam</span></p>
                     </div>
                   </div>
                   <div className="h-4 w-full bg-secondary rounded-full overflow-hidden p-1">
                     <motion.div 
                       initial={{ width: 0 }}
-                      animate={{ width: `${Math.min(((item.avgDurationHours || 0) / 48) * 100, 100)}%` }}
+                      animate={{ width: `${Math.min(((item.averageDurationHours || 0) / 48) * 100, 100)}%` }}
                       className={cn(
                         "h-full rounded-full shadow-inner transition-all duration-500",
-                        (item.avgDurationHours || 0) > 24 ? "bg-primary text-primary-foreground" : 
-                        (item.avgDurationHours || 0) > 12 ? "bg-primary text-primary-foreground" : 
+                        (item.averageDurationHours || 0) > 24 ? "bg-primary text-primary-foreground" : 
+                        (item.averageDurationHours || 0) > 12 ? "bg-primary text-primary-foreground" : 
                         "bg-primary text-primary-foreground"
                       )} 
                     />
@@ -275,9 +275,9 @@ export function AdminDashboardView() {
             <CardContent className="p-8 space-y-8">
               <div className="space-y-6">
                 {[
-                  { label: "Tepat Waktu", value: metrics?.slaStats?.onTimePercentage || 0, color: "bg-emerald-500", text: "text-emerald-600" },
-                  { label: "Peringatan", value: metrics?.slaStats?.warningCount || 0, color: "bg-amber-500", text: "text-amber-600", isAbsolute: true },
-                  { label: "Terlambat", value: metrics?.slaStats?.overduePercentage || 0, color: "bg-rose-500", text: "text-rose-600" },
+                  { label: "Tepat Waktu", value: metrics?.onTimePercentage || 0, color: "bg-emerald-500", text: "text-emerald-600" },
+                  { label: "Peringatan", value: metrics?.warningCount || 0, color: "bg-amber-500", text: "text-amber-600", isAbsolute: true },
+                  { label: "Terlambat", value: metrics?.overdueCount || 0, color: "bg-rose-500", text: "text-rose-600", isAbsolute: true },
                 ].map((sla) => (
                   <div key={sla.label} className="space-y-2.5">
                     <div className="flex justify-between items-center">

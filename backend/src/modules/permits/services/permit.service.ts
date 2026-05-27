@@ -93,19 +93,40 @@ export class PermitService {
 
 
     /**
-     * Create a new permit application (draft status)
+     * Create a new permit application (directly to DOCUMENT_CHECK)
      */
     async createApplication(userId: string, dto: CreateApplicationDto) {
         // Validate application data
         this.validateApplicationData(dto);
 
+        // Generate reference number
+        const referenceNumber = this.generateReferenceNumber(dto.permitType);
+
+        // Calculate tax
+        const taxResult = this.taxCalculatorService.calculateTax({
+            permitType: dto.permitType,
+            landSize: dto.landSize || undefined,
+            njopValue: dto.njopValue || undefined,
+            isStrategicLocation: dto.isStrategicLocation || undefined,
+            landType: dto.landType || undefined,
+            buildingHeight: dto.buildingHeight || undefined,
+            estimatedEmployees: dto.estimatedEmployees || undefined,
+        });
+
         const application = await this.prisma.permitApplication.create({
             data: {
                 permitType: dto.permitType,
                 applicantId: userId,
-                status: WorkflowStage.DRAFT,
-                currentStage: WorkflowStage.DRAFT,
-                referenceNumber: this.generateReferenceNumber(dto.permitType),
+                status: WorkflowStage.DOCUMENT_CHECK,
+                currentStage: WorkflowStage.DOCUMENT_CHECK,
+                referenceNumber,
+                submittedAt: new Date(),
+                baseTax: taxResult.baseTax,
+                strategicSurcharge: taxResult.strategicSurcharge,
+                landTypeSurcharge: taxResult.landTypeSurcharge,
+                highRiseSurcharge: taxResult.highRiseSurcharge,
+                administrativeFee: taxResult.administrativeFee,
+                totalCost: taxResult.totalCost,
 
                 // Building permit fields
                 locationAddress: dto.locationAddress,
@@ -135,16 +156,37 @@ export class PermitService {
             },
         });
 
+        // Create stage history
+        await this.prisma.stageHistory.create({
+            data: {
+                applicationId: application.id,
+                toStage: WorkflowStage.DOCUMENT_CHECK,
+                transitionedAt: new Date(),
+            },
+        });
+
+        // Create notification
+        await this.prisma.notification.create({
+            data: {
+                userId,
+                type: 'APPLICATION_SUBMITTED',
+                title: 'Application Submitted',
+                message: `Your application ${referenceNumber} has been submitted for document check`,
+                applicationId: application.id,
+            },
+        });
+
         // Create audit log
         await this.auditLogService.createAuditLog({
             entityType: AuditEntityType.PERMIT_APPLICATION,
             entityId: application.id,
-            action: AuditActionType.CREATE,
+            action: AuditActionType.SUBMIT,
             performedBy: userId,
             changes: {
                 after: {
                     permitType: application.permitType,
                     status: application.status,
+                    referenceNumber: application.referenceNumber,
                     locationAddress: application.locationAddress,
                     landSize: application.landSize,
                     businessName: application.businessName,
@@ -453,273 +495,11 @@ export class PermitService {
         };
     }
 
-    /**
-     * Update application (only in DRAFT status)
-     */
-    async updateApplication(
-        id: string,
-        userId: string,
-        dto: UpdateApplicationDto,
-    ) {
-        const application = await this.prisma.permitApplication.findUnique({
-            where: { id },
-        });
+    
 
-        if (!application) {
-            throw new NotFoundException('Application not found');
-        }
+    
 
-        if (application.applicantId !== userId) {
-            throw new ForbiddenException('You can only update your own applications');
-        }
-
-        if (application.status !== WorkflowStage.DRAFT) {
-            throw new BadRequestException(
-                'Can only update applications in DRAFT status',
-            );
-        }
-
-        // Capture before state for audit log
-        const beforeState = {
-            locationAddress: application.locationAddress,
-            landSize: application.landSize,
-            landType: application.landType,
-            buildingHeight: application.buildingHeight,
-            njopValue: application.njopValue,
-            isStrategicLocation: application.isStrategicLocation,
-            businessName: application.businessName,
-            businessType: application.businessType,
-            businessLocation: application.businessLocation,
-            estimatedEmployees: application.estimatedEmployees,
-        };
-
-        const updated = await this.prisma.permitApplication.update({
-            where: { id },
-            data: {
-                locationAddress: dto.locationAddress,
-                landSize: dto.landSize,
-                landType: dto.landType,
-                buildingHeight: dto.buildingHeight,
-                njopValue: dto.njopValue,
-                isStrategicLocation: dto.isStrategicLocation,
-                businessName: dto.businessName,
-                businessType: dto.businessType,
-                businessLocation: dto.businessLocation,
-                estimatedEmployees: dto.estimatedEmployees,
-                dynamicData: (dto as any).dynamicData || application.dynamicData,
-            },
-            include: {
-                applicant: {
-                    select: {
-                        id: true,
-                        email: true,
-                        name: true,
-                    },
-                },
-            },
-        });
-
-        // Create audit log with before/after states
-        await this.auditLogService.createAuditLog({
-            entityType: AuditEntityType.PERMIT_APPLICATION,
-            entityId: id,
-            action: AuditActionType.UPDATE,
-            performedBy: userId,
-            changes: {
-                before: beforeState,
-                after: {
-                    locationAddress: updated.locationAddress,
-                    landSize: updated.landSize,
-                    landType: updated.landType,
-                    buildingHeight: updated.buildingHeight,
-                    njopValue: updated.njopValue,
-                    isStrategicLocation: updated.isStrategicLocation,
-                    businessName: updated.businessName,
-                    businessType: updated.businessType,
-                    businessLocation: updated.businessLocation,
-                    estimatedEmployees: updated.estimatedEmployees,
-                },
-            },
-        });
-
-        return updated;
-    }
-
-    /**
-     * Delete application (only in DRAFT status)
-     */
-    async deleteApplication(id: string, userId: string) {
-        const application = await this.prisma.permitApplication.findUnique({
-            where: { id },
-        });
-
-        if (!application) {
-            throw new NotFoundException('Application not found');
-        }
-
-        if (application.applicantId !== userId) {
-            throw new ForbiddenException(
-                'You can only delete your own applications',
-            );
-        }
-
-        if (application.status !== WorkflowStage.DRAFT) {
-            throw new BadRequestException(
-                'Can only delete applications in DRAFT status',
-            );
-        }
-
-        // Capture before state for audit log
-        const beforeState = {
-            permitType: application.permitType,
-            status: application.status,
-            referenceNumber: application.referenceNumber,
-            locationAddress: application.locationAddress,
-            businessName: application.businessName,
-        };
-
-        await this.prisma.permitApplication.delete({
-            where: { id },
-        });
-
-        // Create audit log
-        await this.auditLogService.createAuditLog({
-            entityType: AuditEntityType.PERMIT_APPLICATION,
-            entityId: id,
-            action: AuditActionType.DELETE,
-            performedBy: userId,
-            changes: {
-                before: beforeState,
-            },
-        });
-
-        return { message: 'Application deleted successfully' };
-    }
-
-    /**
-     * Submit application for processing
-     * Validates, calculates tax, generates reference number, moves to DOCUMENT_CHECK stage
-     */
-    async submitApplication(id: string, userId: string) {
-        const application = await this.prisma.permitApplication.findUnique({
-            where: { id },
-        });
-
-        if (!application) {
-            throw new NotFoundException('Application not found');
-        }
-
-        if (application.applicantId !== userId) {
-            throw new ForbiddenException(
-                'You can only submit your own applications',
-            );
-        }
-
-        if (application.status !== WorkflowStage.DRAFT) {
-            throw new BadRequestException(
-                'Can only submit applications in DRAFT status',
-            );
-        }
-
-        // Validate required fields
-        this.validateApplicationData({
-            permitType: application.permitType,
-            locationAddress: application.locationAddress,
-            landSize: application.landSize,
-            landType: application.landType,
-            buildingHeight: application.buildingHeight,
-            njopValue: application.njopValue,
-            isStrategicLocation: application.isStrategicLocation,
-            businessName: application.businessName,
-            businessType: application.businessType,
-            businessLocation: application.businessLocation,
-            estimatedEmployees: application.estimatedEmployees,
-        } as CreateApplicationDto);
-
-        // Generate reference number
-        const referenceNumber = this.generateReferenceNumber(
-            application.permitType,
-        );
-
-        // Calculate tax before updating
-        const taxResult = this.taxCalculatorService.calculateTax({
-            permitType: application.permitType,
-            landSize: application.landSize || undefined,
-            njopValue: application.njopValue || undefined,
-            isStrategicLocation: application.isStrategicLocation || undefined,
-            landType: application.landType || undefined,
-            buildingHeight: application.buildingHeight || undefined,
-            estimatedEmployees: application.estimatedEmployees || undefined,
-        });
-
-        // Update application
-        const updated = await this.prisma.permitApplication.update({
-            where: { id },
-            data: {
-                referenceNumber,
-                status: WorkflowStage.DOCUMENT_CHECK,
-                currentStage: WorkflowStage.DOCUMENT_CHECK,
-                submittedAt: new Date(),
-                baseTax: taxResult.baseTax,
-                strategicSurcharge: taxResult.strategicSurcharge,
-                landTypeSurcharge: taxResult.landTypeSurcharge,
-                highRiseSurcharge: taxResult.highRiseSurcharge,
-                administrativeFee: taxResult.administrativeFee,
-                totalCost: taxResult.totalCost,
-            },
-            include: {
-                applicant: {
-                    select: {
-                        id: true,
-                        email: true,
-                        name: true,
-                    },
-                },
-            },
-        });
-
-        // Create stage history
-        await this.prisma.stageHistory.create({
-            data: {
-                applicationId: id,
-                fromStage: WorkflowStage.DRAFT,
-                toStage: WorkflowStage.DOCUMENT_CHECK,
-                transitionedAt: new Date(),
-            },
-        });
-
-        // Create notification
-        await this.prisma.notification.create({
-            data: {
-                userId,
-                type: 'APPLICATION_SUBMITTED',
-                title: 'Application Submitted',
-                message: `Your application ${referenceNumber} has been submitted for document check`,
-                applicationId: id,
-            },
-        });
-
-        // Create audit log
-        await this.auditLogService.createAuditLog({
-            entityType: AuditEntityType.PERMIT_APPLICATION,
-            entityId: id,
-            action: AuditActionType.SUBMIT,
-            performedBy: userId,
-            changes: {
-                before: {
-                    status: WorkflowStage.DRAFT,
-                    referenceNumber: '',
-                },
-                after: {
-                    status: WorkflowStage.DOCUMENT_CHECK,
-                    referenceNumber: updated.referenceNumber,
-                    submittedAt: updated.submittedAt,
-                },
-            },
-        });
-
-        return updated;
-    }
+    
 
     /**
      * Resubmit rejected application
@@ -751,14 +531,32 @@ export class PermitService {
         }
 
         // Create new application with modifications
+        
+        const taxResult = this.taxCalculatorService.calculateTax({
+            permitType: original.permitType,
+            landSize: dto.landSize ?? original.landSize ?? undefined,
+            njopValue: dto.njopValue ?? original.njopValue ?? undefined,
+            isStrategicLocation: dto.isStrategicLocation ?? original.isStrategicLocation ?? undefined,
+            landType: dto.landType ?? original.landType ?? undefined,
+            buildingHeight: dto.buildingHeight ?? original.buildingHeight ?? undefined,
+            estimatedEmployees: dto.estimatedEmployees ?? original.estimatedEmployees ?? undefined,
+        });
+
         const newApplication = await this.prisma.permitApplication.create({
             data: {
                 permitType: original.permitType,
                 applicantId: userId,
-                status: WorkflowStage.DRAFT,
-                currentStage: WorkflowStage.DRAFT,
+                status: WorkflowStage.DOCUMENT_CHECK,
+                currentStage: WorkflowStage.DOCUMENT_CHECK,
                 referenceNumber: this.generateReferenceNumber(original.permitType),
                 originalApplicationId: originalId,
+                submittedAt: new Date(),
+                baseTax: taxResult.baseTax,
+                strategicSurcharge: taxResult.strategicSurcharge,
+                landTypeSurcharge: taxResult.landTypeSurcharge,
+                highRiseSurcharge: taxResult.highRiseSurcharge,
+                administrativeFee: taxResult.administrativeFee,
+                totalCost: taxResult.totalCost,
 
                 // Use updated values or fall back to original
                 locationAddress: dto.locationAddress ?? original.locationAddress,
@@ -782,6 +580,16 @@ export class PermitService {
                         name: true,
                     },
                 },
+            },
+        });
+
+        
+        // Create stage history
+        await this.prisma.stageHistory.create({
+            data: {
+                applicationId: newApplication.id,
+                toStage: WorkflowStage.DOCUMENT_CHECK,
+                transitionedAt: new Date(),
             },
         });
 

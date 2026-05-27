@@ -125,7 +125,6 @@ export default function ApplicationDetailPage() {
     );
   }
   const stages = [
-    { id: "DRAFT", label: "Draft", icon: FileText },
     { id: "DOCUMENT_CHECK", label: "Cek Dokumen", icon: CheckCircle2 },
     { id: "FIELD_INSPECTION", label: "Inspeksi Lapangan", icon: MapPin },
     { id: "LEGALIZATION", label: "Legalitas", icon: Activity },

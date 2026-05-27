@@ -91,6 +91,7 @@ export default function LandingPage() {
             alt=""
             width={1200}
             height={1400}
+            priority={true}
             className="w-full h-auto mix-blend-multiply scale-200 pt-10 [mask-image:linear-gradient(to_bottom,black_40%,transparent_100%)]"
           />
         </motion.div>

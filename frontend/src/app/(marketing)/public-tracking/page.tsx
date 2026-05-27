@@ -13,6 +13,7 @@ import {
   ShieldCheck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { motion, AnimatePresence } from "framer-motion";
@@ -35,8 +36,7 @@ export default function PublicTracking() {
 
       if (response.ok && data.referenceNumber) {
         const stageOrder = [
-          { key: 'DRAFT', name: 'Submission' },
-          { key: 'DOCUMENT_CHECK', name: 'Verifikasi Dokumen' },
+                    { key: 'DOCUMENT_CHECK', name: 'Verifikasi Dokumen' },
           { key: 'FIELD_INSPECTION', name: 'Validasi Lapangan' },
           { key: 'LEGALIZATION', name: 'Legalitas' },
           { key: 'APPROVED', name: 'Selesai' }
@@ -70,11 +70,11 @@ export default function PublicTracking() {
           stages: stages
         });
       } else {
-        alert("Nomor Referensi tidak ditemukan!");
+        toast.error("Nomor Referensi tidak ditemukan!");
       }
     } catch (error) {
       console.error(error);
-      alert("Terjadi kesalahan saat mencari status izin.");
+      toast.error("Terjadi kesalahan saat mencari status izin.");
     } finally {
       setIsSearching(false);
     }

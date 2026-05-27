@@ -95,39 +95,7 @@ export class PermitController {
         return this.permitService.getApplication(id, userId);
     }
 
-    /**
-     * PATCH /api/permits/applications/:id
-     * Update draft application
-     */
-    @Patch(':id')
-    async updateApplication(
-        @Request() req: any,
-        @Param('id') id: string,
-        @Body() dto: UpdateApplicationDto,
-    ) {
-        const userId = req.user.sub;
-        return this.permitService.updateApplication(id, userId, dto);
-    }
 
-    /**
-     * DELETE /api/permits/applications/:id
-     * Delete draft application
-     */
-    @Delete(':id')
-    async deleteApplication(@Request() req: any, @Param('id') id: string) {
-        const userId = req.user.sub;
-        return this.permitService.deleteApplication(id, userId);
-    }
-
-    /**
-     * POST /api/permits/applications/:id/submit
-     * Submit for review
-     */
-    @Post(':id/submit')
-    async submitApplication(@Request() req: any, @Param('id') id: string) {
-        const userId = req.user.sub;
-        return this.permitService.submitApplication(id, userId);
-    }
 
     /**
      * POST /api/permits/applications/:id/calculate-tax

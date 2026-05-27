@@ -9,7 +9,6 @@ export interface WorkflowDefinition {
 export const WORKFLOW_CONFIG: Record<PermitType, WorkflowDefinition> = {
     [PermitType.BUILDING_PERMIT]: {
         stages: [
-            WorkflowStage.DRAFT,
             WorkflowStage.DOCUMENT_CHECK,
             WorkflowStage.FIELD_INSPECTION,
             WorkflowStage.LEGALIZATION,
@@ -28,7 +27,6 @@ export const WORKFLOW_CONFIG: Record<PermitType, WorkflowDefinition> = {
     },
     [PermitType.BUSINESS_LICENSE]: {
         stages: [
-            WorkflowStage.DRAFT,
             WorkflowStage.DOCUMENT_CHECK,
             WorkflowStage.LEGALIZATION,
             WorkflowStage.APPROVED,

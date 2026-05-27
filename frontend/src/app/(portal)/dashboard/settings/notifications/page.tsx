@@ -14,6 +14,8 @@ import {
   Volume2,
   Loader2,
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { usersService } from "@/services/users.service";
 
@@ -45,9 +47,9 @@ export default function NotificationSettingsPage() {
     try {
       const { id, userId, updatedAt, ...payload } = settings;
       await usersService.updateSettings(payload);
-      alert("Pengaturan berhasil disimpan!");
+      toast.success("Pengaturan berhasil disimpan!");
     } catch (error) {
-      alert("Gagal menyimpan pengaturan");
+      toast.error("Gagal menyimpan pengaturan");
     } finally {
       setIsSaving(false);
     }

@@ -14,7 +14,9 @@ import {
   Filter,
   Shield,
   MoreVertical,
+  Plus,
 } from "lucide-react";
+import { toast } from "sonner";
 import { usersService } from "@/services/users.service";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -54,9 +56,10 @@ export default function UsersPage() {
     if (!deleteId) return;
     try {
       await usersService.deleteUser(deleteId);
-      fetchUsers();
+      setUsers(users.filter((u) => u.id !== deleteId));
+      toast.success("Pengguna berhasil dihapus");
     } catch (error) {
-      alert("Gagal menghapus pengguna");
+      toast.error("Gagal menghapus pengguna");
     } finally {
       setDeleteId(null);
     }
@@ -121,9 +124,10 @@ export default function UsersPage() {
             />
           </div>
           <Button
-            className="rounded-xl font-bold h-10 px-6 shadow-lg shadow-primary/10"
-            onClick={() => alert("Fitur Tambah Pengguna segera hadir!")}
+            className="rounded-xl font-bold h-10 px-6 shadow-lg shadow-primary/10 gap-2"
+            onClick={() => toast.info("Fitur Tambah Pengguna segera hadir!")}
           >
+            <Plus className="h-4 w-4" />
             Tambah Pengguna
           </Button>
         </div>

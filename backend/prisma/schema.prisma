@@ -146,7 +146,6 @@ enum LandType {
 }
 
 enum WorkflowStage {
-  DRAFT
   DOCUMENT_CHECK
   FIELD_INSPECTION
   LEGALIZATION
@@ -183,7 +182,7 @@ model PermitApplication {
   id                String           @id @default(uuid())
   referenceNumber   String           @unique
   permitType        PermitType
-  status            WorkflowStage    @default(DRAFT)
+  status            WorkflowStage    @default(DOCUMENT_CHECK)
   
   // Applicant
   applicant         User             @relation(fields: [applicantId], references: [id])
@@ -215,7 +214,7 @@ model PermitApplication {
   totalCost         Float?
   
   // Workflow
-  currentStage      WorkflowStage    @default(DRAFT)
+  currentStage      WorkflowStage    @default(DOCUMENT_CHECK)
   submittedAt       DateTime?
   lastUpdatedAt     DateTime         @updatedAt
   

@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/lib/axios";
+import { toast } from "sonner";
 import {
   Map as MapIcon,
   FileCheck,
@@ -120,7 +121,7 @@ export default function SubmitPermitPage() {
         }
       }
       if (missingFields) {
-        alert("Mohon lengkapi semua data wajib yang ditandai dengan bintang merah (*).");
+        toast.error("Mohon lengkapi semua data wajib yang ditandai dengan bintang merah (*).");
         return;
       }
     }
@@ -128,11 +129,11 @@ export default function SubmitPermitPage() {
     // Validate Step 2: Map
     if (currentStep === 2 && selectedSchema?.requiresMap) {
       if (mapData.area <= 0) {
-        alert("Anda wajib menggambar poligon pemetaan pada peta sebelum melanjutkan.");
+        toast.error("Anda wajib menggambar poligon pemetaan pada peta sebelum melanjutkan.");
         return;
       }
       if (hasOverlap) {
-        alert("Terdapat konflik lahan pada pemetaan Anda. Silakan sesuaikan kembali area pemetaan.");
+        toast.error("Terdapat konflik lahan pada pemetaan Anda. Silakan sesuaikan kembali area pemetaan.");
         return;
       }
     }
@@ -152,7 +153,7 @@ export default function SubmitPermitPage() {
         }
       }
       if (missingDocs) {
-        alert("Mohon lengkapi semua dokumen persyaratan terlebih dahulu.");
+        toast.error("Mohon lengkapi semua dokumen persyaratan terlebih dahulu.");
         return;
       }
     }
@@ -183,7 +184,7 @@ export default function SubmitPermitPage() {
         }
       };
 
-      // Create the application in DRAFT state first
+      // Create the application (directly enters DOCUMENT_CHECK stage)
       const res = await api.post('/permits/applications', payload);
 
       if (res.data && res.data.id) {
@@ -203,9 +204,6 @@ export default function SubmitPermitPage() {
             });
           }
         }
-
-        // Immediately submit the application out of DRAFT
-        await api.post(`/permits/applications/${appId}/submit`);
       }
       router.push('/dashboard'); // Go back to dashboard on success
     } catch (error) {
