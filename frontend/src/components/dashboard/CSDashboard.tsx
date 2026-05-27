@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import useSWR from "swr";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,23 +23,13 @@ import { useAuth } from "@/contexts/AuthContext";
 
 export function CSDashboard() {
   const { user } = useAuth();
-  const [sessions, setSessions] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const socketRef = useRef<Socket | null>(null);
 
-  const fetchSessions = async () => {
-    try {
-      const { data } = await api.get("/chat/sessions/admin/all");
-      setSessions(data);
-    } catch (error) {
-      console.error("Gagal memuat tiket chat:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const fetcher = (url: string) => api.get(url).then(res => res.data);
+  const { data: sessions, error, mutate } = useSWR("/chat/sessions/admin/all", fetcher);
+  const loading = !sessions && !error;
 
   useEffect(() => {
-    fetchSessions();
 
     const socketUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
     const socket = io(socketUrl, {
@@ -49,7 +40,7 @@ export function CSDashboard() {
     socketRef.current = socket;
 
     socket.on("ticket_activity", () => {
-      fetchSessions();
+      mutate();
     });
 
     return () => {
@@ -59,10 +50,11 @@ export function CSDashboard() {
     };
   }, []);
 
-  const openSessions = sessions.filter(s => s.status === "OPEN");
-  const pendingSessions = openSessions.filter(s => s.assignedToId === null);
-  const mySessions = openSessions.filter(s => s.assignedToId === user?.id);
-  const resolvedSessions = sessions.filter(s => s.status === "RESOLVED");
+  const currentSessions = sessions || [];
+  const openSessions = currentSessions.filter((s: any) => s.status === "OPEN");
+  const pendingSessions = openSessions.filter((s: any) => s.assignedToId === null);
+  const mySessions = openSessions.filter((s: any) => s.assignedToId === user?.id);
+  const resolvedSessions = currentSessions.filter((s: any) => s.status === "RESOLVED");
 
   if (loading) {
     return (

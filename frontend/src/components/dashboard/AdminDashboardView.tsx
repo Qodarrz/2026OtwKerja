@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import useSWR from "swr";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,31 +38,27 @@ export function AdminDashboardView() {
   const [loading, setLoading] = useState(true);
   const [csStats, setCsStats] = useState({ pending: 0, active: 0 });
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const [metricsData, bottlenecksData, auditLogsData, chatData] = await Promise.all([
-          analyticsService.getDashboardMetrics(),
-          analyticsService.getBottlenecks(),
-          analyticsService.getAuditLogs(5),
-          api.get("/chat/sessions/admin/all").then(res => res.data).catch(() => [])
-        ]);
-        setMetrics(metricsData);
-        setBottlenecks(bottlenecksData);
-        setAuditLogs(auditLogsData);
+  const fetcher = (url: string) => api.get(url).then(res => res.data);
+  const { data: metricsData } = useSWR('/analytics/dashboard', fetcher);
+  const { data: bottlenecksData } = useSWR('/analytics/bottlenecks', fetcher, { revalidateOnFocus: false });
+  const { data: auditLogsData } = useSWR('/analytics/audit-logs?limit=5', fetcher);
+  const { data: chatData } = useSWR('/chat/sessions/admin/all', fetcher);
 
-        const openChats = chatData.filter((s: any) => s.status === "OPEN");
-        const pending = openChats.filter((s: any) => s.assignedToId === null).length;
-        const active = openChats.filter((s: any) => s.assignedToId !== null).length;
-        setCsStats({ pending, active });
-      } catch (error) {
-        console.error("Failed to fetch admin data", error);
-      } finally {
-        setLoading(false);
-      }
+  useEffect(() => {
+    if (metricsData && bottlenecksData && auditLogsData) {
+      setMetrics(metricsData);
+      setBottlenecks(bottlenecksData);
+      setAuditLogs(auditLogsData);
+      setLoading(false);
     }
-    fetchData();
-  }, []);
+    
+    if (chatData) {
+      const openChats = chatData.filter((s: any) => s.status === "OPEN");
+      const pending = openChats.filter((s: any) => s.assignedToId === null).length;
+      const active = openChats.filter((s: any) => s.assignedToId !== null).length;
+      setCsStats({ pending, active });
+    }
+  }, [metricsData, bottlenecksData, auditLogsData, chatData]);
 
   const stats = [
     { 

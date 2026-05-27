@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import useSWR from "swr";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,23 +32,11 @@ import { SLACountdown } from "./SLACountdown";
 
 export function InternalDashboard() {
   const { user } = useAuth();
-  const [tasks, setTasks] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const fetcher = (url: string) => permitService.getStaffTasks();
+  const { data: tasks, error } = useSWR('/staff/tasks', fetcher);
+  const loading = !tasks && !error;
+  const currentTasks = tasks || [];
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
-
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const data = await permitService.getStaffTasks();
-        setTasks(data);
-      } catch (error) {
-        console.error("Failed to fetch staff tasks", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchData();
-  }, []);
 
   const getRoleInfo = () => {
     if (user?.roles.includes(Role.DOCUMENT_VALIDATOR)) return { label: "Document Validator", icon: FileSearch, color: "text-primary", bg: "bg-blue-50" };
@@ -110,9 +99,9 @@ export function InternalDashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[
-          { label: "Total Antrean", value: tasks.length, icon: FileText, color: "bg-primary", text: "text-primary", bg: "bg-primary/5" },
-          { label: "SLA Warning", value: tasks.filter(t => t.slaStatus === 'WARNING').length, icon: Clock, color: "bg-amber-500", text: "text-amber-600", bg: "bg-amber-50/50" },
-          { label: "SLA Overdue", value: tasks.filter(t => t.slaStatus === 'OVERDUE').length, icon: AlertCircle, color: "bg-rose-500", text: "text-rose-600", bg: "bg-rose-50/50" },
+          { label: "Total Antrean", value: currentTasks.length, icon: FileText, color: "bg-primary", text: "text-primary", bg: "bg-primary/5" },
+          { label: "SLA Warning", value: currentTasks.filter((t: any) => t.slaStatus === 'WARNING').length, icon: Clock, color: "bg-amber-500", text: "text-amber-600", bg: "bg-amber-50/50" },
+          { label: "SLA Overdue", value: currentTasks.filter((t: any) => t.slaStatus === 'OVERDUE').length, icon: AlertCircle, color: "bg-rose-500", text: "text-rose-600", bg: "bg-rose-50/50" },
         ].map((stat, i) => (
           <Card key={stat.label} className="border-none shadow-sm overflow-hidden bg-card">
             <CardContent className="p-6">
@@ -151,8 +140,8 @@ export function InternalDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                  {tasks.length > 0 ? (
-                    tasks.map((task) => (
+                  {currentTasks.length > 0 ? (
+                    currentTasks.map((task: any) => (
                       <tr key={task.id} className="hover:bg-accent/80 transition-colors group">
                         <td className="px-8 py-6">
                           <div className="flex flex-col gap-1">
@@ -207,7 +196,7 @@ export function InternalDashboard() {
             </div>
           ) : (
             <div className="p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-               {tasks.map(task => (
+               {currentTasks.map((task: any) => (
                  <div key={task.id} className="p-6 rounded-2xl border border-border bg-background hover:bg-card hover:shadow-md transition-all duration-300 group relative overflow-hidden">
                     {task.isPendingLong && <div className="absolute top-0 right-0 w-16 h-16 bg-rose-500/10 rotate-45 translate-x-8 -translate-y-8" />}
                     <div className="flex justify-between items-start mb-6">

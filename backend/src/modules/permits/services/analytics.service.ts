@@ -51,6 +51,8 @@ export interface StageBottleneck {
 
 @Injectable()
 export class AnalyticsService {
+    private cachedBottlenecks: { data: StageBottleneck[], timestamp: number } | null = null;
+    
     constructor(
         private prisma: PrismaService,
         private configService: ConfigService,
@@ -306,6 +308,10 @@ export class AnalyticsService {
      * Identify stage bottlenecks
      */
     async getStageBottlenecks(): Promise<StageBottleneck[]> {
+        if (this.cachedBottlenecks && Date.now() - this.cachedBottlenecks.timestamp < 5 * 60 * 1000) {
+            return this.cachedBottlenecks.data;
+        }
+
         const stages = [
             WorkflowStage.DOCUMENT_CHECK,
             WorkflowStage.FIELD_INSPECTION,
@@ -447,16 +453,30 @@ export class AnalyticsService {
                             }
                         } catch (parseErr) {
                             console.error("Failed to parse AI recommendations JSON:", parseErr);
+                            throw new Error("Parse Error");
                         }
                     }
                 } else {
                     console.error(`OpenRouter error: ${response.statusText}`);
+                    throw new Error("OpenRouter API limit or error");
                 }
             } catch (err) {
-                console.error("Failed to fetch AI recommendations:", err);
+                console.error("Failed to fetch AI recommendations, using smart fallback:", err);
+                for (const b of bottlenecks) {
+                    if (b.utilizationPercentage > 80 && b.overdueCount > 0) {
+                        b.recommendedAction = `Tambah petugas lapangan. Utilisasi mencapai ${b.utilizationPercentage}%.`;
+                    } else if (b.averageDurationHours > b.maxDurationHours) {
+                        b.recommendedAction = `Percepat proses ini. Durasi rata-rata melebihi SLA.`;
+                    } else if (b.warningCount > 0) {
+                        b.recommendedAction = `Tingkatkan prioritas. ${b.warningCount} berkas mendekati batas waktu.`;
+                    } else {
+                        b.recommendedAction = `Performa stabil. Pantau tren utilisasi beban kerja.`;
+                    }
+                }
             }
         }
 
+        this.cachedBottlenecks = { data: bottlenecks, timestamp: Date.now() };
         return bottlenecks;
     }
 
