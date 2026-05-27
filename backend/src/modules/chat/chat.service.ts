@@ -323,9 +323,15 @@ export class ChatService {
         botResponse
       );
 
-    } catch (error) {
-      console.error("Failed to generate bot reply via OpenRouter:", error);
-      return null;
+    } catch (error: any) {
+      console.error("Failed to generate bot reply via OpenRouter:", error.message);
+      return await this.createMessage(
+        sessionId,
+        null,
+        'Virtual Assistant',
+        'BOT',
+        "Maaf, saat ini layanan asisten virtual AI kami sedang mengalami kendala teknis. Mohon tunggu, Anda bisa meminta untuk disambungkan ke agen (Customer Service) kami."
+      );
     }
   }
 
@@ -377,12 +383,12 @@ export class ChatService {
         createdAt: new Date(),
       };
 
-    } catch (error) {
-      console.error("Failed to generate guest bot reply via OpenRouter:", error);
+    } catch (error: any) {
+      console.error("Failed to generate guest bot reply via OpenRouter:", error.message);
       return {
         senderName: 'Virtual Assistant',
         senderRole: 'BOT',
-        content: "Maaf, terjadi kesalahan saat menghubungi asisten virtual.",
+        content: "Maaf, saat ini layanan asisten virtual AI kami sedang mengalami kendala teknis. Mohon tunggu, Anda bisa meminta untuk disambungkan ke agen (Customer Service) kami.",
         createdAt: new Date(),
       };
     }

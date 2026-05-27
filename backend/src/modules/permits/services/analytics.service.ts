@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { WorkflowStage, Role, SLAStatus } from '@prisma/client';
 
@@ -52,6 +53,7 @@ export interface StageBottleneck {
 export class AnalyticsService {
     constructor(
         private prisma: PrismaService,
+        private configService: ConfigService,
     ) { }
 
     /**
@@ -380,18 +382,6 @@ export class AnalyticsService {
             const utilizationPercentage =
                 staffCount > 0 ? (activeCount / (staffCount * workloadCapacity)) * 100 : 0;
 
-            // Determine recommended action
-            let recommendedAction = 'No action needed';
-            if (overdueCount > 5 && staffCount < 3) {
-                recommendedAction = 'Increase staff allocation - high overdue rate';
-            } else if (averageDurationHours > slaRule.maxDurationHours * 0.9) {
-                recommendedAction = 'Review process efficiency - approaching SLA limit';
-            } else if (utilizationPercentage > 150) {
-                recommendedAction = 'High workload - consider adding staff';
-            } else if (warningCount > overdueCount && warningCount > 3) {
-                recommendedAction = 'Monitor closely - many applications at warning threshold';
-            }
-
             bottlenecks.push({
                 stage,
                 averageDurationHours: Math.round(averageDurationHours * 10) / 10,
@@ -401,11 +391,73 @@ export class AnalyticsService {
                 activeCount,
                 staffCount,
                 utilizationPercentage: Math.round(utilizationPercentage * 10) / 10,
-                recommendedAction,
+                recommendedAction: 'No action needed', // Default fallback
             });
         }
 
-        return bottlenecks.sort((a, b) => b.overdueCount - a.overdueCount);
+        bottlenecks.sort((a, b) => b.overdueCount - a.overdueCount);
+
+        // Call OpenRouter AI to get actual recommendations
+        const apiKey = this.configService.get<string>('API_KEY')?.trim() || this.configService.get<string>('OPENROUTER_API_KEY')?.trim();
+        if (apiKey && bottlenecks.length > 0) {
+            try {
+                const promptData = bottlenecks.map(b => ({
+                    stage: b.stage,
+                    averageDurationHours: b.averageDurationHours,
+                    maxDurationHours: b.maxDurationHours,
+                    overdueCount: b.overdueCount,
+                    warningCount: b.warningCount,
+                    utilizationPercentage: b.utilizationPercentage
+                }));
+
+                const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${apiKey}`,
+                        "Content-Type": "application/json",
+                        "HTTP-Referer": process.env.FRONTEND_URL || "http://localhost:3001",
+                        "X-Title": "FlowGov Portal"
+                    },
+                    body: JSON.stringify({
+                        model: "nvidia/nemotron-3-super-120b-a12b:free",
+                        response_format: { type: "json_object" },
+                        messages: [
+                            {
+                                role: "system",
+                                content: "You are an AI analyst for a government permit portal. You receive bottleneck metrics as JSON. Analyze them and provide exactly one short sentence (in Indonesian, max 10 words) of actionable recommendation per stage. Return ONLY a valid JSON object where keys are the exact stage names (e.g. 'DOCUMENT_CHECK', 'FIELD_INSPECTION') and values are the recommendation strings."
+                            },
+                            {
+                                role: "user",
+                                content: JSON.stringify(promptData)
+                            }
+                        ]
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const aiContent = data.choices[0]?.message?.content;
+                    if (aiContent) {
+                        try {
+                            const parsedRecommendations = JSON.parse(aiContent);
+                            for (const b of bottlenecks) {
+                                if (parsedRecommendations[b.stage]) {
+                                    b.recommendedAction = parsedRecommendations[b.stage];
+                                }
+                            }
+                        } catch (parseErr) {
+                            console.error("Failed to parse AI recommendations JSON:", parseErr);
+                        }
+                    }
+                } else {
+                    console.error(`OpenRouter error: ${response.statusText}`);
+                }
+            } catch (err) {
+                console.error("Failed to fetch AI recommendations:", err);
+            }
+        }
+
+        return bottlenecks;
     }
 
     async getMonthlyReport(year: number, month: number) {
