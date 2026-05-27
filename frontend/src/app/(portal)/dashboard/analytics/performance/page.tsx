@@ -95,20 +95,16 @@ export default function PerformancePage() {
             <div className="overflow-x-auto">
               {" "}
               <table className="w-full text-left">
-                {" "}
                 <thead className="bg-muted text-xs font-semibold uppercase text-muted-foreground border-b border-border">
-                  {" "}
                   <tr>
-                    {" "}
                     <th className="px-6 py-4">Nama Staf</th>{" "}
                     <th className="px-6 py-4 text-center">Total Diproses</th>{" "}
                     <th className="px-6 py-4 text-center">Tepat Waktu</th>{" "}
                     <th className="px-6 py-4 text-center">Overdue</th>{" "}
                     <th className="px-6 py-4 text-right">Skor SLA</th>{" "}
-                  </tr>{" "}
-                </thead>{" "}
+                  </tr>
+                </thead>
                 <tbody className="divide-y divide-slate-50">
-                  {" "}
                   {data.map((staff, index) => (
                     <motion.tr
                       key={staff.staffId}
@@ -117,30 +113,10 @@ export default function PerformancePage() {
                       transition={{ delay: index * 0.05 }}
                       className="hover:bg-accent/80 transition-colors group"
                     >
-                      {" "}
                       <td className="px-6 py-4">
                         {" "}
                         <div className="flex items-center gap-3">
                           {" "}
-                          <div
-                            className={cn(
-                              "w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm",
-                              index === 0
-                                ? "bg-amber-100 text-amber-600"
-                                : index === 1
-                                  ? "bg-slate-200 text-muted-foreground"
-                                  : index === 2
-                                    ? "bg-orange-100 text-orange-600"
-                                    : "bg-primary/10 text-primary",
-                            )}
-                          >
-                            {" "}
-                            {index < 3 ? (
-                              <Award className="w-5 h-5" />
-                            ) : (
-                              staff.staffName.charAt(0)
-                            )}{" "}
-                          </div>{" "}
                           <div>
                             {" "}
                             <p className="font-semibold text-foreground group-hover:text-primary transition-colors">
@@ -218,7 +194,6 @@ export default function PerformancePage() {
                   ))}{" "}
                   {data.length === 0 && (
                     <tr>
-                      {" "}
                       <td
                         colSpan={5}
                         className="py-12 text-center text-muted-foreground font-medium"
@@ -227,9 +202,9 @@ export default function PerformancePage() {
                         Belum ada data performa staf.{" "}
                       </td>{" "}
                     </tr>
-                  )}{" "}
-                </tbody>{" "}
-              </table>{" "}
+                  )}
+                </tbody>
+              </table>
             </div>{" "}
           </CardContent>{" "}
         </Card>{" "}

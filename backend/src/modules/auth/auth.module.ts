@@ -1,14 +1,14 @@
 import { Module } from '@nestjs/common';
-import { AuthController } from './auth.controller';
-import { AuthService } from './auth.service';
+import { AuthController } from './controllers/auth.controller';
+import { AuthService } from './services/auth.service';
 import { UsersModule } from '../users/users.module';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { JwtStrategy } from '../../common/guards/jwt.strategy';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { MailerModule } from '../mailer/mailer.module';
-import { OcrService } from './ocr.service';
-import { KtpController } from './ktp.controller';
+import { OcrService } from './services/ocr.service';
+import { KtpController } from './controllers/ktp.controller';
 import { PrismaModule } from '../../prisma/prisma.module';
 
 @Module({

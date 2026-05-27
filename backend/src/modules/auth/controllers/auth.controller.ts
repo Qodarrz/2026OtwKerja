@@ -7,15 +7,15 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import { AuthService } from './auth.service';
+import { AuthService } from '../services/auth.service';
 import {
   RegisterDto,  
   LoginDto,
   VerifyOtpDto,
   ResendOtpDto,
-} from './dto/auth.dto';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { GoogleAuthGuard } from './guards/google-auth.guard';
+} from '../dto/auth.dto';
+import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
+import { GoogleAuthGuard } from '../guards/google-auth.guard';
 import type { Response } from 'express';
 
 @Controller('auth')

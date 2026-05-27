@@ -1,10 +1,10 @@
 import { Controller, Post, Body, Get, Param, UseGuards, Request, Query } from '@nestjs/common';
-import { FeedbackService } from './feedback.service';
-import { CreateFeedbackDto } from './dto/create-feedback.dto';
-import { ReplyFeedbackDto } from './dto/reply-feedback.dto';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
+import { FeedbackService } from '../services/feedback.service';
+import { CreateFeedbackDto } from '../dto/create-feedback.dto';
+import { ReplyFeedbackDto } from '../dto/reply-feedback.dto';
+import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../../common/guards/roles.guard';
+import { Roles } from '../../../common/decorators/roles.decorator';
 import { Role } from '@prisma/client';
 
 @Controller('feedback')

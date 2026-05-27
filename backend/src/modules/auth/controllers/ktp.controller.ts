@@ -10,9 +10,9 @@ import {
   Res,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { OcrService, KtpData } from './ocr.service';
-import { PrismaService } from '../../prisma/prisma.service';
+import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
+import { OcrService, KtpData } from '../services/ocr.service';
+import { PrismaService } from '../../../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { put } from '@vercel/blob';
 import express from 'express';

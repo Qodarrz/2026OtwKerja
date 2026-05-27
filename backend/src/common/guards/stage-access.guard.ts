@@ -54,7 +54,6 @@ export class StageAccessGuard implements CanActivate {
 
         // Map workflow stages to required roles
         const stageRoleMap: Record<WorkflowStage, Role[]> = {
-            [WorkflowStage.DRAFT]: [], // No specific role required for draft
             [WorkflowStage.DOCUMENT_CHECK]: [Role.DOCUMENT_VALIDATOR],
             [WorkflowStage.FIELD_INSPECTION]: [Role.FIELD_INSPECTOR],
             [WorkflowStage.LEGALIZATION]: [Role.LEGALIZER],

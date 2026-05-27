@@ -10,9 +10,9 @@ import {
     Request,
     ForbiddenException,
 } from '@nestjs/common';
-import { UsersService } from './users.service';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { UpdateUserRolesDto } from './dto/user.dto';
+import { UsersService } from '../services/users.service';
+import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
+import { UpdateUserRolesDto } from '../dto/user.dto';
 import { Role } from '@prisma/client';
 
 @Controller('users')

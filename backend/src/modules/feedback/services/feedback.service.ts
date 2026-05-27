@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
-import { CreateFeedbackDto } from './dto/create-feedback.dto';
-import { NotificationService } from '../permits/services/notification.service';
-import { NotificationGateway } from '../permits/gateways/notification.gateway';
+import { PrismaService } from '../../../prisma/prisma.service';
+import { CreateFeedbackDto } from '../dto/create-feedback.dto';
+import { NotificationService } from '../../permits/services/notification.service';
+import { NotificationGateway } from '../../permits/gateways/notification.gateway';
 import { NotificationType } from '@prisma/client';
 
 @Injectable()

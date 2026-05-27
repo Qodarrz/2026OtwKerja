@@ -225,7 +225,7 @@ export default function LandingPage() {
                   alt="FlowGov Transformation"
                   width={1000}
                   height={1000}
-                  className="w-full h-auto object-cover"
+                  className="w-full h-auto object-cover [mask-image:linear-gradient(to_bottom,black_80%,transparent_100%)]"
                 />
               </div>
               <div className="absolute -bottom-8 -right-8 bg-card p-8 rounded-3xl shadow-xl border border-border hidden md:block">

@@ -5,8 +5,8 @@ import {
   BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
-import { UsersService } from '../users/users.service';
-import { PrismaService } from '../../prisma/prisma.service';
+import { UsersService } from '../../users/services/users.service';
+import { PrismaService } from '../../../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import {
@@ -14,14 +14,14 @@ import {
   LoginDto,
   VerifyOtpDto,
   ResendOtpDto,
-} from './dto/auth.dto';
+} from '../dto/auth.dto';
 import { AuthProvider, Role } from '@prisma/client';
-import { MailerService } from '../mailer/mailer.service';
-import { AuditLogService } from '../audit-log/services/audit-log.service';
+import { MailerService } from '../../mailer/services/mailer.service';
+import { AuditLogService } from '../../audit-log/services/audit-log.service';
 import {
   AuditEntityType,
   AuditActionType,
-} from '../audit-log/dto/audit-log.dto';
+} from '../../audit-log/dto/audit-log.dto';
 
 @Injectable()
 export class AuthService {

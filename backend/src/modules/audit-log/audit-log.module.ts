@@ -6,7 +6,7 @@ import { AuditLogService } from './services/audit-log.service';
 import { AuditQueryService } from './services/audit-query.service';
 import { AuditExportService } from './services/audit-export.service';
 import { AuditLogProcessor } from './processors/audit-log.processor';
-import { AuditLogController } from './audit-log.controller';
+import { AuditLogController } from './controllers/audit-log.controller';
 import { AuditLogGateway } from './gateways/audit-log.gateway';
 
 @Global()

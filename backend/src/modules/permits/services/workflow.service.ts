@@ -371,7 +371,7 @@ export class WorkflowService {
             where.currentStage = { in: stagesArray };
         } else {
             where.currentStage = { in: stagesArray };
-            where.status = { notIn: [WorkflowStage.APPROVED, WorkflowStage.REJECTED, WorkflowStage.DRAFT] };
+            where.status = { notIn: [WorkflowStage.APPROVED, WorkflowStage.REJECTED] };
         }
 
         if (filters.permitType) where.permitType = filters.permitType as any;

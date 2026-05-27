@@ -262,7 +262,7 @@ export class ChatService {
   }
 
   async generateBotReply(sessionId: string, userMessage: string) {
-    const apiKey = this.configService.get<string>('OPENROUTER_API_KEY')?.trim();
+    const apiKey = this.configService.get<string>('API_KEY')?.trim() || this.configService.get<string>('OPENROUTER_API_KEY')?.trim();
     if (!apiKey) {
       console.error("OPENROUTER_API_KEY is not set.");
       return null;

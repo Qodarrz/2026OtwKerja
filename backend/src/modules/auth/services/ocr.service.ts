@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import * as Tesseract from 'tesseract.js';
 
 export interface KtpData {

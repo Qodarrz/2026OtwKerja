@@ -8,13 +8,13 @@ import {
     HttpStatus,
 } from '@nestjs/common';
 import type { Response } from 'express';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
+import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../../common/guards/roles.guard';
+import { Roles } from '../../../common/decorators/roles.decorator';
 import { Role } from '@prisma/client';
-import { AuditQueryService } from './services/audit-query.service';
-import { AuditExportService } from './services/audit-export.service';
-import type { AuditLogFilters } from './dto/audit-log.dto';
+import { AuditQueryService } from '../services/audit-query.service';
+import { AuditExportService } from '../services/audit-export.service';
+import type { AuditLogFilters } from '../dto/audit-log.dto';
 
 @Controller('audit-logs')
 @UseGuards(JwtAuthGuard, RolesGuard)

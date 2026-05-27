@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { FeedbackService } from './feedback.service';
-import { FeedbackController } from './feedback.controller';
+import { FeedbackService } from './services/feedback.service';
+import { FeedbackController } from './controllers/feedback.controller';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { NotificationModule } from '../permits/notification.module';
 

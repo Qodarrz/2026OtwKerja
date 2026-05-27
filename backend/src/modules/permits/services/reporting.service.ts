@@ -368,7 +368,7 @@ export class ReportingService {
         const activeApplications = await this.prisma.permitApplication.count({
             where: {
                 status: {
-                    notIn: [WorkflowStage.APPROVED, WorkflowStage.REJECTED, WorkflowStage.DRAFT],
+                    notIn: [WorkflowStage.APPROVED, WorkflowStage.REJECTED],
                 },
             },
         });

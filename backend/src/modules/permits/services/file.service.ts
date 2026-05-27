@@ -219,10 +219,10 @@ export class FileService {
             throw new ForbiddenException('You can only delete your own documents');
         }
 
-        // Only allow deletion for draft applications
-        if (document.application.status !== WorkflowStage.DRAFT) {
+        // Only allow deletion for applications in initial stages
+        if (document.application.status !== WorkflowStage.DOCUMENT_CHECK) {
             throw new BadRequestException(
-                'Can only delete documents from applications in DRAFT status',
+                'Can only delete documents from applications in DOCUMENT_CHECK status',
             );
         }
 

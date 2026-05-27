@@ -71,7 +71,7 @@ export class TransparencyService {
         const approvedCount = applications.filter(app => app.status === WorkflowStage.APPROVED).length;
         const currentlyInProcess = await this.prisma.permitApplication.count({
             where: {
-                status: { notIn: [WorkflowStage.APPROVED, WorkflowStage.REJECTED, WorkflowStage.DRAFT] },
+                status: { notIn: [WorkflowStage.APPROVED, WorkflowStage.REJECTED] },
             },
         });
 
