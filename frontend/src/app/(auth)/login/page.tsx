@@ -28,6 +28,14 @@ function LoginForm() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [num1, setNum1] = useState(0);
+  const [num2, setNum2] = useState(0);
+  const [captchaInput, setCaptchaInput] = useState('');
+
+  useEffect(() => {
+    setNum1(Math.floor(Math.random() * 10) + 1);
+    setNum2(Math.floor(Math.random() * 10) + 1);
+  }, []);
 
   const handleGoogleLogin = () => {
     window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/auth/google`;
@@ -48,6 +56,12 @@ function LoginForm() {
     setIsLoading(true);
     setError('');
     setSuccess('');
+
+    if (parseInt(captchaInput) !== num1 + num2) {
+      setError('Jawaban kode keamanan salah.');
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const response = await authService.login(email, password);
@@ -175,16 +189,19 @@ function LoginForm() {
                 </div>
               </div>
 
-              {/* Security Code Mock */}
+              {/* Security Code */}
               <div className="space-y-2">
                 <label className="text-xs xl:text-sm font-semibold text-muted-foreground">Kode Keamanan</label>
                 <div className="flex space-x-3">
                   <div className="w-1/2 h-11 xl:h-12 bg-muted rounded-xl flex items-center justify-center font-bold text-base xl:text-lg tracking-widest text-muted-foreground select-none border-2 border-dashed border-border">
-                    5 + 3
+                    {num1} + {num2}
                   </div>
                   <div className="w-1/2">
                     <input
-                      type="text"
+                      type="number"
+                      required
+                      value={captchaInput}
+                      onChange={(e) => setCaptchaInput(e.target.value)}
                       className="w-full h-11 xl:h-12 bg-transparent border border-border rounded-xl px-4 focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all text-center font-bold"
                       placeholder="Hasil"
                     />

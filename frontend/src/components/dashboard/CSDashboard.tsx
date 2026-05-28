@@ -135,7 +135,7 @@ export function CSDashboard() {
               </thead>
               <tbody className="divide-y divide-border">
                 {pendingSessions.length > 0 ? (
-                  pendingSessions.map((session) => {
+                  pendingSessions.map((session: any) => {
                     const latestMsg = session.messages[session.messages.length - 1];
                     return (
                       <tr key={session.id} className="hover:bg-accent/80 transition-colors group">

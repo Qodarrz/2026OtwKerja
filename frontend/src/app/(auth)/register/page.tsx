@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { authService } from "@/services/auth.service";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
@@ -13,7 +13,9 @@ import {
   ArrowRight,
   Loader2,
   ShieldCheck,
-  ChevronLeft
+  ChevronLeft,
+  Eye,
+  EyeOff
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -23,6 +25,16 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [num1, setNum1] = useState(0);
+  const [num2, setNum2] = useState(0);
+  const [captchaInput, setCaptchaInput] = useState('');
+
+  useEffect(() => {
+    setNum1(Math.floor(Math.random() * 10) + 1);
+    setNum2(Math.floor(Math.random() * 10) + 1);
+  }, []);
+
   const { login } = useAuth();
   const router = useRouter();
 
@@ -34,6 +46,12 @@ export default function RegisterPage() {
     e.preventDefault();
     setIsLoading(true);
     setError("");
+
+    if (parseInt(captchaInput) !== num1 + num2) {
+      setError('Jawaban kode keamanan salah.');
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const response = await authService.register(email, name, password);
@@ -122,14 +140,37 @@ export default function RegisterPage() {
                 <div className="relative group">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 xl:h-5 xl:w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                   <input
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     name="password"
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-transparent border border-border rounded-xl py-3.5 pl-11 xl:pl-12 pr-4 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all text-sm"
+                    className="w-full bg-transparent border border-border rounded-xl py-3.5 pl-11 xl:pl-12 pr-11 xl:pr-12 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all text-sm"
                     placeholder="Masukkan kata sandi"
                   />
+                  <button type="button" onClick={() => setShowPassword((v) => !v)} className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors">
+                    {showPassword ? <EyeOff className="w-4 h-4 xl:h-5 xl:w-5" /> : <Eye className="w-4 h-4 xl:h-5 xl:w-5" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Security Code */}
+              <div className="space-y-2">
+                <label className="text-xs xl:text-sm font-semibold text-foreground">Kode Keamanan</label>
+                <div className="flex space-x-3">
+                  <div className="w-1/2 h-11 xl:h-12 bg-muted rounded-xl flex items-center justify-center font-bold text-base xl:text-lg tracking-widest text-muted-foreground select-none border-2 border-dashed border-border">
+                    {num1} + {num2}
+                  </div>
+                  <div className="w-1/2">
+                    <input
+                      type="number"
+                      required
+                      value={captchaInput}
+                      onChange={(e) => setCaptchaInput(e.target.value)}
+                      className="w-full h-11 xl:h-12 bg-transparent border border-border rounded-xl px-4 focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all text-center font-bold"
+                      placeholder="Hasil"
+                    />
+                  </div>
                 </div>
               </div>
 
