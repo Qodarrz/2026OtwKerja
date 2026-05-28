@@ -89,7 +89,10 @@ async function main() {
       stages: [
         { stage: WorkflowStage.DOCUMENT_CHECK, order: 1, requiredRoles: [Role.DOCUMENT_VALIDATOR], slaDurationHours: 24 },
         { stage: WorkflowStage.FIELD_INSPECTION, order: 2, requiredRoles: [Role.FIELD_INSPECTOR], slaDurationHours: 48 },
-        { stage: WorkflowStage.LEGALIZATION, order: 3, requiredRoles: [Role.LEGALIZER], slaDurationHours: 24 },
+        { stage: WorkflowStage.ASSESSMENT, order: 3, requiredRoles: [Role.ADMIN], slaDurationHours: 12 },
+        { stage: WorkflowStage.WAITING_FOR_PAYMENT, order: 4, requiredRoles: [Role.ADMIN], slaDurationHours: 72 },
+        { stage: WorkflowStage.LEGALIZATION, order: 5, requiredRoles: [Role.LEGALIZER], slaDurationHours: 24 },
+        { stage: WorkflowStage.APPROVED, order: 6, requiredRoles: [], slaDurationHours: 0 },
       ]
     },
     {
@@ -97,21 +100,35 @@ async function main() {
       name: 'Izin Usaha Mikro (IUMK)',
       stages: [
         { stage: WorkflowStage.DOCUMENT_CHECK, order: 1, requiredRoles: [Role.DOCUMENT_VALIDATOR], slaDurationHours: 12 },
-        { stage: WorkflowStage.LEGALIZATION, order: 2, requiredRoles: [Role.LEGALIZER], slaDurationHours: 12 },
+        { stage: WorkflowStage.ASSESSMENT, order: 2, requiredRoles: [Role.ADMIN], slaDurationHours: 12 },
+        { stage: WorkflowStage.WAITING_FOR_PAYMENT, order: 3, requiredRoles: [Role.ADMIN], slaDurationHours: 72 },
+        { stage: WorkflowStage.LEGALIZATION, order: 4, requiredRoles: [Role.LEGALIZER], slaDurationHours: 12 },
+        { stage: WorkflowStage.APPROVED, order: 5, requiredRoles: [], slaDurationHours: 0 },
       ]
     }
   ];
 
   for (const t of templates) {
-    await prisma.workflowTemplate.upsert({
+    const template = await prisma.workflowTemplate.upsert({
       where: { permitType: t.permitType },
       update: { name: t.name },
       create: {
         permitType: t.permitType,
         name: t.name,
         isActive: true,
-        stages: { create: t.stages }
       }
+    });
+
+    // Re-create stages to ensure any updates apply
+    await prisma.workflowTemplateStage.deleteMany({
+      where: { templateId: template.id }
+    });
+    
+    await prisma.workflowTemplateStage.createMany({
+      data: t.stages.map(stage => ({
+        templateId: template.id,
+        ...stage
+      }))
     });
   }
 

@@ -92,6 +92,20 @@ export function UserDashboard() {
         </Link>
       </header>
 
+      {applications.filter(app => app.status === 'WAITING_FOR_PAYMENT').map(app => (
+        <div key={app.id} className="p-6 bg-amber-50 rounded-xl border border-amber-200 shadow-sm flex flex-col md:flex-row gap-4 items-start md:items-center justify-between animate-in fade-in slide-in-from-top-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center shrink-0">
+              <CreditCard className="w-6 h-6 text-amber-600" />
+            </div>
+            <div>
+              <h3 className="text-amber-900 font-bold text-lg tracking-tight">Menunggu Pembayaran: {formatCurrency(app.totalCost || 0)}</h3>
+              <p className="text-amber-700 text-sm font-medium leading-relaxed">Tagihan untuk {app.permitType.replace(/_/g, ' ')} ({app.referenceNumber}) telah terbit. Silakan lakukan pembayaran tunai di Loket PTSP untuk melanjutkan proses legalisasi.</p>
+            </div>
+          </div>
+        </div>
+      ))}
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
         {loading ? (
           Array.from({ length: 4 }).map((_, i) => (

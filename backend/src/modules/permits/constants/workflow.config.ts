@@ -11,33 +11,45 @@ export const WORKFLOW_CONFIG: Record<PermitType, WorkflowDefinition> = {
         stages: [
             WorkflowStage.DOCUMENT_CHECK,
             WorkflowStage.FIELD_INSPECTION,
+            WorkflowStage.ASSESSMENT,
+            WorkflowStage.WAITING_FOR_PAYMENT,
             WorkflowStage.LEGALIZATION,
             WorkflowStage.APPROVED,
         ],
         roles: {
             [WorkflowStage.DOCUMENT_CHECK]: [Role.DOCUMENT_VALIDATOR],
             [WorkflowStage.FIELD_INSPECTION]: [Role.FIELD_INSPECTOR],
+            [WorkflowStage.ASSESSMENT]: [Role.ADMIN],
+            [WorkflowStage.WAITING_FOR_PAYMENT]: [Role.ADMIN],
             [WorkflowStage.LEGALIZATION]: [Role.LEGALIZER],
         },
         sla: {
-            [WorkflowStage.DOCUMENT_CHECK]: 48, // 2 days
-            [WorkflowStage.FIELD_INSPECTION]: 72, // 3 days
-            [WorkflowStage.LEGALIZATION]: 24, // 1 day
+            [WorkflowStage.DOCUMENT_CHECK]: 48,
+            [WorkflowStage.FIELD_INSPECTION]: 72,
+            [WorkflowStage.ASSESSMENT]: 24,
+            [WorkflowStage.WAITING_FOR_PAYMENT]: 72,
+            [WorkflowStage.LEGALIZATION]: 24,
         },
     },
     [PermitType.BUSINESS_LICENSE]: {
         stages: [
             WorkflowStage.DOCUMENT_CHECK,
+            WorkflowStage.ASSESSMENT,
+            WorkflowStage.WAITING_FOR_PAYMENT,
             WorkflowStage.LEGALIZATION,
             WorkflowStage.APPROVED,
         ],
         roles: {
             [WorkflowStage.DOCUMENT_CHECK]: [Role.DOCUMENT_VALIDATOR],
+            [WorkflowStage.ASSESSMENT]: [Role.ADMIN],
+            [WorkflowStage.WAITING_FOR_PAYMENT]: [Role.ADMIN],
             [WorkflowStage.LEGALIZATION]: [Role.LEGALIZER],
         },
         sla: {
-            [WorkflowStage.DOCUMENT_CHECK]: 24, // 1 day
-            [WorkflowStage.LEGALIZATION]: 12, // 12 hours
+            [WorkflowStage.DOCUMENT_CHECK]: 24,
+            [WorkflowStage.ASSESSMENT]: 24,
+            [WorkflowStage.WAITING_FOR_PAYMENT]: 72,
+            [WorkflowStage.LEGALIZATION]: 12,
         },
     },
 };

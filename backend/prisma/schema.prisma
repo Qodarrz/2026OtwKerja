@@ -148,6 +148,8 @@ enum LandType {
 enum WorkflowStage {
   DOCUMENT_CHECK
   FIELD_INSPECTION
+  ASSESSMENT
+  WAITING_FOR_PAYMENT
   LEGALIZATION
   APPROVED
   REJECTED
@@ -225,6 +227,10 @@ model PermitApplication {
   
   // Field Inspection
   inspectionNotes   String?
+  inspectionEvidenceUrl String?
+  
+  // Legalization
+  legalizedDocumentUrl String?
   
   // Relationships
   documents         Document[]

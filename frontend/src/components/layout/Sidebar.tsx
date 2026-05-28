@@ -59,7 +59,7 @@ export function Sidebar() {
     {
       title: "Antrean Berkas",
       icon: ClipboardList,
-      roles: [Role.DOCUMENT_VALIDATOR, Role.FIELD_INSPECTOR, Role.LEGALIZER],
+      roles: [Role.ADMIN, Role.DOCUMENT_VALIDATOR, Role.FIELD_INSPECTOR, Role.LEGALIZER],
       subItems: [
         { title: "Menunggu Tindakan", icon: Activity, href: "/dashboard/tasks" },
         { title: "Sudah Selesai", icon: CheckCircle, href: "/dashboard/tasks/completed" },

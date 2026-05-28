@@ -93,14 +93,25 @@ export default function MapPicker({ onAreaChange, existingPolygons = [] }: MapPi
     }
   };
 
+  const [mapId, setMapId] = useState<string>('');
+
+  useEffect(() => {
+    setMapId(Math.random().toString(36).substring(7));
+  }, []);
+
   const clearPoints = () => {
     setPoints([]);
     onAreaChange([], 0, null, false);
   };
 
+  if (!mapId) {
+    return <div className="h-[500px] w-full rounded-3xl bg-muted animate-pulse flex items-center justify-center text-muted-foreground border-2 border-border shadow-inner">Memuat Peta...</div>;
+  }
+
   return (
     <div className="relative w-full h-[500px] rounded-3xl overflow-hidden border-2 border-border shadow-inner bg-muted">
       <MapContainer
+        key={mapId}
         center={center}
         zoom={16}
         maxZoom={22}

@@ -37,6 +37,11 @@ export function InternalDashboard() {
   const loading = !tasks && !error;
   const currentTasks = tasks || [];
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [statusFilter, setStatusFilter] = useState<string>('ALL');
+
+  const filteredTasks = currentTasks.filter((task: any) => 
+    statusFilter === 'ALL' || task.currentStage === statusFilter
+  );
 
   const getRoleInfo = () => {
     if (user?.roles.includes(Role.DOCUMENT_VALIDATOR)) return { label: "Document Validator", icon: FileSearch, color: "text-primary", bg: "bg-blue-50" };
@@ -91,17 +96,29 @@ export function InternalDashboard() {
               <LayoutGrid className="w-4 h-4" />
             </button>
           </div>
-          <Button variant="outline" className="rounded-xl border-border bg-card font-bold h-11 px-6 hover:bg-accent transition-all">
-            <Filter className="w-4 h-4 mr-2 text-muted-foreground" /> Filter
-          </Button>
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-muted-foreground" />
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="bg-card border border-border text-sm font-bold rounded-xl h-11 px-4 hover:bg-accent transition-all cursor-pointer outline-none focus:ring-2 focus:ring-primary/20"
+            >
+              <option value="ALL">Semua Status</option>
+              <option value="DOCUMENT_CHECK">Document Check</option>
+              <option value="FIELD_INSPECTION">Field Inspection</option>
+              <option value="ASSESSMENT">Assessment</option>
+              <option value="WAITING_FOR_PAYMENT">Waiting For Payment</option>
+              <option value="LEGALIZATION">Legalization</option>
+            </select>
+          </div>
         </div>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[
-          { label: "Total Antrean", value: currentTasks.length, icon: FileText, color: "bg-primary", text: "text-primary", bg: "bg-primary/5" },
-          { label: "SLA Warning", value: currentTasks.filter((t: any) => t.slaStatus === 'WARNING').length, icon: Clock, color: "bg-amber-500", text: "text-amber-600", bg: "bg-amber-50/50" },
-          { label: "SLA Overdue", value: currentTasks.filter((t: any) => t.slaStatus === 'OVERDUE').length, icon: AlertCircle, color: "bg-rose-500", text: "text-rose-600", bg: "bg-rose-50/50" },
+          { label: "Total Antrean", value: filteredTasks.length, icon: FileText, color: "bg-primary", text: "text-primary", bg: "bg-primary/5" },
+          { label: "SLA Warning", value: filteredTasks.filter((t: any) => t.slaStatus === 'WARNING').length, icon: Clock, color: "bg-amber-500", text: "text-amber-600", bg: "bg-amber-50/50" },
+          { label: "SLA Overdue", value: filteredTasks.filter((t: any) => t.slaStatus === 'OVERDUE').length, icon: AlertCircle, color: "bg-rose-500", text: "text-rose-600", bg: "bg-rose-50/50" },
         ].map((stat, i) => (
           <Card key={stat.label} className="border-none shadow-sm overflow-hidden bg-card">
             <CardContent className="p-6">
@@ -140,8 +157,8 @@ export function InternalDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                  {currentTasks.length > 0 ? (
-                    currentTasks.map((task: any) => (
+                  {filteredTasks.length > 0 ? (
+                    filteredTasks.map((task: any) => (
                       <tr key={task.id} className="hover:bg-accent/80 transition-colors group">
                         <td className="px-8 py-6">
                           <div className="flex flex-col gap-1">
@@ -196,7 +213,7 @@ export function InternalDashboard() {
             </div>
           ) : (
             <div className="p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-               {currentTasks.map((task: any) => (
+               {filteredTasks.map((task: any) => (
                  <div key={task.id} className="p-6 rounded-2xl border border-border bg-background hover:bg-card hover:shadow-md transition-all duration-300 group relative overflow-hidden">
                     {task.isPendingLong && <div className="absolute top-0 right-0 w-16 h-16 bg-rose-500/10 rotate-45 translate-x-8 -translate-y-8" />}
                     <div className="flex justify-between items-start mb-6">

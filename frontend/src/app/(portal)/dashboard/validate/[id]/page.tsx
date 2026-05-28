@@ -1,5 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { Role } from "@/types/auth";
 import { useParams, useRouter } from "next/navigation";
 import { permitService } from "@/services/permit.service";
 import {
@@ -27,6 +29,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
+import { toast } from "sonner";
 import api from "@/lib/axios";
 import dynamic from "next/dynamic";
 
@@ -38,11 +41,16 @@ const ReadOnlyMap = dynamic(() => import("@/components/map/ReadOnlyMap"), {
 export default function ValidatePermitPage() {
   const params = useParams();
   const router = useRouter();
+  const { user } = useAuth();
   const [application, setApplication] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
+  const [inspectionEvidenceFile, setInspectionEvidenceFile] = useState<File | null>(null);
+  const [legalizedDocumentFile, setLegalizedDocumentFile] = useState<File | null>(null);
+  const [totalCost, setTotalCost] = useState("");
+
   useEffect(() => {
     async function fetchDetails() {
       try {
@@ -50,6 +58,9 @@ export default function ValidatePermitPage() {
           params.id as string,
         );
         setApplication(data);
+        if (data.status === "ASSESSMENT" && data.totalCost) {
+          setTotalCost(data.totalCost.toString());
+        }
       } catch (err) {
         console.error("Failed to fetch application details", err);
         setError(
@@ -61,41 +72,9 @@ export default function ValidatePermitPage() {
     }
     fetchDetails();
   }, [params.id]);
-  const handleApprove = async () => {
-    setIsSubmitting(true);
-    try {
-      const payload = {
-        notes,
-        ...(application?.status === "FIELD_INSPECTION"
-          ? { inspectionNotes: notes || "Telah diinspeksi" }
-          : {}),
-      };
-      await api.post(`/permits/applications/${params.id}/approve`, payload);
-      router.push("/dashboard/tasks");
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Gagal menyetujui pengajuan.");
-      setIsSubmitting(false);
-    }
-  };
-  const handleReject = async () => {
-    if (!notes) {
-      setError("Alasan penolakan wajib diisi.");
-      return;
-    }
-    setIsSubmitting(true);
-    try {
-      await api.post(`/permits/applications/${params.id}/reject`, {
-        reason: notes,
-        notes,
-      });
-      router.push("/dashboard/tasks");
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Gagal menolak pengajuan.");
-      setIsSubmitting(false);
-    }
-  };
+
   if (loading) return <DashboardSkeleton />;
-  if (error && !application) {
+  if (error || !application) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
         {" "}
@@ -106,7 +85,7 @@ export default function ValidatePermitPage() {
         <h2 className="text-xl font-bold text-foreground">
           Akses Ditolak / Tidak Ditemukan
         </h2>{" "}
-        <p className="text-muted-foreground font-medium">{error}</p>{" "}
+        <p className="text-muted-foreground font-medium">{error || "Data tidak ditemukan."}</p>{" "}
         <Button
           onClick={() => router.push("/dashboard/tasks")}
           className="mt-4 rounded-xl"
@@ -117,8 +96,116 @@ export default function ValidatePermitPage() {
       </div>
     );
   }
+
   const isCompleted =
     application.status === "APPROVED" || application.status === "REJECTED";
+
+  const isFieldInspector = user?.roles?.includes(Role.FIELD_INSPECTOR) && application?.status === "FIELD_INSPECTION";
+  const isLegalizer = user?.roles?.includes(Role.LEGALIZER) && application?.status === "LEGALIZATION";
+  const isAssessor = user?.roles?.includes(Role.ADMIN) && application?.status === "ASSESSMENT";
+  const isWaitingPayment = user?.roles?.includes(Role.ADMIN) && application?.status === "WAITING_FOR_PAYMENT";
+
+  const handleApprove = async () => {
+    if (isFieldInspector && !inspectionEvidenceFile) {
+      toast.error("Bukti lapangan (Foto/Dokumen) wajib diunggah.");
+      return;
+    }
+    if (isLegalizer && !legalizedDocumentFile) {
+      toast.error("Dokumen Legal wajib diunggah.");
+      return;
+    }
+    if (isAssessor && !totalCost) {
+      toast.error("Total Biaya Retribusi wajib diisi.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      let finalInspectionUrl = "";
+      let finalLegalizedUrl = "";
+
+      if (isFieldInspector && inspectionEvidenceFile) {
+        const formData = new FormData();
+        formData.append('file', inspectionEvidenceFile);
+        const res = await api.post(`/permits/applications/${params.id}/documents`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        finalInspectionUrl = res.data.storagePath;
+      }
+
+      if (isLegalizer && legalizedDocumentFile) {
+        const formData = new FormData();
+        formData.append('file', legalizedDocumentFile);
+        const res = await api.post(`/permits/applications/${params.id}/documents`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        finalLegalizedUrl = res.data.storagePath;
+      }
+
+      const payload = {
+        notes,
+        ...(application?.status === "FIELD_INSPECTION"
+          ? { inspectionNotes: notes || "Telah diinspeksi", inspectionEvidenceUrl: finalInspectionUrl }
+          : {}),
+        ...(application?.status === "LEGALIZATION"
+          ? { legalizedDocumentUrl: finalLegalizedUrl }
+          : {}),
+        ...(application?.status === "ASSESSMENT"
+          ? { totalCost: Number(totalCost) }
+          : {})
+      };
+      await api.post(`/permits/applications/${params.id}/approve`, payload);
+      toast.success("Pengajuan berhasil diproses.");
+      router.push("/dashboard/tasks");
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Gagal menyetujui pengajuan.");
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'inspection' | 'legal') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await api.post(`/permits/applications/${params.id}/documents`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      if (type === 'inspection') {
+        setInspectionEvidenceUrl(response.data.storagePath);
+      } else {
+        setLegalizedDocumentUrl(response.data.storagePath);
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Gagal mengunggah file");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!notes) {
+      toast.error("Alasan penolakan wajib diisi.");
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await api.post(`/permits/applications/${params.id}/reject`, {
+        reason: notes,
+        notes,
+      });
+      toast.success("Pengajuan berhasil ditolak.");
+      router.push("/dashboard/tasks");
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Gagal menolak pengajuan.");
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
       {" "}
@@ -232,7 +319,18 @@ export default function ValidatePermitPage() {
                   </p>{" "}
                 </div>
               )}{" "}
-              
+              {application.totalCost && (
+                <div className="space-y-2">
+                  {" "}
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600">
+                    Total Biaya Retribusi (Sistem)
+                  </p>{" "}
+                  <p className="font-bold text-emerald-700">
+                    {formatCurrency(application.totalCost)}
+                  </p>{" "}
+                </div>
+              )}{" "}
+
               {application.dynamicData && (application.dynamicData as any).mapPoints && (application.dynamicData as any).mapPoints.length > 0 && (
                 <div className="md:col-span-2 mt-4 space-y-2">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2">
@@ -243,6 +341,40 @@ export default function ValidatePermitPage() {
               )}
             </CardContent>{" "}
           </Card>{" "}
+
+          {(application.inspectionEvidenceUrl || application.legalizedDocumentUrl) && (
+            <Card className="border-none shadow-sm">
+              <CardHeader className="border-b border-slate-50 bg-background">
+                <CardTitle className="text-xl flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-emerald-500" /> Hasil Validasi Staf
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-8 space-y-6">
+                {application.inspectionEvidenceUrl && (
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Bukti Inspeksi Lapangan</p>
+                    <div className="p-4 rounded-xl border border-border bg-muted/30 flex items-center gap-3">
+                      <FileImage className="w-5 h-5 text-indigo-500" />
+                      <a href={application.inspectionEvidenceUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-bold text-indigo-600 hover:underline break-all">
+                        {application.inspectionEvidenceUrl}
+                      </a>
+                    </div>
+                  </div>
+                )}
+                {application.legalizedDocumentUrl && (
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Dokumen Terdigitalisasi (Legal)</p>
+                    <div className="p-4 rounded-xl border border-border bg-muted/30 flex items-center gap-3">
+                      <FileText className="w-5 h-5 text-purple-500" />
+                      <a href={application.legalizedDocumentUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-bold text-purple-600 hover:underline break-all">
+                        {application.legalizedDocumentUrl}
+                      </a>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {application.documents && application.documents.length > 0 && (
             <Card className="border-none shadow-sm">
@@ -255,10 +387,10 @@ export default function ValidatePermitPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {application.documents.map((doc: any) => (
                     <div key={doc.id} className="relative overflow-hidden rounded-xl border border-border bg-background flex flex-col">
-                      {doc.fileUrl?.match(/\.(jpeg|jpg|gif|png|webp)$/i) || doc.mimeType?.startsWith('image/') ? (
+                      {(doc.storagePath || doc.fileUrl)?.match(/\.(jpeg|jpg|gif|png|webp)$/i) || doc.mimeType?.startsWith('image/') ? (
                         <div className="w-full h-48 bg-muted/50 p-2 flex items-center justify-center">
                           <img
-                            src={doc.fileUrl}
+                            src={doc.storagePath || doc.fileUrl}
                             alt={doc.documentType}
                             className="max-w-full max-h-full object-contain rounded-lg shadow-sm"
                           />
@@ -276,13 +408,81 @@ export default function ValidatePermitPage() {
                           <p className="text-sm font-bold truncate" title={doc.documentType || 'Dokumen'}>{(doc.documentType || 'Dokumen').replace(/_/g, ' ')}</p>
                         </div>
                         <Button variant="outline" size="sm" asChild className="shrink-0 rounded-full shadow-sm hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors">
-                          <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer">
+                          <a href={doc.storagePath || doc.fileUrl} target="_blank" rel="noopener noreferrer">
                             <ExternalLink className="w-4 h-4 mr-2" /> Buka
                           </a>
                         </Button>
                       </div>
                     </div>
                   ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Cumulative Flow Documents from Previous Stages */}
+          {(application.inspectionEvidenceUrl || application.legalizedDocumentUrl) && (
+            <Card className="border-none shadow-sm">
+              <CardHeader className="border-b border-slate-50 bg-background">
+                <CardTitle className="text-xl flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-500" /> Hasil Validasi Staf (Tahap Sebelumnya)
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {application.inspectionEvidenceUrl && (
+                    <div className="relative overflow-hidden rounded-xl border border-border bg-emerald-50/20 flex flex-col">
+                      {application.inspectionEvidenceUrl.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
+                        <div className="w-full h-48 bg-muted/50 p-2 flex items-center justify-center">
+                          <img src={application.inspectionEvidenceUrl} alt="Inspeksi Lapangan" className="max-w-full max-h-full object-contain rounded-lg shadow-sm" />
+                        </div>
+                      ) : (
+                        <div className="w-full h-48 bg-muted/50 p-2 flex flex-col items-center justify-center gap-3">
+                          <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center shadow-sm">
+                            <FileText className="w-8 h-8 text-emerald-600" />
+                          </div>
+                          <span className="text-xs font-bold text-muted-foreground uppercase">Bukti Inspeksi</span>
+                        </div>
+                      )}
+                      <div className="p-4 border-t border-border flex items-center justify-between bg-muted/10 mt-auto">
+                        <div className="overflow-hidden flex-1 mr-4">
+                          <p className="text-sm font-bold truncate text-emerald-800" title="Bukti Inspeksi Lapangan">Bukti Inspeksi Lapangan</p>
+                        </div>
+                        <Button variant="outline" size="sm" asChild className="shrink-0 rounded-full shadow-sm hover:bg-emerald-600 hover:text-white transition-colors border-emerald-200">
+                          <a href={application.inspectionEvidenceUrl} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="w-4 h-4 mr-2" /> Buka
+                          </a>
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {application.legalizedDocumentUrl && (
+                    <div className="relative overflow-hidden rounded-xl border border-border bg-purple-50/20 flex flex-col">
+                      {application.legalizedDocumentUrl.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
+                        <div className="w-full h-48 bg-muted/50 p-2 flex items-center justify-center">
+                          <img src={application.legalizedDocumentUrl} alt="Dokumen Legal" className="max-w-full max-h-full object-contain rounded-lg shadow-sm" />
+                        </div>
+                      ) : (
+                        <div className="w-full h-48 bg-muted/50 p-2 flex flex-col items-center justify-center gap-3">
+                          <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center shadow-sm">
+                            <FileText className="w-8 h-8 text-purple-600" />
+                          </div>
+                          <span className="text-xs font-bold text-muted-foreground uppercase">Dokumen Legal</span>
+                        </div>
+                      )}
+                      <div className="p-4 border-t border-border flex items-center justify-between bg-muted/10 mt-auto">
+                        <div className="overflow-hidden flex-1 mr-4">
+                          <p className="text-sm font-bold truncate text-purple-800" title="Surat Keputusan (SK) Legal">Surat Keputusan (SK) Legal</p>
+                        </div>
+                        <Button variant="outline" size="sm" asChild className="shrink-0 rounded-full shadow-sm hover:bg-purple-600 hover:text-white transition-colors border-purple-200">
+                          <a href={application.legalizedDocumentUrl} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="w-4 h-4 mr-2" /> Buka
+                          </a>
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -391,7 +591,75 @@ export default function ValidatePermitPage() {
                 </div>
               ) : (
                 <>
-                  {" "}
+                  {isFieldInspector && (
+                    <div className="space-y-3">
+                      <label className="text-xs font-bold text-indigo-600 uppercase tracking-widest flex items-center gap-2">
+                        <FileImage className="w-4 h-4" /> Bukti Lapangan (Wajib)
+                      </label>
+                      {inspectionEvidenceFile ? (
+                        <div className="p-4 bg-indigo-50/50 border border-indigo-100 rounded-xl flex items-center justify-between">
+                          <span className="text-sm font-bold text-indigo-600 truncate pr-4">{inspectionEvidenceFile.name}</span>
+                          <Button variant="ghost" size="sm" onClick={() => setInspectionEvidenceFile(null)} className="text-rose-500 hover:text-rose-600 hover:bg-rose-50">Hapus</Button>
+                        </div>
+                      ) : (
+                        <input
+                          type="file"
+                          accept="image/*,application/pdf"
+                          onChange={(e) => {
+                            if (e.target.files?.[0]) setInspectionEvidenceFile(e.target.files[0]);
+                          }}
+                          className="w-full bg-indigo-50/50 border border-indigo-100 rounded-xl p-4 text-sm font-medium focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all text-indigo-900 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-indigo-100 file:text-indigo-700 hover:file:bg-indigo-200"
+                        />
+                      )}
+                    </div>
+                  )}
+
+                  {isLegalizer && (
+                    <div className="space-y-3">
+                      <label className="text-xs font-bold text-purple-600 uppercase tracking-widest flex items-center gap-2">
+                        <FileText className="w-4 h-4" /> Dokumen Legal (Wajib)
+                      </label>
+                      {legalizedDocumentFile ? (
+                        <div className="p-4 bg-purple-50/50 border border-purple-100 rounded-xl flex items-center justify-between">
+                          <span className="text-sm font-bold text-purple-600 truncate pr-4">{legalizedDocumentFile.name}</span>
+                          <Button variant="ghost" size="sm" onClick={() => setLegalizedDocumentFile(null)} className="text-rose-500 hover:text-rose-600 hover:bg-rose-50">Hapus</Button>
+                        </div>
+                      ) : (
+                        <input
+                          type="file"
+                          accept="application/pdf,image/*"
+                          onChange={(e) => {
+                            if (e.target.files?.[0]) setLegalizedDocumentFile(e.target.files[0]);
+                          }}
+                          className="w-full bg-purple-50/50 border border-purple-100 rounded-xl p-4 text-sm font-medium focus:outline-none focus:ring-4 focus:ring-purple-500/10 transition-all text-purple-900 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-purple-100 file:text-purple-700 hover:file:bg-purple-200"
+                        />
+                      )}
+                    </div>
+                  )}
+
+                  {isAssessor && (
+                    <div className="space-y-3">
+                      <label className="text-xs font-bold text-amber-600 uppercase tracking-widest flex items-center gap-2">
+                        <Activity className="w-4 h-4" /> Total Biaya Retribusi (Wajib)
+                      </label>
+                      <input
+                        type="number"
+                        value={totalCost}
+                        onChange={(e) => setTotalCost(e.target.value)}
+                        placeholder="Masukkan Jumlah Tagihan Rupiah (Contoh: 1500000)"
+                        className="w-full bg-amber-50/50 border border-amber-100 rounded-xl p-4 text-sm font-bold focus:outline-none focus:ring-4 focus:ring-amber-500/10 transition-all text-amber-900 placeholder:text-amber-300"
+                      />
+                    </div>
+                  )}
+
+                  {isWaitingPayment && (
+                    <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100 mb-4">
+                      <p className="text-sm font-bold text-emerald-800 text-center">
+                        Konfirmasi bahwa warga telah menyelesaikan pembayaran di Kasir / Loket PTSP.
+                      </p>
+                    </div>
+                  )}
+
                   <div className="space-y-3">
                     {" "}
                     <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">

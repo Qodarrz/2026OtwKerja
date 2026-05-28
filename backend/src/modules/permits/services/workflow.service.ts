@@ -21,6 +21,9 @@ import { WorkflowTemplateService } from '../../workflow-template/services/workfl
 export interface ApproveApplicationDto {
     notes?: string;
     inspectionNotes?: string;
+    inspectionEvidenceUrl?: string;
+    legalizedDocumentUrl?: string;
+    totalCost?: number;
 }
 
 export interface RejectApplicationDto {
@@ -93,12 +96,26 @@ export class WorkflowService {
 
         if (
             user.roles.includes(Role.FIELD_INSPECTOR) &&
-            application.currentStage === WorkflowStage.FIELD_INSPECTION &&
-            !dto.inspectionNotes
+            application.currentStage === WorkflowStage.FIELD_INSPECTION
         ) {
-            throw new BadRequestException(
-                'Inspection notes are required for field inspection approval',
-            );
+            if (!dto.inspectionNotes) {
+                throw new BadRequestException('Inspection notes are required for field inspection approval');
+            }
+            if (!dto.inspectionEvidenceUrl) {
+                throw new BadRequestException('Inspection evidence URL is required for field inspection approval');
+            }
+        }
+
+        if (
+            user.roles.includes(Role.LEGALIZER) &&
+            application.currentStage === WorkflowStage.LEGALIZATION &&
+            !dto.legalizedDocumentUrl
+        ) {
+            throw new BadRequestException('Legalized document URL is required for legalization approval');
+        }
+
+        if (application.currentStage === WorkflowStage.ASSESSMENT && dto.totalCost == null) {
+            throw new BadRequestException('Total cost must be set during the assessment stage');
         }
 
         const result = await this.prisma.$transaction(async (tx) => {
@@ -110,6 +127,15 @@ export class WorkflowService {
 
             if (dto.inspectionNotes) {
                 updateData.inspectionNotes = dto.inspectionNotes;
+            }
+            if (dto.inspectionEvidenceUrl) {
+                updateData.inspectionEvidenceUrl = dto.inspectionEvidenceUrl;
+            }
+            if (dto.legalizedDocumentUrl) {
+                updateData.legalizedDocumentUrl = dto.legalizedDocumentUrl;
+            }
+            if (dto.totalCost != null) {
+                updateData.totalCost = Number(dto.totalCost);
             }
 
             const updated = await tx.permitApplication.update({
@@ -147,7 +173,7 @@ export class WorkflowService {
             });
 
             return updated;
-        });
+        }, { timeout: 20000 });
 
         // 5. Create audit log (async via service)
         await this.auditLogService.createAuditLog({
@@ -252,7 +278,7 @@ export class WorkflowService {
             });
 
             return updated;
-        });
+        }, { timeout: 20000 });
 
         // 5. Create audit log (async via service)
         await this.auditLogService.createAuditLog({
@@ -345,9 +371,8 @@ export class WorkflowService {
         const accessibleStages = new Set<WorkflowStage>();
 
         if (user.roles.includes(Role.ADMIN)) {
-            accessibleStages.add(WorkflowStage.DOCUMENT_CHECK);
-            accessibleStages.add(WorkflowStage.FIELD_INSPECTION);
-            accessibleStages.add(WorkflowStage.LEGALIZATION);
+            accessibleStages.add(WorkflowStage.ASSESSMENT);
+            accessibleStages.add(WorkflowStage.WAITING_FOR_PAYMENT);
         } else {
             for (const type in WORKFLOW_CONFIG) {
                 const config = WORKFLOW_CONFIG[type as PermitType];
@@ -435,9 +460,8 @@ export class WorkflowService {
 
         const accessibleStages = new Set<WorkflowStage>();
         if (user.roles.includes(Role.ADMIN)) {
-            accessibleStages.add(WorkflowStage.DOCUMENT_CHECK);
-            accessibleStages.add(WorkflowStage.FIELD_INSPECTION);
-            accessibleStages.add(WorkflowStage.LEGALIZATION);
+            accessibleStages.add(WorkflowStage.ASSESSMENT);
+            accessibleStages.add(WorkflowStage.WAITING_FOR_PAYMENT);
         } else {
             for (const type in WORKFLOW_CONFIG) {
                 const config = WORKFLOW_CONFIG[type as PermitType];

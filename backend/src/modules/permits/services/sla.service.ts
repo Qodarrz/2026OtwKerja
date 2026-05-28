@@ -61,6 +61,7 @@ export class SLAService {
         const slaCheck = await this.checkSLACompliance(
             activeStage.transitionedAt,
             currentStage,
+            tx
         );
 
         return prisma.stageHistory.update({
@@ -79,9 +80,12 @@ export class SLAService {
     async checkSLACompliance(
         startTime: Date,
         stage: WorkflowStage,
+        tx?: Prisma.TransactionClient,
     ): Promise<SLACheckResult> {
+        const prisma = tx || this.prisma;
+        
         // Get SLA rule for this stage
-        const slaRule = await this.prisma.sLARule.findUnique({
+        const slaRule = await prisma.sLARule.findUnique({
             where: { stage },
         });
 

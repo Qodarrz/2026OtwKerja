@@ -56,6 +56,8 @@ export class StageAccessGuard implements CanActivate {
         const stageRoleMap: Record<WorkflowStage, Role[]> = {
             [WorkflowStage.DOCUMENT_CHECK]: [Role.DOCUMENT_VALIDATOR],
             [WorkflowStage.FIELD_INSPECTION]: [Role.FIELD_INSPECTOR],
+            [WorkflowStage.ASSESSMENT]: [Role.ADMIN],
+            [WorkflowStage.WAITING_FOR_PAYMENT]: [Role.ADMIN],
             [WorkflowStage.LEGALIZATION]: [Role.LEGALIZER],
             [WorkflowStage.APPROVED]: [], // No validation actions on approved applications
             [WorkflowStage.REJECTED]: [], // No validation actions on rejected applications

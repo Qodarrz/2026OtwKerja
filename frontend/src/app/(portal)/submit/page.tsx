@@ -173,7 +173,7 @@ export default function SubmitPermitPage() {
         landSize: mapData.area || Number(formData.estimatedArea) || 1,
         landType: formData.buildingType === "Residensial" ? "RESIDENTIAL" : "COMMERCIAL",
         buildingHeight: 10,
-        njopValue: mapData.area > 0 ? estimatedRetribusi : 1000000,
+        njopValue: 1250000, // Fixed Rp 1.250.000 / m2 (Base Tax = 1.2% = 15000 / m2)
         isStrategicLocation: false,
         businessName: formData.businessName || "N/A",
         businessType: formData.businessType || "N/A",

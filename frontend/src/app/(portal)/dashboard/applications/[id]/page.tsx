@@ -13,6 +13,8 @@ import {
   Activity,
   ChevronRight,
   Loader2,
+  Calculator,
+  CreditCard,
 } from "lucide-react";
 import {
   Card,
@@ -124,12 +126,22 @@ export default function ApplicationDetailPage() {
       </div>
     );
   }
-  const stages = [
-    { id: "DOCUMENT_CHECK", label: "Cek Dokumen", icon: CheckCircle2 },
-    { id: "FIELD_INSPECTION", label: "Inspeksi Lapangan", icon: MapPin },
-    { id: "LEGALIZATION", label: "Legalitas", icon: Activity },
-    { id: "APPROVED", label: "Selesai", icon: Sparkles },
-  ];
+  const stages = application.permitType === "BUSINESS_LICENSE" 
+    ? [
+      { id: "DOCUMENT_CHECK", label: "Cek Dokumen", icon: CheckCircle2 },
+      { id: "ASSESSMENT", label: "Penilaian & Biaya", icon: Calculator },
+      { id: "WAITING_FOR_PAYMENT", label: "Menunggu Pembayaran", icon: CreditCard },
+      { id: "LEGALIZATION", label: "Legalitas", icon: Activity },
+      { id: "APPROVED", label: "Selesai", icon: Sparkles },
+    ]
+    : [
+      { id: "DOCUMENT_CHECK", label: "Cek Dokumen", icon: CheckCircle2 },
+      { id: "FIELD_INSPECTION", label: "Inspeksi Lapangan", icon: MapPin },
+      { id: "ASSESSMENT", label: "Penilaian & Biaya", icon: Calculator },
+      { id: "WAITING_FOR_PAYMENT", label: "Menunggu Pembayaran", icon: CreditCard },
+      { id: "LEGALIZATION", label: "Legalitas", icon: Activity },
+      { id: "APPROVED", label: "Selesai", icon: Sparkles },
+    ];
   const currentStageIndex = stages.findIndex(
     (s) => s.id === application.currentStage,
   );

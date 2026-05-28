@@ -29,11 +29,22 @@ function MapBounds({ points }: { points: [number, number][] }) {
 }
 
 export default function ReadOnlyMap({ points }: ReadOnlyMapProps) {
+  const [mapId, setMapId] = useState<string>('');
+
+  useEffect(() => {
+    setMapId(Math.random().toString(36).substring(7));
+  }, []);
+
   const center: [number, number] = points.length > 0 ? points[0] : [-6.2088, 106.8456];
+
+  if (!mapId) {
+    return <div className="h-[300px] w-full rounded-2xl bg-muted animate-pulse flex items-center justify-center text-muted-foreground">Memuat Peta...</div>;
+  }
 
   return (
     <div className="h-[300px] w-full rounded-2xl overflow-hidden border border-border">
       <MapContainer
+        key={mapId}
         center={center}
         zoom={16}
         className="w-full h-full z-0 relative"
