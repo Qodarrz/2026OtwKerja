@@ -210,6 +210,18 @@ export default function ValidatePermitPage() {
     }
   };
 
+  const handlePing = async () => {
+    setIsSubmitting(true);
+    try {
+      await api.post(`/permits/applications/${params.id}/ping`);
+      toast.success("Notifikasi peringatan (Ping) telah dikirim ke staf terkait.");
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Gagal mengirim ping.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
       {" "}
@@ -563,11 +575,12 @@ export default function ValidatePermitPage() {
                   </div>
                   {isAdmin && (
                     <Button
-                      onClick={() => toast.success("Notifikasi peringatan telah dikirim ke staf terkait.")}
+                      onClick={handlePing}
+                      disabled={isSubmitting}
                       variant="default"
                       className="mt-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold h-10 w-full"
                     >
-                      Ingatkan Staf (Ping)
+                      {isSubmitting ? "Mengirim..." : "Ingatkan Staf (Ping)"}
                     </Button>
                   )}
                 </div>

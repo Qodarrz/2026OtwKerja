@@ -132,4 +132,17 @@ export class PermitController {
         const userId = req.user.sub;
         return this.permitService.resubmitApplication(id, userId, dto);
     }
+
+    /**
+     * POST /api/permits/applications/:id/ping
+     * Ping staff responsible for the current stage
+     */
+    @Post(':id/ping')
+    async pingStaff(
+        @Request() req: any,
+        @Param('id') id: string,
+    ) {
+        const userId = req.user.sub;
+        return this.permitService.pingStaff(id, userId);
+    }
 }

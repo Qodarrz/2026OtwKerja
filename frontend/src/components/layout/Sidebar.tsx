@@ -87,12 +87,20 @@ export function Sidebar() {
       ]
     },
     {
+      title: "Notifikasi",
+      icon: BellRing,
+      roles: [Role.ADMIN, Role.DOCUMENT_VALIDATOR, Role.FIELD_INSPECTOR, Role.LEGALIZER, Role.CS],
+      subItems: [
+        { title: "Kotak Masuk", icon: BellRing, href: "/dashboard/notifications" }
+      ]
+    },
+    {
       title: "Pengaturan",
       icon: Settings,
-      roles: [Role.ADMIN, Role.DOCUMENT_VALIDATOR, Role.FIELD_INSPECTOR, Role.LEGALIZER],
+      roles: [Role.ADMIN, Role.DOCUMENT_VALIDATOR, Role.FIELD_INSPECTOR, Role.LEGALIZER, Role.CS],
       subItems: [
         { title: "Profil Saya", icon: Users, href: "/dashboard/profile" },
-        { title: "Notifikasi Sistem", icon: BellRing, href: "/dashboard/settings/notifications" }
+        { title: "Sistem Notifikasi", icon: BellRing, href: "/dashboard/settings/notifications" }
       ]
     }
   ];

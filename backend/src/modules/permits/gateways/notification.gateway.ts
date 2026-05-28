@@ -57,10 +57,22 @@ export class NotificationGateway implements OnGatewayConnection, OnGatewayDiscon
         return;
       }
 
+      this.logger.debug(`Incoming connection headers: ${JSON.stringify(client.handshake.headers)}`);
+
       // Extract token from handshake auth or authorization header
-      const token = 
+      let token = 
         client.handshake.auth?.token || 
         client.handshake.headers?.authorization?.replace('Bearer ', '');
+
+      // Fallback to reading from HTTP-only cookie
+      if (!token && client.handshake.headers.cookie) {
+        const cookies = client.handshake.headers.cookie.split(';').reduce((acc, current) => {
+          const [key, value] = current.trim().split('=');
+          acc[key] = value;
+          return acc;
+        }, {} as Record<string, string>);
+        token = cookies['access_token'];
+      }
 
       if (!token) {
         throw new UnauthorizedException('No token provided');
@@ -106,11 +118,10 @@ export class NotificationGateway implements OnGatewayConnection, OnGatewayDiscon
         `Total: ${this.totalConnections}, Active: ${this.activeConnections}, Timestamp: ${new Date().toISOString()}`
       );
     } catch (error) {
-      // Emit error and disconnect if authentication fails
       this.logger.error(`Authentication failed for client ${client.id}:`, error.message);
       client.emit('error', { 
         code: 'AUTH_FAILED', 
-        message: 'Authentication failed. Please log in again.' 
+        message: 'Authentication failed. Please log in again. Error: ' + error.message
       });
       client.disconnect(true);
     }
@@ -121,7 +132,6 @@ export class NotificationGateway implements OnGatewayConnection, OnGatewayDiscon
     const roles = client.data.roles as Role[] || [];
     const reason = client.disconnected ? 'client_disconnect' : 'server_disconnect';
     
-    // Remove socket-to-user mapping
     this.socketToUserMap.delete(client.id);
     
     // Update connection metrics

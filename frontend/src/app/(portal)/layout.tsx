@@ -7,6 +7,8 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SocketProvider } from "@/contexts/SocketContext";
+import { GlobalNotificationModal } from "@/components/notifications/GlobalNotificationModal";
 
 export default function PortalLayout({
   children,
@@ -34,25 +36,29 @@ export default function PortalLayout({
 
   return (
     <ProtectedRoute>
-      <div className={cn("min-h-screen bg-background", isInternal ? "flex" : "block")}>
-        {isInternal ? (
-          <>
-            <Sidebar />
-            <main className="flex-1 lg:ml-80 p-10 bg-background min-h-screen">
-              {children}
-            </main>
-          </>
-        ) : (
-          <>
-            <Navbar />
-            <main className="pt-32 pb-20 px-6">
-              <div className="max-w-7xl mx-auto">
+      <SocketProvider>
+        <div className={cn("min-h-screen bg-background", isInternal ? "flex" : "block")}>
+          {isInternal ? (
+            <>
+              <Sidebar />
+              <main className="flex-1 lg:ml-80 p-10 bg-background min-h-screen">
                 {children}
-              </div>
-            </main>
-          </>
-        )}
-      </div>
+              </main>
+              <GlobalNotificationModal />
+            </>
+          ) : (
+            <>
+              <Navbar />
+              <main className="pt-32 pb-20 px-6">
+                <div className="max-w-7xl mx-auto">
+                  {children}
+                </div>
+              </main>
+              <GlobalNotificationModal />
+            </>
+          )}
+        </div>
+      </SocketProvider>
     </ProtectedRoute>
   );
 }

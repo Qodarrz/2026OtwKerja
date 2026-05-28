@@ -300,6 +300,65 @@ export class NotificationService {
     }
 
     /**
+     * Ping staff manually by Admin or CS
+     */
+    async notifyPing(
+        applicationId: string,
+        senderName: string,
+        targetRole: Role,
+        stage: string,
+    ): Promise<void> {
+        const application = await this.prisma.permitApplication.findUnique({
+            where: { id: applicationId },
+        });
+
+        if (!application) return;
+
+        const message = `PEMBERITAHUAN (Ping dari ${senderName}): Mohon segera proses berkas ${application.referenceNumber} pada tahap ${stage}.`;
+
+        const payload = {
+            id: `ping-${Date.now()}`,
+            type: 'PING_ALERT',
+            title: 'Ping: Butuh Tindakan Segera',
+            message,
+            timestamp: new Date().toISOString(),
+            metadata: {
+                applicationId,
+                referenceNumber: application.referenceNumber,
+                stage,
+                urgencyLevel: 'high',
+                senderName,
+            },
+        };
+
+        try {
+            // Find all users in target role to save notification in DB
+            const usersInRole = await this.prisma.user.findMany({
+                where: { roles: { has: targetRole } }
+            });
+
+            const notificationsToCreate = usersInRole.map(user => ({
+                userId: user.id,
+                type: NotificationType.SLA_WARNING,
+                title: 'Ping: Butuh Tindakan Segera',
+                message,
+                applicationId,
+            }));
+
+            if (notificationsToCreate.length > 0) {
+                await this.prisma.notification.createMany({
+                    data: notificationsToCreate
+                });
+            }
+
+            // Emit web socket event to role room
+            this.gateway.sendToRole(targetRole, 'notification:ping', payload);
+        } catch (error) {
+            console.error('Ping WebSocket delivery failed:', error);
+        }
+    }
+
+    /**
      * Get user notifications with pagination
      */
     async getUserNotifications(

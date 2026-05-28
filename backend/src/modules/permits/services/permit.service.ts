@@ -18,6 +18,7 @@ import {
     AuditActionType,
 } from '../../audit-log/dto/audit-log.dto';
 import { TaxCalculatorService } from './tax-calculator.service';
+import { NotificationService } from './notification.service';
 
 export interface PaginatedResult<T> {
     data: T[];
@@ -33,6 +34,7 @@ export class PermitService {
         private prisma: PrismaService,
         private auditLogService: AuditLogService,
         private taxCalculatorService: TaxCalculatorService,
+        private notificationService: NotificationService,
     ) { }
 
     /**
@@ -603,6 +605,48 @@ export class PermitService {
         const prefix = permitType === PermitType.BUILDING_PERMIT ? 'BP' : 'BL';
 
         return `${prefix}/${year}/${month}/${sequence}`;
+    }
+
+    /**
+     * Ping staff responsible for the current active stage of an application
+     */
+    async pingStaff(applicationId: string, senderId: string) {
+        const application = await this.prisma.permitApplication.findUnique({
+            where: { id: applicationId },
+        });
+
+        if (!application) {
+            throw new NotFoundException('Application not found');
+        }
+
+        const sender = await this.prisma.user.findUnique({
+            where: { id: senderId }
+        });
+        
+        if (!sender) {
+            throw new ForbiddenException('Sender not found');
+        }
+
+        // Determine target role based on current status
+        let targetRole: Role | null = null;
+        if (application.status === WorkflowStage.DOCUMENT_CHECK) targetRole = Role.DOCUMENT_VALIDATOR;
+        else if (application.status === WorkflowStage.FIELD_INSPECTION) targetRole = Role.FIELD_INSPECTOR;
+        else if (application.status === WorkflowStage.ASSESSMENT) targetRole = Role.ADMIN;
+        else if (application.status === WorkflowStage.WAITING_FOR_PAYMENT) targetRole = Role.ADMIN;
+        else if (application.status === WorkflowStage.LEGALIZATION) targetRole = Role.LEGALIZER;
+
+        if (!targetRole) {
+            throw new BadRequestException(`Cannot ping staff for status: ${application.status}`);
+        }
+
+        await this.notificationService.notifyPing(
+            applicationId,
+            sender.name || sender.email,
+            targetRole,
+            application.status
+        );
+
+        return { success: true, message: `Ping sent to ${targetRole} for stage ${application.status}` };
     }
 
     /**
