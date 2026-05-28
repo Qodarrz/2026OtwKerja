@@ -136,11 +136,30 @@ export class SLAService {
     }
 
     /**
-     * Calculate duration between two timestamps
+     * Calculate duration between two timestamps excluding weekends
      */
     calculateDuration(startTime: Date, endTime: Date): number {
-        const durationMs = endTime.getTime() - startTime.getTime();
-        return Math.floor(durationMs / (1000 * 60 * 60)); // Convert to hours
+        if (endTime.getTime() < startTime.getTime()) return 0;
+        
+        let durationMs = 0;
+        let current = new Date(startTime);
+        
+        while (current.getTime() < endTime.getTime()) {
+            const nextDay = new Date(current);
+            nextDay.setDate(nextDay.getDate() + 1);
+            nextDay.setHours(0, 0, 0, 0);
+            
+            const actualEnd = nextDay.getTime() > endTime.getTime() ? endTime : nextDay;
+            const dayOfWeek = current.getDay();
+            
+            // Skip weekends (0 = Sunday, 6 = Saturday)
+            if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+                durationMs += actualEnd.getTime() - current.getTime();
+            }
+            current = actualEnd;
+        }
+        
+        return Math.floor(durationMs / (1000 * 60 * 60));
     }
 
     /**
