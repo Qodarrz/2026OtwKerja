@@ -311,6 +311,14 @@ export default function ApplicationDetailPage() {
                   <p className="text-sm text-muted-foreground mt-1">
                     Seluruh tahapan telah dilalui sesuai standar prosedur.
                   </p>{" "}
+                  {application.legalizedDocumentUrl && (
+                    <Button asChild className="mt-6 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-sm">
+                      <a href={application.legalizedDocumentUrl} target="_blank" rel="noopener noreferrer">
+                        <FileText className="w-4 h-4 mr-2" />
+                        Unduh Izin Resmi
+                      </a>
+                    </Button>
+                  )}
                 </div>
               )}{" "}
             </CardContent>{" "}
@@ -352,7 +360,7 @@ export default function ApplicationDetailPage() {
                     Luas Lahan
                   </p>
                   <p className="font-bold text-foreground">
-                    {application.landSize || 0} m²
+                    {Intl.NumberFormat("id-ID", { maximumFractionDigits: 2 }).format(Number(application.landSize || 0))} m²
                   </p>
                 </div>
               )}

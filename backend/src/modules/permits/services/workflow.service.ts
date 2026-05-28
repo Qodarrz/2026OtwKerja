@@ -317,7 +317,7 @@ export class WorkflowService {
         });
 
         if (!user) return false;
-        if (user.roles.includes(Role.ADMIN)) return true;
+        // ADMIN role cannot contribute/approve, they only have view access.
 
         const config = await this.workflowTemplateService.getWorkflowDefinition(permitType);
         if (!config) return false;
@@ -371,8 +371,11 @@ export class WorkflowService {
         const accessibleStages = new Set<WorkflowStage>();
 
         if (user.roles.includes(Role.ADMIN)) {
-            accessibleStages.add(WorkflowStage.ASSESSMENT);
-            accessibleStages.add(WorkflowStage.WAITING_FOR_PAYMENT);
+            Object.values(WorkflowStage).forEach(stage => {
+                if (stage !== WorkflowStage.APPROVED && stage !== WorkflowStage.REJECTED) {
+                    accessibleStages.add(stage);
+                }
+            });
         } else {
             for (const type in WORKFLOW_CONFIG) {
                 const config = WORKFLOW_CONFIG[type as PermitType];
@@ -460,8 +463,11 @@ export class WorkflowService {
 
         const accessibleStages = new Set<WorkflowStage>();
         if (user.roles.includes(Role.ADMIN)) {
-            accessibleStages.add(WorkflowStage.ASSESSMENT);
-            accessibleStages.add(WorkflowStage.WAITING_FOR_PAYMENT);
+            Object.values(WorkflowStage).forEach(stage => {
+                if (stage !== WorkflowStage.APPROVED && stage !== WorkflowStage.REJECTED) {
+                    accessibleStages.add(stage);
+                }
+            });
         } else {
             for (const type in WORKFLOW_CONFIG) {
                 const config = WORKFLOW_CONFIG[type as PermitType];

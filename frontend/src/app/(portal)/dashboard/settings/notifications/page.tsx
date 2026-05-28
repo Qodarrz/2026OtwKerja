@@ -65,10 +65,8 @@ export default function NotificationSettingsPage() {
         </header>
 
         <div className="max-w-4xl space-y-8">
-          {/* Focus Mode Skeleton */}
           <div className="h-32 w-full bg-muted rounded-2xl animate-pulse" />
-          
-          {/* Category Skeletons */}
+
           {[1, 2, 3].map((i) => (
             <div key={i} className="space-y-4">
               <div className="h-48 w-full bg-muted rounded-2xl animate-pulse" />
@@ -161,12 +159,12 @@ export default function NotificationSettingsPage() {
               </p>
             </div>
             <div className="md:ml-auto">
-              <Button 
+              <Button
                 onClick={() => toggle("focusModeActive")}
                 className={cn(
                   "rounded-xl font-bold transition-all",
-                  settings.focusModeActive 
-                    ? "bg-emerald-500 text-white hover:bg-emerald-600" 
+                  settings.focusModeActive
+                    ? "bg-emerald-500 text-white hover:bg-emerald-600"
                     : "bg-white text-primary hover:bg-white/90"
                 )}
               >
@@ -240,7 +238,7 @@ export default function NotificationSettingsPage() {
         ))}
 
         <div className="flex justify-end pt-4">
-          <Button 
+          <Button
             disabled={isSaving}
             onClick={handleSave}
             className="rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 font-bold px-10 h-12 shadow-lg shadow-primary/20 active:scale-95 transition-all"

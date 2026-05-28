@@ -22,6 +22,8 @@ async function main() {
   const slaRules = [
     { stage: WorkflowStage.DOCUMENT_CHECK, maxDurationHours: 24, warningThreshold: 0.8 },
     { stage: WorkflowStage.FIELD_INSPECTION, maxDurationHours: 48, warningThreshold: 0.75 },
+    { stage: WorkflowStage.ASSESSMENT, maxDurationHours: 24, warningThreshold: 0.8 },
+    { stage: WorkflowStage.WAITING_FOR_PAYMENT, maxDurationHours: 72, warningThreshold: 0.75 },
     { stage: WorkflowStage.LEGALIZATION, maxDurationHours: 24, warningThreshold: 0.8 },
   ];
   for (const rule of slaRules) {
@@ -89,8 +91,8 @@ async function main() {
       stages: [
         { stage: WorkflowStage.DOCUMENT_CHECK, order: 1, requiredRoles: [Role.DOCUMENT_VALIDATOR], slaDurationHours: 24 },
         { stage: WorkflowStage.FIELD_INSPECTION, order: 2, requiredRoles: [Role.FIELD_INSPECTOR], slaDurationHours: 48 },
-        { stage: WorkflowStage.ASSESSMENT, order: 3, requiredRoles: [Role.ADMIN], slaDurationHours: 12 },
-        { stage: WorkflowStage.WAITING_FOR_PAYMENT, order: 4, requiredRoles: [Role.ADMIN], slaDurationHours: 72 },
+        { stage: WorkflowStage.ASSESSMENT, order: 3, requiredRoles: [Role.CS], slaDurationHours: 12 },
+        { stage: WorkflowStage.WAITING_FOR_PAYMENT, order: 4, requiredRoles: [Role.CS], slaDurationHours: 72 },
         { stage: WorkflowStage.LEGALIZATION, order: 5, requiredRoles: [Role.LEGALIZER], slaDurationHours: 24 },
         { stage: WorkflowStage.APPROVED, order: 6, requiredRoles: [], slaDurationHours: 0 },
       ]
@@ -100,8 +102,8 @@ async function main() {
       name: 'Izin Usaha Mikro (IUMK)',
       stages: [
         { stage: WorkflowStage.DOCUMENT_CHECK, order: 1, requiredRoles: [Role.DOCUMENT_VALIDATOR], slaDurationHours: 12 },
-        { stage: WorkflowStage.ASSESSMENT, order: 2, requiredRoles: [Role.ADMIN], slaDurationHours: 12 },
-        { stage: WorkflowStage.WAITING_FOR_PAYMENT, order: 3, requiredRoles: [Role.ADMIN], slaDurationHours: 72 },
+        { stage: WorkflowStage.ASSESSMENT, order: 2, requiredRoles: [Role.CS], slaDurationHours: 12 },
+        { stage: WorkflowStage.WAITING_FOR_PAYMENT, order: 3, requiredRoles: [Role.CS], slaDurationHours: 72 },
         { stage: WorkflowStage.LEGALIZATION, order: 4, requiredRoles: [Role.LEGALIZER], slaDurationHours: 12 },
         { stage: WorkflowStage.APPROVED, order: 5, requiredRoles: [], slaDurationHours: 0 },
       ]
@@ -371,6 +373,12 @@ async function main() {
   await createFullApp('IMB-2026-INS-01', PermitType.BUILDING_PERMIT, 'citizen2@gmail.com', WorkflowStage.FIELD_INSPECTION, 3);
   await createFullApp('IMB-2026-INS-02', PermitType.BUILDING_PERMIT, 'citizen4@gmail.com', WorkflowStage.FIELD_INSPECTION, 5); // Overdue
   await createFullApp('IMB-2026-INS-03', PermitType.BUILDING_PERMIT, 'user@flowgov.id', WorkflowStage.FIELD_INSPECTION, 2);
+
+  // CS Stages Dummy Data
+  await createFullApp('IMB-2026-ASM-01', PermitType.BUILDING_PERMIT, 'citizen1@gmail.com', WorkflowStage.ASSESSMENT, 1);
+  await createFullApp('IUMK-2026-ASM-01', PermitType.BUSINESS_LICENSE, 'citizen3@gmail.com', WorkflowStage.ASSESSMENT, 2); // Overdue
+  await createFullApp('IMB-2026-PAY-01', PermitType.BUILDING_PERMIT, 'citizen2@gmail.com', WorkflowStage.WAITING_FOR_PAYMENT, 1);
+  await createFullApp('IUMK-2026-PAY-01', PermitType.BUSINESS_LICENSE, 'citizen4@gmail.com', WorkflowStage.WAITING_FOR_PAYMENT, 4); // Overdue
 
   await createFullApp('IMB-2026-LEG-01', PermitType.BUILDING_PERMIT, 'citizen1@gmail.com', WorkflowStage.LEGALIZATION, 4);
   await createFullApp('IUMK-2026-LEG-01', PermitType.BUSINESS_LICENSE, 'citizen3@gmail.com', WorkflowStage.LEGALIZATION, 6); // Overdue

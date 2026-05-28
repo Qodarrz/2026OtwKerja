@@ -49,6 +49,9 @@ export default function ValidatePermitPage() {
   const [error, setError] = useState("");
   const [inspectionEvidenceFile, setInspectionEvidenceFile] = useState<File | null>(null);
   const [legalizedDocumentFile, setLegalizedDocumentFile] = useState<File | null>(null);
+  const [inspectionEvidenceUrl, setInspectionEvidenceUrl] = useState("");
+  const [legalizedDocumentUrl, setLegalizedDocumentUrl] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
   const [totalCost, setTotalCost] = useState("");
 
   useEffect(() => {
@@ -59,7 +62,7 @@ export default function ValidatePermitPage() {
         );
         setApplication(data);
         if (data.status === "ASSESSMENT" && data.totalCost) {
-          setTotalCost(data.totalCost.toString());
+          setTotalCost(Math.round(Number(data.totalCost)).toString());
         }
       } catch (err) {
         console.error("Failed to fetch application details", err);
@@ -102,8 +105,9 @@ export default function ValidatePermitPage() {
 
   const isFieldInspector = user?.roles?.includes(Role.FIELD_INSPECTOR) && application?.status === "FIELD_INSPECTION";
   const isLegalizer = user?.roles?.includes(Role.LEGALIZER) && application?.status === "LEGALIZATION";
-  const isAssessor = user?.roles?.includes(Role.ADMIN) && application?.status === "ASSESSMENT";
-  const isWaitingPayment = user?.roles?.includes(Role.ADMIN) && application?.status === "WAITING_FOR_PAYMENT";
+  const isAssessor = user?.roles?.includes(Role.CS) && application?.status === "ASSESSMENT";
+  const isWaitingPayment = user?.roles?.includes(Role.CS) && application?.status === "WAITING_FOR_PAYMENT";
+  const isAdmin = user?.roles?.includes(Role.ADMIN);
 
   const handleApprove = async () => {
     if (isFieldInspector && !inspectionEvidenceFile) {
@@ -304,7 +308,7 @@ export default function ValidatePermitPage() {
                     Luas Lahan
                   </p>{" "}
                   <p className="font-bold text-foreground">
-                    {application.landSize} m²
+                    {Intl.NumberFormat("id-ID", { maximumFractionDigits: 2 }).format(Number(application.landSize))} m²
                   </p>{" "}
                 </div>
               )}{" "}
@@ -312,7 +316,7 @@ export default function ValidatePermitPage() {
                 <div className="space-y-2">
                   {" "}
                   <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                    Nilai NJOP
+                    Nilai NJOP per m²
                   </p>{" "}
                   <p className="font-bold text-foreground">
                     {formatCurrency(application.njopValue)}
@@ -342,39 +346,6 @@ export default function ValidatePermitPage() {
             </CardContent>{" "}
           </Card>{" "}
 
-          {(application.inspectionEvidenceUrl || application.legalizedDocumentUrl) && (
-            <Card className="border-none shadow-sm">
-              <CardHeader className="border-b border-slate-50 bg-background">
-                <CardTitle className="text-xl flex items-center gap-2">
-                  <ShieldCheck className="w-5 h-5 text-emerald-500" /> Hasil Validasi Staf
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-8 space-y-6">
-                {application.inspectionEvidenceUrl && (
-                  <div className="space-y-2">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Bukti Inspeksi Lapangan</p>
-                    <div className="p-4 rounded-xl border border-border bg-muted/30 flex items-center gap-3">
-                      <FileImage className="w-5 h-5 text-indigo-500" />
-                      <a href={application.inspectionEvidenceUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-bold text-indigo-600 hover:underline break-all">
-                        {application.inspectionEvidenceUrl}
-                      </a>
-                    </div>
-                  </div>
-                )}
-                {application.legalizedDocumentUrl && (
-                  <div className="space-y-2">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Dokumen Terdigitalisasi (Legal)</p>
-                    <div className="p-4 rounded-xl border border-border bg-muted/30 flex items-center gap-3">
-                      <FileText className="w-5 h-5 text-purple-500" />
-                      <a href={application.legalizedDocumentUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-bold text-purple-600 hover:underline break-all">
-                        {application.legalizedDocumentUrl}
-                      </a>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
 
           {application.documents && application.documents.length > 0 && (
             <Card className="border-none shadow-sm">
@@ -575,19 +546,30 @@ export default function ValidatePermitPage() {
                   </p>{" "}
                 </div>
               ) : !application.canAction ? (
-                <div className="p-6 bg-amber-50 rounded-xl text-center space-y-2 border border-amber-100">
+                <div className="p-6 bg-amber-50 rounded-xl text-center space-y-4 border border-amber-100 flex flex-col items-center">
                   {" "}
-                  <div className="w-12 h-12 rounded-full mx-auto flex items-center justify-center bg-amber-100 text-amber-600 mb-4">
+                  <div className="w-12 h-12 rounded-full mx-auto flex items-center justify-center bg-amber-100 text-amber-600">
                     {" "}
                     <ShieldCheck className="w-6 h-6" />{" "}
                   </div>{" "}
-                  <h3 className="font-bold text-amber-900">
-                    Menunggu Validasi
-                  </h3>{" "}
-                  <p className="text-sm font-medium text-amber-700">
-                    Tahap ini memerlukan validasi dari staf dengan peran yang
-                    sesuai.
-                  </p>{" "}
+                  <div>
+                    <h3 className="font-bold text-amber-900">
+                      Menunggu Validasi
+                    </h3>{" "}
+                    <p className="text-sm font-medium text-amber-700">
+                      Tahap ini memerlukan validasi dari staf dengan peran yang
+                      sesuai.
+                    </p>{" "}
+                  </div>
+                  {isAdmin && (
+                    <Button
+                      onClick={() => toast.success("Notifikasi peringatan telah dikirim ke staf terkait.")}
+                      variant="default"
+                      className="mt-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold h-10 w-full"
+                    >
+                      Ingatkan Staf (Ping)
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <>
@@ -649,6 +631,11 @@ export default function ValidatePermitPage() {
                         placeholder="Masukkan Jumlah Tagihan Rupiah (Contoh: 1500000)"
                         className="w-full bg-amber-50/50 border border-amber-100 rounded-xl p-4 text-sm font-bold focus:outline-none focus:ring-4 focus:ring-amber-500/10 transition-all text-amber-900 placeholder:text-amber-300"
                       />
+                      {totalCost && !isNaN(Number(totalCost)) && (
+                        <p className="text-sm font-bold text-emerald-600 mt-2 px-2">
+                          {formatCurrency(Number(totalCost))}
+                        </p>
+                      )}
                     </div>
                   )}
 

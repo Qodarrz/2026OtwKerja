@@ -249,8 +249,6 @@ export class PermitService {
         if (!application) {
             throw new NotFoundException('Application not found');
         }
-
-        // Check access: applicant can view their own, staff can view applications at their assigned stages
         const user = await this.prisma.user.findUnique({
             where: { id: userId },
             select: { roles: true },
@@ -258,7 +256,7 @@ export class PermitService {
 
         if (application.applicantId !== userId) {
             const isStaff = user?.roles.some((role) =>
-                ([Role.ADMIN, Role.DOCUMENT_VALIDATOR, Role.FIELD_INSPECTOR, Role.LEGALIZER] as Role[]).includes(role)
+                ([Role.ADMIN, Role.DOCUMENT_VALIDATOR, Role.FIELD_INSPECTOR, Role.LEGALIZER, Role.CS] as Role[]).includes(role)
             );
 
             if (!isStaff) {
@@ -268,7 +266,6 @@ export class PermitService {
             }
         }   
 
-        // Calculate SLA metrics
         const config = WORKFLOW_CONFIG[application.permitType];
         const stageSla = config?.sla?.[application.currentStage] || 24;
         
@@ -284,13 +281,9 @@ export class PermitService {
         // Add canAction flag for UI
         let canAction = false;
         if (user && user.roles) {
-            if (user.roles.includes(Role.ADMIN)) {
-                canAction = true;
-            } else {
-                if (config && config.roles) {
-                    const requiredRoles = config.roles[application.currentStage] || [];
-                    canAction = requiredRoles.some(role => user.roles.includes(role));
-                }
+            if (config && config.roles) {
+                const requiredRoles = config.roles[application.currentStage] || [];
+                canAction = requiredRoles.some(role => user.roles.includes(role));
             }
         }
 

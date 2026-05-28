@@ -34,6 +34,9 @@ export function TaskListView({
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
+  const [filterStage, setFilterStage] = useState<string>("ALL");
+  const [searchQuery, setSearchQuery] = useState("");
+
   useEffect(() => {
     async function fetchData() {
       try {
@@ -53,6 +56,16 @@ export function TaskListView({
   if (loading) {
     return <DashboardSkeleton />;
   }
+
+  const filteredTasks = tasks.filter(t => {
+    const matchSearch = t.applicant?.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                        t.referenceNumber?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchStage = filterStage === "ALL" || t.currentStage === filterStage || t.status === filterStage;
+    return matchSearch && matchStage;
+  });
+
+  const uniqueStages = Array.from(new Set(tasks.map(t => t.currentStage || t.status)));
+
   return (
     <div className="space-y-10">
       {" "}
@@ -81,6 +94,8 @@ export function TaskListView({
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />{" "}
             <input
               type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Cari berkas..."
               className="pl-11 pr-4 py-3 bg-card border border-border rounded-xl text-sm font-bold focus:outline-none focus:ring-4 focus:ring-primary/5 w-64 transition-all"
             />{" "}
@@ -112,14 +127,19 @@ export function TaskListView({
               <LayoutGrid className="w-4 h-4" />{" "}
             </button>{" "}
           </div>{" "}
-          <Button
-            variant="outline"
-            className="rounded-xl border-border bg-card font-bold h-11 px-6 hover:bg-accent transition-all"
-          >
-            {" "}
-            <Filter className="w-4 h-4 mr-2 text-muted-foreground" />{" "}
-            Filter{" "}
-          </Button>{" "}
+          <div className="relative">
+            <Filter className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <select
+              value={filterStage}
+              onChange={(e) => setFilterStage(e.target.value)}
+              className="pl-11 pr-8 py-3 appearance-none bg-card border border-border rounded-xl text-sm font-bold focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all text-muted-foreground hover:bg-accent cursor-pointer h-11"
+            >
+              <option value="ALL">Semua Tahap</option>
+              {uniqueStages.map(stage => (
+                <option key={stage} value={stage}>{stage?.replace(/_/g, ' ')}</option>
+              ))}
+            </select>
+          </div>
         </div>{" "}
       </header>{" "}
       <Card className="border-none shadow-sm bg-card overflow-hidden">
@@ -140,8 +160,8 @@ export function TaskListView({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                  {tasks.length > 0 ? (
-                    tasks.map((task) => (
+                  {filteredTasks.length > 0 ? (
+                    filteredTasks.map((task) => (
                       <tr
                         key={task.id}
                         className="hover:bg-accent/80 transition-colors group"
@@ -233,7 +253,7 @@ export function TaskListView({
           ) : (
             <div className="p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {" "}
-              {tasks.map((task) => (
+              {filteredTasks.map((task) => (
                 <div
                   key={task.id}
                   className="p-6 rounded-2xl border border-border bg-background hover:bg-card hover:shadow-md hover: transition-all duration-300 group"

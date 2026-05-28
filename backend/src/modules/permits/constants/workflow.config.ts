@@ -19,8 +19,8 @@ export const WORKFLOW_CONFIG: Record<PermitType, WorkflowDefinition> = {
         roles: {
             [WorkflowStage.DOCUMENT_CHECK]: [Role.DOCUMENT_VALIDATOR],
             [WorkflowStage.FIELD_INSPECTION]: [Role.FIELD_INSPECTOR],
-            [WorkflowStage.ASSESSMENT]: [Role.ADMIN],
-            [WorkflowStage.WAITING_FOR_PAYMENT]: [Role.ADMIN],
+            [WorkflowStage.ASSESSMENT]: [Role.CS],
+            [WorkflowStage.WAITING_FOR_PAYMENT]: [Role.CS],
             [WorkflowStage.LEGALIZATION]: [Role.LEGALIZER],
         },
         sla: {
@@ -41,8 +41,8 @@ export const WORKFLOW_CONFIG: Record<PermitType, WorkflowDefinition> = {
         ],
         roles: {
             [WorkflowStage.DOCUMENT_CHECK]: [Role.DOCUMENT_VALIDATOR],
-            [WorkflowStage.ASSESSMENT]: [Role.ADMIN],
-            [WorkflowStage.WAITING_FOR_PAYMENT]: [Role.ADMIN],
+            [WorkflowStage.ASSESSMENT]: [Role.CS],
+            [WorkflowStage.WAITING_FOR_PAYMENT]: [Role.CS],
             [WorkflowStage.LEGALIZATION]: [Role.LEGALIZER],
         },
         sla: {

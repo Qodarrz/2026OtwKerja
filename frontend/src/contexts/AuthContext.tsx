@@ -111,7 +111,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await fetch('/api/auth/logout', { method: 'POST' });
       await authService.logout();
     } catch (err) {
-      console.error('[AuthContext] Logout error:', err);
+      // Ignore backend logout errors to prevent Next.js dev overlay
     }
     localStorage.removeItem('user_hint');
     setAuthState({
