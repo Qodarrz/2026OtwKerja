@@ -166,7 +166,7 @@ async function main() {
       description: 'Izin untuk mendirikan dan menjalankan usaha komersial.',
       requiresMap: false,
       fields: [
-        { name: 'businessName', label: 'Nama Badan Usaha / Toko', type: 'text', placeholder: 'Contoh: PT. Maju Jaya', required: true },
+        { name: 'businessName', label: 'Nama Badan Usaha / Toko', type: 'text ', placeholder: 'Contoh: PT. Maju Jaya', required: true },
         { name: 'businessType', label: 'Jenis Usaha', type: 'select', options: ['Perdagangan', 'Jasa', 'Manufaktur', 'Kuliner', 'Lainnya'], required: true },
         { name: 'businessLocation', label: 'Alamat Usaha', type: 'text', placeholder: 'Alamat lengkap tempat usaha', required: true },
         { name: 'estimatedEmployees', label: 'Estimasi Jumlah Karyawan', type: 'number', placeholder: 'Contoh: 15', required: true }
