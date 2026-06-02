@@ -16,6 +16,10 @@ export const usersService = {
     const { data } = await api.get("/users");
     return data;
   },
+  createUser: async (userData: any): Promise<UserResponse> => {
+    const { data } = await api.post("/users", userData);
+    return data;
+  },
   updateRoles: async (userId: string, roles: Role[]) => {
     const { data } = await api.patch(`/users/${userId}/roles`, { roles });
     return data;

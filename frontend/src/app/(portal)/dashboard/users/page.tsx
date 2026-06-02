@@ -15,11 +15,14 @@ import {
   Shield,
   MoreVertical,
   Plus,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { usersService } from "@/services/users.service";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { Role } from "@/types/auth";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,6 +39,11 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [formData, setFormData] = useState({ name: "", email: "", password: "", roles: [Role.USER] });
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchUsers = async () => {
     try {
@@ -63,6 +71,58 @@ export default function UsersPage() {
     } finally {
       setDeleteId(null);
     }
+  };
+
+  const handleAddSubmit = async () => {
+    if (!formData.email || !formData.password) return;
+    setIsSubmitting(true);
+    try {
+      const created = await usersService.createUser({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        roles: formData.roles,
+        provider: "LOCAL",
+        isKtpVerified: true,
+      });
+      setUsers([...users, created]);
+      setIsAddOpen(false);
+      setFormData({ name: "", email: "", password: "", roles: [Role.USER] });
+      toast.success("Pengguna berhasil ditambahkan");
+    } catch (error) {
+      toast.error("Gagal menambahkan pengguna");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleEditSubmit = async () => {
+    if (!editingUserId) return;
+    setIsSubmitting(true);
+    try {
+      const updated = await usersService.updateUser(editingUserId, {
+        name: formData.name,
+        email: formData.email,
+      });
+      if (formData.roles.length > 0) {
+        await usersService.updateRoles(editingUserId, formData.roles);
+        updated.roles = formData.roles;
+      }
+      setUsers(users.map(u => u.id === editingUserId ? { ...u, ...updated } : u));
+      setIsEditOpen(false);
+      setEditingUserId(null);
+      toast.success("Data pengguna berhasil diperbarui");
+    } catch (error) {
+      toast.error("Gagal memperbarui pengguna");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const openEditModal = (user: any) => {
+    setFormData({ name: user.name || "", email: user.email || "", password: "", roles: user.roles || [Role.USER] });
+    setEditingUserId(user.id);
+    setIsEditOpen(true);
   };
 
   const filteredUsers = users.filter(
@@ -125,7 +185,10 @@ export default function UsersPage() {
           </div>
           <Button
             className="rounded-xl font-bold h-10 px-6 shadow-lg shadow-primary/10 gap-2"
-            onClick={() => toast.info("Fitur Tambah Pengguna segera hadir!")}
+            onClick={() => {
+              setFormData({ name: "", email: "", password: "", roles: [Role.USER] });
+              setIsAddOpen(true);
+            }}
           >
             <Plus className="h-4 w-4" />
             Tambah Pengguna
@@ -190,6 +253,7 @@ export default function UsersPage() {
                         <Button
                           variant="ghost"
                           size="sm"
+                          onClick={() => openEditModal(user)}
                           className="h-8 px-2 text-xs font-bold text-muted-foreground hover:text-primary hover:bg-primary/5 rounded-lg"
                         >
                           Edit
@@ -238,6 +302,97 @@ export default function UsersPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AnimatePresence>
+        {(isAddOpen || isEditOpen) && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-background/60 backdrop-blur-sm"
+              onClick={() => {
+                setIsAddOpen(false);
+                setIsEditOpen(false);
+              }}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-lg bg-card rounded-2xl shadow-2xl overflow-hidden border border-border"
+            >
+              <div className="p-6 border-b border-border flex items-center justify-between bg-background">
+                <div>
+                  <h3 className="text-xl font-bold tracking-tight">
+                    {isAddOpen ? "Tambah Pengguna Baru" : "Edit Pengguna"}
+                  </h3>
+                </div>
+                <button
+                  onClick={() => {
+                    setIsAddOpen(false);
+                    setIsEditOpen(false);
+                  }}
+                  className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-accent transition-colors"
+                >
+                  <X className="w-5 h-5 text-muted-foreground" />
+                </button>
+              </div>
+              <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+                <div className="space-y-3">
+                  <label className="text-sm font-bold text-foreground">Nama Lengkap</label>
+                  <input 
+                    type="text" 
+                    value={formData.name} 
+                    onChange={e => setFormData(prev => ({...prev, name: e.target.value}))} 
+                    className="w-full flex h-11 rounded-xl border border-input bg-background px-4 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" 
+                  />
+                </div>
+                <div className="space-y-3">
+                  <label className="text-sm font-bold text-foreground">Alamat Email</label>
+                  <input 
+                    type="email" 
+                    value={formData.email} 
+                    onChange={e => setFormData(prev => ({...prev, email: e.target.value}))} 
+                    className="w-full flex h-11 rounded-xl border border-input bg-background px-4 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" 
+                  />
+                </div>
+                {isAddOpen && (
+                  <div className="space-y-3">
+                    <label className="text-sm font-bold text-foreground">Password Sementara</label>
+                    <input 
+                      type="password" 
+                      value={formData.password} 
+                      onChange={e => setFormData(prev => ({...prev, password: e.target.value}))} 
+                      className="w-full flex h-11 rounded-xl border border-input bg-background px-4 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" 
+                    />
+                  </div>
+                )}
+              </div>
+              <div className="p-6 border-t border-border bg-background flex justify-end gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsAddOpen(false);
+                    setIsEditOpen(false);
+                  }}
+                  className="rounded-xl font-bold h-11 px-6"
+                >
+                  Batal
+                </Button>
+                <Button
+                  onClick={isAddOpen ? handleAddSubmit : handleEditSubmit}
+                  disabled={isSubmitting || !formData.email || (isAddOpen && !formData.password)}
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl font-bold h-11 px-8 shadow-lg"
+                >
+                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                  Simpan Data
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

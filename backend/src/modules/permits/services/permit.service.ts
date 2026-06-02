@@ -272,13 +272,15 @@ export class PermitService {
         const stageSla = config?.sla?.[application.currentStage] || 24;
         
         // Find latest stage transition or submission
-        const lastTransition = application.stageHistory[0]?.transitionedAt || application.submittedAt || application.createdAt;
-        const hoursElapsed = (new Date().getTime() - new Date(lastTransition).getTime()) / (1000 * 3600);
-        const remainingHours = Math.max(0, stageSla - hoursElapsed);
+        const activeStage = application.stageHistory[0];
+        const lastTransition = activeStage?.transitionedAt || application.submittedAt || application.createdAt;
         
-        let slaStatus: 'ON_TIME' | 'WARNING' | 'OVERDUE' = 'ON_TIME';
-        if (remainingHours <= 0) slaStatus = 'OVERDUE';
-        else if (remainingHours <= stageSla * 0.25) slaStatus = 'WARNING';
+        const hoursElapsed = (new Date().getTime() - new Date(lastTransition).getTime()) / (1000 * 3600);
+        // Biarkan remainingHours bisa negatif agar UI bisa hitung waktu keterlambatan
+        const remainingHours = stageSla - hoursElapsed;
+        
+        // Validasi SLA status langsung dari DB (dari cron job / sistem), bukan dihitung on-the-fly
+        const slaStatus = activeStage?.slaStatus || 'ON_TIME';
 
         // Add canAction flag for UI
         let canAction = false;

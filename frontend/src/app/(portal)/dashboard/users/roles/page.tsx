@@ -9,7 +9,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Loader2, ShieldCheck, Lock, Edit3, X } from "lucide-react";
+import { Loader2, ShieldCheck, Lock, Edit3, X, UserPlus } from "lucide-react";
 import { usersService } from "@/services/users.service";
 import { Button } from "@/components/ui/button";
 import { Role } from "@/types/auth";
@@ -25,6 +25,9 @@ export default function RolesPage() {
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [selectedRoles, setSelectedRoles] = useState<Role[]>([]);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isAddStaffOpen, setIsAddStaffOpen] = useState(false);
+  const [newStaff, setNewStaff] = useState({ name: "", email: "", password: "", roles: [] as Role[] });
+  const [isCreating, setIsCreating] = useState(false);
 
   // Role Protection
   useEffect(() => {
@@ -53,9 +56,7 @@ export default function RolesPage() {
   };
 
   const handleToggleRole = (role: Role) => {
-    setSelectedRoles((prev) =>
-      prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]
-    );
+    setSelectedRoles([role]);
   };
 
   const handleSaveRoles = async () => {
@@ -73,6 +74,28 @@ export default function RolesPage() {
       console.error("Failed to update roles", error);
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  const handleCreateStaff = async () => {
+    if (!newStaff.email || !newStaff.password) return;
+    setIsCreating(true);
+    try {
+      const created = await usersService.createUser({
+        name: newStaff.name,
+        email: newStaff.email,
+        password: newStaff.password,
+        roles: newStaff.roles,
+        provider: "LOCAL",
+        isKtpVerified: true,
+      });
+      setUsers([...users, created]);
+      setIsAddStaffOpen(false);
+      setNewStaff({ name: "", email: "", password: "", roles: [] });
+    } catch (error) {
+      console.error("Failed to create staff", error);
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -96,6 +119,11 @@ export default function RolesPage() {
       role: Role.LEGALIZER,
       name: "Legalizer",
       desc: "Otorisasi akhir dan pengesahan dokumen perizinan yang siap diterbitkan.",
+    },
+    {
+      role: Role.CS,
+      name: "Customer Service",
+      desc: "Menangani aduan, pertanyaan, dan memberikan dukungan langsung kepada warga.",
     },
   ];
 
@@ -134,13 +162,19 @@ export default function RolesPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">
-          Hak Akses (RBAC)
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Pengelolaan otorisasi dan Role-Based Access Control untuk keamanan sistem.
-        </p>
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            Hak Akses (RBAC)
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Pengelolaan otorisasi dan Role-Based Access Control untuk keamanan sistem.
+          </p>
+        </div>
+        <Button onClick={() => setIsAddStaffOpen(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl h-11 px-6 shadow-lg shrink-0">
+          <UserPlus className="w-4 h-4 mr-2" />
+          Tambah Staf Baru
+        </Button>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -337,6 +371,141 @@ export default function RolesPage() {
                     <Loader2 className="w-4 h-4 animate-spin mr-2" />
                   ) : null}
                   Simpan Perubahan
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Add Staff Modal */}
+      <AnimatePresence>
+        {isAddStaffOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-background/60 backdrop-blur-sm"
+              onClick={() => setIsAddStaffOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-lg bg-card rounded-2xl shadow-2xl overflow-hidden border border-border"
+            >
+              <div className="p-6 border-b border-border flex items-center justify-between bg-background">
+                <div>
+                  <h3 className="text-xl font-bold tracking-tight">
+                    Tambah Staf Baru
+                  </h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Buat akun staf baru dan atur role mereka.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setIsAddStaffOpen(false)}
+                  className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-accent transition-colors"
+                >
+                  <X className="w-5 h-5 text-muted-foreground" />
+                </button>
+              </div>
+              <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+                <div className="space-y-3">
+                  <label className="text-sm font-bold text-foreground">Nama Lengkap</label>
+                  <input 
+                    type="text" 
+                    value={newStaff.name} 
+                    onChange={e => setNewStaff(prev => ({...prev, name: e.target.value}))} 
+                    className="w-full flex h-11 rounded-xl border border-input bg-background px-4 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all" 
+                    placeholder="Contoh: Budi Santoso"
+                  />
+                </div>
+                <div className="space-y-3">
+                  <label className="text-sm font-bold text-foreground">Alamat Email</label>
+                  <input 
+                    type="email" 
+                    value={newStaff.email} 
+                    onChange={e => setNewStaff(prev => ({...prev, email: e.target.value}))} 
+                    className="w-full flex h-11 rounded-xl border border-input bg-background px-4 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all" 
+                    placeholder="staff@flowgov.id"
+                  />
+                </div>
+                <div className="space-y-3">
+                  <label className="text-sm font-bold text-foreground">Password Sementara</label>
+                  <input 
+                    type="password" 
+                    value={newStaff.password} 
+                    onChange={e => setNewStaff(prev => ({...prev, password: e.target.value}))} 
+                    className="w-full flex h-11 rounded-xl border border-input bg-background px-4 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all" 
+                    placeholder="Minimal 8 karakter"
+                  />
+                </div>
+                <div className="space-y-3 pt-2">
+                  <label className="text-sm font-bold text-foreground">Pilih Role Akses</label>
+                  <div className="space-y-2">
+                    {roleDefinitions.map((rd) => {
+                      const isSelected = newStaff.roles.includes(rd.role);
+                      return (
+                        <div
+                          key={rd.role}
+                          onClick={() => {
+                            setNewStaff(prev => ({
+                              ...prev,
+                              roles: [rd.role]
+                            }))
+                          }}
+                          className={cn(
+                            "p-3 rounded-xl border cursor-pointer transition-all flex items-center gap-3",
+                            isSelected
+                              ? "border-primary bg-primary/5"
+                              : "border-transparent bg-background hover:border-border"
+                          )}
+                        >
+                          <div
+                            className={cn(
+                              "w-4 h-4 rounded flex items-center justify-center border shrink-0 transition-colors",
+                              isSelected
+                                ? "bg-primary border-primary text-primary-foreground"
+                                : "border-input bg-card"
+                            )}
+                          >
+                            {isSelected && <ShieldCheck className="w-2.5 h-2.5" />}
+                          </div>
+                          <div>
+                            <p
+                              className={cn(
+                                "font-bold text-sm",
+                                isSelected ? "text-primary" : "text-foreground"
+                              )}
+                            >
+                              {rd.name}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+              <div className="p-6 border-t border-border bg-background flex justify-end gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsAddStaffOpen(false)}
+                  className="rounded-xl font-bold h-11 px-6"
+                >
+                  Batal
+                </Button>
+                <Button
+                  onClick={handleCreateStaff}
+                  disabled={isCreating || !newStaff.email || !newStaff.password}
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl font-bold h-11 px-8 shadow-lg shadow-primary/20"
+                >
+                  {isCreating ? (
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  ) : null}
+                  Buat Akun Staf
                 </Button>
               </div>
             </motion.div>

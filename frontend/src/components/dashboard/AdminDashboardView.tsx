@@ -5,11 +5,11 @@ import useSWR from "swr";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { 
-  FileCheck, 
-  BarChart3, 
-  AlertCircle, 
-  ArrowUpRight, 
+import {
+  FileCheck,
+  BarChart3,
+  AlertCircle,
+  ArrowUpRight,
   Filter,
   Check,
   Loader2,
@@ -20,10 +20,10 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { analyticsService } from "@/services/analytics.service";
-import { 
-  ShieldAlert, 
-  History, 
-  User, 
+import {
+  ShieldAlert,
+  History,
+  User,
   Activity,
   Cpu,
   Headset
@@ -51,7 +51,7 @@ export function AdminDashboardView() {
       setAuditLogs(auditLogsData);
       setLoading(false);
     }
-    
+
     if (chatData) {
       const openChats = chatData.filter((s: any) => s.status === "OPEN");
       const pending = openChats.filter((s: any) => s.assignedToId === null).length;
@@ -61,38 +61,38 @@ export function AdminDashboardView() {
   }, [metricsData, bottlenecksData, auditLogsData, chatData]);
 
   const stats = [
-    { 
-      label: "Impact Score", 
-      value: metrics?.impactScore ? `${metrics.impactScore}%` : "0%", 
-      icon: Cpu, 
-      color: "text-primary", 
+    {
+      label: "Impact Score",
+      value: metrics?.impactScore ? `${metrics.impactScore}%` : "0%",
+      icon: Cpu,
+      color: "text-primary",
       bg: "bg-primary/10",
       change: "+8%",
-      description: "Komposit efisiensi" 
+      description: "Komposit efisiensi"
     },
-    { 
-      label: "On-Time Rate", 
-      value: metrics?.onTimePercentage ? `${metrics.onTimePercentage}%` : "0%", 
-      icon: Zap, 
-      color: "text-emerald-500", 
+    {
+      label: "On-Time Rate",
+      value: metrics?.onTimePercentage ? `${metrics.onTimePercentage}%` : "0%",
+      icon: Zap,
+      color: "text-emerald-500",
       bg: "bg-emerald-500/10",
       change: "+3%",
       description: "Kepatuhan SLA"
     },
-    { 
-      label: "SLA Overdue", 
-      value: metrics?.overdueCount || "0", 
-      icon: ShieldAlert, 
-      color: "text-rose-500", 
+    {
+      label: "SLA Overdue",
+      value: metrics?.overdueCount || "0",
+      icon: ShieldAlert,
+      color: "text-rose-500",
       bg: "bg-rose-500/10",
       change: "-2%",
       description: "Butuh atensi segera"
     },
-    { 
-      label: "Efisiensi", 
-      value: metrics?.efficiency ? `${metrics.efficiency}%` : "0%", 
-      icon: Activity, 
-      color: "text-sky-500", 
+    {
+      label: "Efisiensi",
+      value: metrics?.efficiency ? `${metrics.efficiency}%` : "0%",
+      icon: Activity,
+      color: "text-sky-500",
       bg: "bg-sky-500/10",
       change: "+5%",
       description: "Kecepatan proses"
@@ -154,22 +154,79 @@ export function AdminDashboardView() {
     );
   }
 
+  const handleDownloadReport = () => {
+    const reportDate = new Date().toLocaleString("id-ID");
+
+    let reportContent = `LAPORAN ADMIN CONSOLE - FLOWGOV\nTanggal Unduh: ${reportDate}\n\n`;
+
+    reportContent += `=========================================\n`;
+    reportContent += `          METRIK KINERJA UTAMA           \n`;
+    reportContent += `=========================================\n`;
+    reportContent += `- Impact Score: ${metrics?.impactScore || 0}%\n`;
+    reportContent += `- On-Time Rate: ${metrics?.onTimePercentage || 0}%\n`;
+    reportContent += `- SLA Overdue: ${metrics?.overdueCount || 0}\n`;
+    reportContent += `- Efisiensi: ${metrics?.efficiency || 0}%\n\n`;
+
+    reportContent += `=========================================\n`;
+    reportContent += `          ANALISIS BOTTLENECK            \n`;
+    reportContent += `=========================================\n`;
+    if (bottlenecks?.length > 0) {
+      bottlenecks.forEach((b: any, index: number) => {
+        reportContent += `${index + 1}. Unit Kerja: ${b.stage.replace('_', ' ')}\n`;
+        reportContent += `   - Durasi Rata-rata: ${(b.averageDurationHours || 0).toFixed(1)} Jam\n`;
+        reportContent += `   - Volume Berkas: ${b.count} Berkas\n\n`;
+      });
+    } else {
+      reportContent += `Tidak ada bottleneck terpantau dalam data historis.\n\n`;
+    }
+
+    reportContent += `=========================================\n`;
+    reportContent += `         STATUS CUSTOMER SERVICE         \n`;
+    reportContent += `=========================================\n`;
+    reportContent += `- Antrean Pending: ${csStats.pending} Tiket\n`;
+    reportContent += `- Tiket Sedang Aktif: ${csStats.active} Tiket\n\n`;
+
+    reportContent += `=========================================\n`;
+    reportContent += `       REKAM JEJAK AUDIT TERAKHIR        \n`;
+    reportContent += `=========================================\n`;
+    if (auditLogs?.length > 0) {
+      auditLogs.forEach((log: any, index: number) => {
+        reportContent += `${index + 1}. Waktu: ${new Date(log.createdAt).toLocaleString("id-ID")}\n`;
+        reportContent += `   Aktivitas: ${log.action}\n`;
+        reportContent += `   User ID: ${log.userId || 'Sistem'}\n\n`;
+      });
+    } else {
+      reportContent += `Tidak ada catatan audit yang tersedia.\n`;
+    }
+
+    reportContent += `\nLaporan ini dibuat otomatis oleh Sistem FlowGov.`;
+
+    const blob = new Blob([reportContent], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Laporan_Admin_FlowGov_${new Date().toISOString().slice(0, 10)}.txt`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="space-y-10">
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-1">
           <div className="flex items-center gap-2 mb-2">
-             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-             <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Sistem Aktif & Terpantau</span>
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Sistem Aktif & Terpantau</span>
           </div>
           <h1 className="text-4xl font-bold tracking-tight text-foreground">Admin Console</h1>
           <p className="text-muted-foreground font-medium">Monitoring performa birokrasi dan kendali Service Level Agreement.</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" className="rounded-xl border-border bg-card font-bold h-11 px-6 hover:bg-accent transition-all">
-            <Filter className="w-4 h-4 mr-2 text-muted-foreground" /> Filter Data
-          </Button>
-          <Button className="rounded-xl bg-primary hover:bg-primary/90 shadow-lg font-bold h-11 px-6 transition-all active:scale-95">
+          <Button
+            onClick={handleDownloadReport}
+            className="rounded-xl bg-primary hover:bg-primary/90 shadow-lg font-bold h-11 px-6 transition-all active:scale-95"
+          >
             Unduh Laporan
           </Button>
         </div>
@@ -212,13 +269,13 @@ export function AdminDashboardView() {
         <div className="lg:col-span-2 space-y-8">
           <Card className="border-none shadow-sm bg-card overflow-hidden">
             <div className="p-8 border-b border-border flex items-center justify-between">
-               <div>
-                  <h2 className="text-xl font-bold text-foreground tracking-tight">Analisis Bottleneck</h2>
-                  <p className="text-sm text-muted-foreground font-medium">Visualisasi titik hambatan pada alur kerja.</p>
-               </div>
-               <div className="p-2 bg-background rounded-xl border border-border">
-                  <Target className="w-5 h-5 text-muted-foreground" />
-               </div>
+              <div>
+                <h2 className="text-xl font-bold text-foreground tracking-tight">Analisis Bottleneck</h2>
+                <p className="text-sm text-muted-foreground font-medium">Visualisasi titik hambatan pada alur kerja.</p>
+              </div>
+              <div className="p-2 bg-background rounded-xl border border-border">
+                <Target className="w-5 h-5 text-muted-foreground" />
+              </div>
             </div>
             <CardContent className="p-8 space-y-8">
               {bottlenecks.map((item: any) => (
@@ -233,15 +290,15 @@ export function AdminDashboardView() {
                     </div>
                   </div>
                   <div className="h-4 w-full bg-secondary rounded-full overflow-hidden p-1">
-                    <motion.div 
+                    <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${Math.min(((item.averageDurationHours || 0) / 48) * 100, 100)}%` }}
                       className={cn(
                         "h-full rounded-full shadow-inner transition-all duration-500",
-                        (item.averageDurationHours || 0) > 24 ? "bg-primary text-primary-foreground" : 
-                        (item.averageDurationHours || 0) > 12 ? "bg-primary text-primary-foreground" : 
-                        "bg-primary text-primary-foreground"
-                      )} 
+                        (item.averageDurationHours || 0) > 24 ? "bg-primary text-primary-foreground" :
+                          (item.averageDurationHours || 0) > 12 ? "bg-primary text-primary-foreground" :
+                            "bg-primary text-primary-foreground"
+                      )}
                     />
                   </div>
                   <div className="flex justify-between items-center text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
@@ -260,14 +317,64 @@ export function AdminDashboardView() {
               )}
             </CardContent>
           </Card>
+
+          <Card className="border-none bg-background overflow-hidden shadow-lg">
+            <CardContent className="p-8">
+              <div className="flex items-center justify-between mb-8">
+                <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
+                  <ShieldCheck className="w-6 h-6 text-primary" />
+                </div>
+                <div className="text-right">
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Integritas Log</p>
+                  <p className="text-lg font-bold text-primary leading-none mt-1 uppercase">Aktif</p>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <div className="flex items-center gap-2">
+                  <History className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Recent Audit Logs</span>
+                </div>
+
+                <div className="space-y-4">
+                  {auditLogs.map((log, i) => (
+                    <div key={log.id} className="flex gap-3 items-start border-l-2 border-primary/40 pl-4 py-1.5 hover:border-primary transition-colors">
+                      <div className="space-y-1.5 w-full">
+                        <div className="flex justify-between items-start gap-2">
+                          <p className="text-xs font-bold text-foreground uppercase tracking-tight truncate">{log.action}</p>
+                          <p className="text-[10px] text-muted-foreground font-medium leading-none whitespace-nowrap mt-0.5">
+                            {new Date(log.createdAt).toLocaleString("id-ID", { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </div>
+                        {log.user && (
+                          <p className="text-[10px] font-medium text-muted-foreground truncate">
+                            {log.user.name || log.user.email}
+                          </p>
+                        )}
+                        <p className="text-[9px] text-primary/70 font-mono truncate uppercase">
+                          {log.entityType} • {log.entityId.slice(0, 8)}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <Link href="/dashboard/audit-logs" className="block w-full">
+                  <Button className="w-full bg-card text-foreground hover:bg-secondary font-bold rounded-xl h-11 mt-4 border-none transition-all active:scale-95 shadow-lg">
+                    Lihat Selengkapnya
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         <div className="space-y-8">
           <Card className="border-none shadow-sm bg-card overflow-hidden relative">
             <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16" />
             <div className="p-8 border-b border-border">
-               <h2 className="text-xl font-bold text-foreground tracking-tight">Kepatuhan SLA</h2>
-               <p className="text-sm text-muted-foreground font-medium">Data kumulatif kecepatan layanan.</p>
+              <h2 className="text-xl font-bold text-foreground tracking-tight">Kepatuhan SLA</h2>
+              <p className="text-sm text-muted-foreground font-medium">Data kumulatif kecepatan layanan.</p>
             </div>
             <CardContent className="p-8 space-y-8">
               <div className="space-y-6">
@@ -282,10 +389,10 @@ export function AdminDashboardView() {
                       <span className={cn("text-sm font-bold", sla.text)}>{sla.isAbsolute ? sla.value : `${sla.value}%`}</span>
                     </div>
                     <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                      <motion.div 
+                      <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: sla.isAbsolute ? '15%' : `${sla.value}%` }}
-                        className={cn("h-full rounded-full shadow-sm", sla.color)} 
+                        className={cn("h-full rounded-full shadow-sm", sla.color)}
                       />
                     </div>
                   </div>
@@ -317,7 +424,7 @@ export function AdminDashboardView() {
             <CardContent className="p-8 space-y-6">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Antrean Pending</span>
-                <span className="px-2.5 py-1 bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 text-xs font-bold rounded-lg border border-amber-200/50">
+                <span className="px-2.5 py-1 bg-primary/10 text-primary text-xs font-bold rounded-lg border border-primary/20">
                   {csStats.pending} Tiket
                 </span>
               </div>
@@ -332,42 +439,6 @@ export function AdminDashboardView() {
                   Buka Ruang CS
                 </Button>
               </Link>
-            </CardContent>
-          </Card>
-
-          <Card className="border-none bg-background overflow-hidden shadow-lg">
-            <CardContent className="p-8">
-               <div className="flex items-center justify-between mb-8">
-                  <div className="w-12 h-12 rounded-2xl bg-card/10 flex items-center justify-center">
-                     <ShieldCheck className="w-6 h-6 text-emerald-400" />
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Integritas Log</p>
-                    <p className="text-lg font-bold text-emerald-400 leading-none mt-1 uppercase">Aktif</p>
-                  </div>
-               </div>
-               
-               <div className="space-y-6">
-                 <div className="flex items-center gap-2">
-                    <History className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Recent Audit Logs</span>
-                 </div>
-                 
-                 <div className="space-y-4">
-                    {auditLogs.map((log, i) => (
-                      <div key={log.id} className="flex gap-3 items-start border-l-2 border-border pl-4 py-1">
-                        <div className="space-y-1">
-                          <p className="text-[10px] font-bold text-foreground uppercase tracking-tight">{log.action}</p>
-                          <p className="text-[10px] text-muted-foreground font-medium leading-none">{new Date(log.createdAt).toLocaleTimeString()}</p>
-                        </div>
-                      </div>
-                    ))}
-                 </div>
-
-                 <Button className="w-full bg-card text-foreground hover:bg-secondary font-bold rounded-xl h-11 mt-4 border-none transition-all active:scale-95 shadow-lg">
-                    Lihat Selengkapnya
-                 </Button>
-               </div>
             </CardContent>
           </Card>
         </div>
