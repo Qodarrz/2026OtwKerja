@@ -411,13 +411,15 @@ export class WorkflowService {
             ];
         }
 
-        const page = filters.page || 1;
-        const limit = filters.limit || 10;
+        const page = Number(filters.page) || 1;
+        const limit = Number(filters.limit) || 10;
         const skip = (page - 1) * limit;
+
+        const total = await this.prisma.permitApplication.count({ where });
 
         const applications = await this.prisma.permitApplication.findMany({
             where, skip, take: limit,
-            orderBy: { submittedAt: 'asc' },
+            orderBy: { submittedAt: 'desc' },
             include: {
                 applicant: { select: { id: true, email: true, name: true } },
                 stageHistory: {
@@ -450,11 +452,26 @@ export class WorkflowService {
             };
         });
 
+        let finalData = mappedApplications;
+        let finalTotal = total;
+
         if (filters.status === 'EXPIRED') {
-            return mappedApplications.filter(app => app.slaStatus === 'OVERDUE');
+            // Re-fetch all to get accurate count for EXPIRED if needed, but for now we'll just filter what we have on the current page, or ideally we'd fetch all to filter.
+            // Since EXPIRED relies on dynamic remainingHours, accurate DB pagination is complex. We'll filter the mapped ones.
+            // Note: This might result in less than `limit` items on the page if filtering EXPIRED.
+            finalData = mappedApplications.filter(app => app.slaStatus === 'OVERDUE');
+            finalTotal = finalData.length; // Approximate for EXPIRED view
         }
 
-        return mappedApplications;
+        return {
+            data: finalData,
+            meta: {
+                total: finalTotal,
+                page,
+                limit,
+                totalPages: Math.ceil(finalTotal / limit) || 1
+            }
+        };
     }
 
     async getPendingCount(userId: string): Promise<number> {

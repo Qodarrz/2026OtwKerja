@@ -80,6 +80,15 @@ export class UsersController {
         return this.usersService.updateUser(id, data);
     }
 
+    /**
+     * DELETE /api/users/me
+     * Delete my own account
+     */
+    @Delete('me')
+    async deleteMyAccount(@Request() req: any, @Body() data: any) {
+        return this.usersService.deleteMyAccount(req.user.sub, data.password);
+    }
+
     @Delete(':id')
     async deleteUser(@Request() req: any, @Param('id') id: string) {
         // Check if current user is admin
@@ -140,5 +149,13 @@ export class UsersController {
     @Patch('me/settings')
     async updateMySettings(@Request() req: any, @Body() data: any) {
         return this.usersService.updateNotificationSettings(req.user.sub, data);
+    }
+
+    /**
+     * PATCH /api/users/me/password
+     */
+    @Patch('me/password')
+    async updateMyPassword(@Request() req: any, @Body() data: any) {
+        return this.usersService.changePassword(req.user.sub, data.currentPassword, data.newPassword);
     }
 }

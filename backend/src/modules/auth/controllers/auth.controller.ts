@@ -13,6 +13,8 @@ import {
   LoginDto,
   VerifyOtpDto,
   ResendOtpDto,
+  ForgotPasswordDto,
+  ResetPasswordDto,
 } from '../dto/auth.dto';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { GoogleAuthGuard } from '../guards/google-auth.guard';
@@ -61,6 +63,16 @@ export class AuthController {
   @Post('resend-otp')
   async resendOtp(@Body() dto: ResendOtpDto) {
     return this.authService.resendOtp(dto);
+  }
+
+  @Post('forgot-password')
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(dto);
+  }
+
+  @Post('reset-password')
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto);
   }
 
   @Post('login')

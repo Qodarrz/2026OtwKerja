@@ -15,6 +15,8 @@ import {
   Search,
   List,
   LayoutGrid,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -32,19 +34,35 @@ export function TaskListView({
   filterStatus = "PENDING",
 }: TaskListViewProps) {
   const [tasks, setTasks] = useState<any[]>([]);
+  const [meta, setMeta] = useState({ page: 1, totalPages: 1, total: 0 });
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [filterStage, setFilterStage] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setPage(1); // Reset page on new search
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
 
   useEffect(() => {
     async function fetchData() {
+      setLoading(true);
       try {
-        const data = await permitService.getStaffTasks({
+        const response = await permitService.getStaffTasks({
           status: filterStatus,
+          search: debouncedSearch,
+          page,
+          limit: 10,
           _t: Date.now(),
         });
-        setTasks(data);
+        setTasks(response.data || []);
+        if (response.meta) setMeta(response.meta);
       } catch (error) {
         console.error("Failed to fetch tasks", error);
       } finally {
@@ -52,16 +70,15 @@ export function TaskListView({
       }
     }
     fetchData();
-  }, [filterStatus]);
-  if (loading) {
+  }, [filterStatus, debouncedSearch, page]);
+
+  if (loading && tasks.length === 0) {
     return <DashboardSkeleton />;
   }
 
   const filteredTasks = tasks.filter(t => {
-    const matchSearch = t.applicant?.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                        t.referenceNumber?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchStage = filterStage === "ALL" || t.currentStage === filterStage || t.status === filterStage;
-    return matchSearch && matchStage;
+    return matchStage;
   });
 
   const uniqueStages = Array.from(new Set(tasks.map(t => t.currentStage || t.status)));
@@ -321,6 +338,38 @@ export function TaskListView({
               ))}{" "}
             </div>
           )}{" "}
+          
+          {/* Pagination Controls */}
+          {meta.totalPages > 1 && (
+            <div className="flex items-center justify-between px-8 py-4 border-t border-border bg-background/50">
+              <span className="text-sm font-bold text-muted-foreground">
+                Menampilkan halaman {meta.page} dari {meta.totalPages} ({meta.total} total data)
+              </span>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={meta.page <= 1}
+                  className="rounded-lg font-bold"
+                >
+                  <ChevronLeft className="w-4 h-4 mr-1" />
+                  Sebelumnya
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => Math.min(meta.totalPages, p + 1))}
+                  disabled={meta.page >= meta.totalPages}
+                  className="rounded-lg font-bold"
+                >
+                  Selanjutnya
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              </div>
+            </div>
+          )}
+
         </CardContent>{" "}
       </Card>{" "}
     </div>

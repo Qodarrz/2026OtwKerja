@@ -32,10 +32,11 @@ import { SLACountdown } from "./SLACountdown";
 
 export function InternalDashboard() {
   const { user } = useAuth();
-  const fetcher = (url: string) => permitService.getStaffTasks();
-  const { data: tasks, error } = useSWR('/staff/tasks', fetcher);
-  const loading = !tasks && !error;
-  const currentTasks = tasks || [];
+  // Fetch up to 50 for the dashboard summary view to avoid missing tasks
+  const fetcher = (url: string) => permitService.getStaffTasks({ limit: 50 });
+  const { data: response, error } = useSWR('/staff/tasks', fetcher);
+  const loading = !response && !error;
+  const currentTasks = response?.data || [];
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
 

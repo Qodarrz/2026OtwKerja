@@ -84,7 +84,7 @@ export function Navbar() {
 
   const guestItems = [
     { name: "Beranda", href: "/" },
-    { name: "Transparansi", href: "/public-tracking", icon: ExternalLink },
+    { name: "Lacak Izin", href: "/public-tracking", icon: ExternalLink },
   ];
 
   const authItems = [

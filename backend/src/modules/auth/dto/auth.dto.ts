@@ -40,3 +40,23 @@ export class ResendOtpDto {
   @IsNotEmpty()
   email!: string;
 }
+export class ForgotPasswordDto {
+  @IsEmail()
+  @IsNotEmpty()
+  email!: string;
+}
+
+export class ResetPasswordDto {
+  @IsEmail()
+  @IsNotEmpty()
+  email!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  otp!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(6)
+  newPassword!: string;
+}

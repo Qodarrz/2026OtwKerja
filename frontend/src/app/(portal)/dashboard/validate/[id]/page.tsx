@@ -521,6 +521,19 @@ export default function ValidatePermitPage() {
                             )
                             : "Sedang diproses..."}{" "}
                         </p>{" "}
+                        {(() => {
+                          const action = application.validationActions?.find(
+                            (a: any) => a.stage === history.toStage && a.notes
+                          );
+                          if (!action) return null;
+                          return (
+                            <div className="mt-2 p-3 bg-muted/50 rounded-lg border border-border/50 inline-block">
+                              <p className="text-sm font-medium text-muted-foreground">
+                                <span className="font-bold text-foreground">Catatan ({action.performedBy?.name || 'Staf'}):</span> {action.notes}
+                              </p>
+                            </div>
+                          );
+                        })()}
                       </div>{" "}
                     </div>
                   ),

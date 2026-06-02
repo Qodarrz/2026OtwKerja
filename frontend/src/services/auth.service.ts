@@ -22,6 +22,16 @@ export const authService = {
     return data;
   },
 
+  async forgotPassword(email: string): Promise<any> {
+    const { data } = await api.post('/auth/forgot-password', { email });
+    return data;
+  },
+
+  async resetPassword(email: string, otp: string, newPassword: string): Promise<any> {
+    const { data } = await api.post('/auth/reset-password', { email, otp, newPassword });
+    return data;
+  },
+
   async getProfile(token?: string): Promise<any> {
     const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
     const { data } = await api.get('/auth/profile', config);

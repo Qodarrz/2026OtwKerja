@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,12 +21,22 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [profile, setProfile] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [isClosingAccount, setIsClosingAccount] = useState(false);
+  const [closeAccountPassword, setCloseAccountPassword] = useState("");
+  const [closeAccountLoading, setCloseAccountLoading] = useState(false);
+  const router = useRouter();
+  const { logout } = useAuth();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -86,6 +97,20 @@ export default function ProfilePage() {
       case 'PermitApplication': return 'Permohonan';
       case 'User': return 'Pengguna';
       default: return entityType;
+    }
+  };
+
+  const handleCloseAccount = async () => {
+    setCloseAccountLoading(true);
+    try {
+      await usersService.deleteMyAccount(closeAccountPassword);
+      toast.success("Akun berhasil ditutup");
+      logout();
+      router.push("/login");
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Gagal menutup akun");
+    } finally {
+      setCloseAccountLoading(false);
     }
   };
 
@@ -261,21 +286,99 @@ export default function ProfilePage() {
                 <CardDescription>Kelola kredensial dan akses akun Anda.</CardDescription>
               </CardHeader>
               <CardContent className="p-6 space-y-6">
-                <div className="flex items-center justify-between p-4 bg-background border border-border rounded-2xl hover:border-primary/30 transition-colors">
-                  <div>
-                    <p className="font-bold text-foreground">Kata Sandi</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Terakhir diperbarui 3 bulan yang lalu</p>
+                {isChangingPassword ? (
+                  <div className="p-4 bg-background border border-border rounded-2xl space-y-4">
+                    <p className="font-bold text-foreground">Ubah Kata Sandi</p>
+                    <div className="space-y-3">
+                      <Input
+                        type="password"
+                        placeholder="Kata Sandi Saat Ini"
+                        value={passwordForm.currentPassword}
+                        onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                      />
+                      <Input
+                        type="password"
+                        placeholder="Kata Sandi Baru"
+                        value={passwordForm.newPassword}
+                        onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                      />
+                      <Input
+                        type="password"
+                        placeholder="Konfirmasi Kata Sandi Baru"
+                        value={passwordForm.confirmPassword}
+                        onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                      />
+                    </div>
+                    <div className="flex justify-end gap-3 pt-2">
+                      <Button variant="ghost" size="sm" onClick={() => setIsChangingPassword(false)}>Batal</Button>
+                      <Button
+                        size="sm"
+                        disabled={passwordLoading || !passwordForm.currentPassword || !passwordForm.newPassword || passwordForm.newPassword !== passwordForm.confirmPassword}
+                        onClick={async () => {
+                          setPasswordLoading(true);
+                          try {
+                            await usersService.changePassword({ currentPassword: passwordForm.currentPassword, newPassword: passwordForm.newPassword });
+                            toast.success("Kata sandi berhasil diubah");
+                            setIsChangingPassword(false);
+                            setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+                          } catch (err: any) {
+                            toast.error(err.response?.data?.message || "Gagal mengubah kata sandi");
+                          } finally {
+                            setPasswordLoading(false);
+                          }
+                        }}
+                      >
+                        {passwordLoading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                        Simpan
+                      </Button>
+                    </div>
                   </div>
-                  <Button variant="outline" size="sm" className="rounded-xl font-bold h-9">Ubah</Button>
-                </div>
+                ) : (
+                  <div className="flex items-center justify-between p-4 bg-background border border-border rounded-2xl hover:border-primary/30 transition-colors">
+                    <div>
+                      <p className="font-bold text-foreground">Kata Sandi</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Ubah kata sandi untuk mengamankan akun Anda</p>
+                    </div>
+                    <Button variant="outline" size="sm" className="rounded-xl font-bold h-9" onClick={() => setIsChangingPassword(true)}>Ubah</Button>
+                  </div>
+                )}
 
-                <div className="flex items-center justify-between p-4 bg-rose-500/5 border border-rose-500/10 rounded-2xl group hover:border-rose-500/30 transition-colors">
-                  <div>
-                    <p className="font-bold text-rose-500">Hapus Akun</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Semua data akan dihapus secara permanen</p>
+                {isClosingAccount ? (
+                  <div className="p-4 bg-rose-500/5 border border-rose-500/20 rounded-2xl space-y-4 mt-6">
+                    <div>
+                      <p className="font-bold text-rose-500">Hapus Akun</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Tindakan ini tidak dapat dibatalkan.</p>
+                    </div>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Verifikasi Kata Sandi</label>
+                        <Input 
+                          type="password" 
+                          className="rounded-xl h-10 bg-background" 
+                          placeholder="Masukkan kata sandi untuk verifikasi" 
+                          value={closeAccountPassword}
+                          onChange={(e) => setCloseAccountPassword(e.target.value)}
+                        />
+                        <p className="text-[10px] text-muted-foreground mt-1.5">Kosongkan jika Anda mendaftar menggunakan Google.</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 justify-end pt-2">
+                      <Button variant="ghost" size="sm" className="rounded-xl text-xs h-9" onClick={() => setIsClosingAccount(false)}>Batal</Button>
+                      <Button variant="destructive" size="sm" className="rounded-xl text-xs font-bold h-9" onClick={handleCloseAccount} disabled={closeAccountLoading}>
+                        {closeAccountLoading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                        Konfirmasi Hapus
+                      </Button>
+                    </div>
                   </div>
-                  <Button variant="ghost" size="sm" className="rounded-xl font-bold h-9 text-rose-500 hover:bg-rose-500 hover:text-white">Tutup Akun</Button>
-                </div>
+                ) : (
+                  <div className="flex items-center justify-between p-4 bg-rose-500/5 border border-rose-500/10 rounded-2xl group hover:border-rose-500/30 transition-colors mt-6">
+                    <div>
+                      <p className="font-bold text-rose-500">Hapus Akun</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Semua data akan dihapus secara permanen</p>
+                    </div>
+                    <Button variant="ghost" size="sm" className="rounded-xl font-bold h-9 text-rose-500 hover:bg-rose-500 hover:text-white" onClick={() => setIsClosingAccount(true)}>Tutup Akun</Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

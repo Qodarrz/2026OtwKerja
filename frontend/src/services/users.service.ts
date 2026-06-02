@@ -52,4 +52,12 @@ export const usersService = {
     const { data } = await api.patch("/users/me/settings", settingsData);
     return data;
   },
+  changePassword: async (passwordData: any) => {
+    const { data } = await api.patch("/users/me/password", passwordData);
+    return data;
+  },
+  deleteMyAccount: async (password?: string) => {
+    const { data } = await api.delete("/users/me", { data: { password } });
+    return data;
+  },
 };

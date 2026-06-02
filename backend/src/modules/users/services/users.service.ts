@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { Prisma, User, Role } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
@@ -213,5 +214,73 @@ export class UsersService {
       },
       take: 20,
     });
+  }
+
+  /**
+   * Change user password
+   */
+  async changePassword(userId: string, currentPassword?: string, newPassword?: string) {
+    if (!currentPassword || !newPassword) {
+      throw new BadRequestException('Password saat ini dan password baru wajib diisi');
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User tidak ditemukan');
+    }
+
+    if (!user.password) {
+      throw new BadRequestException('Akun ini mendaftar menggunakan Google. Password tidak dapat diubah.');
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      throw new BadRequestException('Password saat ini salah');
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword },
+    });
+
+    return { success: true, message: 'Password berhasil diubah' };
+  }
+
+  /**
+   * Delete my account
+   */
+  async deleteMyAccount(userId: string, password?: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User tidak ditemukan');
+    }
+
+    if (user.password) {
+      if (!password) {
+        throw new BadRequestException('Password wajib diisi untuk menghapus akun');
+      }
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (!isMatch) {
+        throw new BadRequestException('Password salah');
+      }
+    }
+
+    // Hapus data terkait sebelum menghapus user untuk menghindari Foreign Key constraint violation
+    const deletePermitApplications = this.prisma.permitApplication.deleteMany({
+      where: { applicantId: userId },
+    });
+
+    const deleteUser = this.prisma.user.delete({
+      where: { id: userId },
+    });
+
+    await this.prisma.$transaction([
+      deletePermitApplications,
+      deleteUser,
+    ]);
+
+    return { success: true, message: 'Akun berhasil dihapus' };
   }
 }

@@ -26,7 +26,8 @@ import {
   User,
   Activity,
   Cpu,
-  Headset
+  Headset,
+  Users
 } from "lucide-react";
 import Link from "next/link";
 import api from "@/lib/axios";
@@ -43,6 +44,7 @@ export function AdminDashboardView() {
   const { data: bottlenecksData } = useSWR('/analytics/bottlenecks', fetcher, { revalidateOnFocus: false });
   const { data: auditLogsData } = useSWR('/analytics/audit-logs?limit=5', fetcher);
   const { data: chatData } = useSWR('/chat/sessions/admin/all', fetcher);
+  const { data: staffPerformanceData } = useSWR('/analytics/staff-performance', fetcher);
 
   useEffect(() => {
     if (metricsData && bottlenecksData && auditLogsData) {
@@ -439,6 +441,47 @@ export function AdminDashboardView() {
                   Buka Ruang CS
                 </Button>
               </Link>
+            </CardContent>
+          </Card>
+
+          <Card className="border-none shadow-sm bg-card overflow-hidden relative">
+            <div className="p-8 border-b border-border flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-foreground tracking-tight">Performa Staf</h2>
+                <p className="text-sm text-muted-foreground font-medium">Metrik produktivitas tim.</p>
+              </div>
+              <Users className="w-5 h-5 text-primary" />
+            </div>
+            <CardContent className="p-8 space-y-6">
+              {staffPerformanceData && staffPerformanceData.length > 0 ? (
+                <div className="space-y-4">
+                  {staffPerformanceData.slice(0, 3).map((staff: any) => (
+                    <div key={staff.staffId} className="flex justify-between items-center group p-3 hover:bg-accent/50 rounded-xl transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary">
+                          {staff.staffName?.charAt(0) || 'U'}
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-foreground">{staff.staffName}</p>
+                          <p className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground truncate max-w-[120px]">
+                            {staff.roles.join(', ').replace(/_/g, ' ')}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-foreground">{staff.totalProcessed} <span className="text-[10px] text-muted-foreground">Berkas</span></p>
+                        <p className={cn("text-[10px] font-bold", staff.onTimePercentage >= 80 ? "text-emerald-500" : "text-amber-500")}>
+                          {staff.onTimePercentage}% On-Time
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-4">
+                  <p className="text-sm font-medium text-muted-foreground">Belum ada data performa staf.</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

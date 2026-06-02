@@ -3,14 +3,14 @@
 import React, { useState, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { 
-  ShieldCheck, 
-  Upload, 
-  Camera, 
-  FileText, 
-  CheckCircle2, 
-  AlertCircle, 
-  Loader2, 
+import {
+  ShieldCheck,
+  Upload,
+  Camera,
+  FileText,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
   Scan,
   User,
   MapPin,
@@ -37,7 +37,7 @@ export default function VerifyKtpPage() {
   const [step, setStep] = useState<'upload' | 'scanning' | 'confirm'>('upload');
   const [extractedData, setExtractedData] = useState<KtpData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  
+
   const { user, login } = useAuth();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -56,7 +56,7 @@ export default function VerifyKtpPage() {
   };
 
   const startScanning = async () => {
-    if (!file) {  
+    if (!file) {
       setError('Silakan pilih foto KTP terlebih dahulu.');
       return;
     }
@@ -104,12 +104,12 @@ export default function VerifyKtpPage() {
       if (!response.ok) throw new Error('Gagal memverifikasi KTP');
 
       const result = await response.json();
-      
-      
+
+
       if (result.access_token && result.user) {
         login(result.access_token, result.user);
       }
-      
+
       router.push('/submit');
     } catch (err: any) {
       setError(err.message || 'Terjadi kesalahan saat konfirmasi.');
@@ -122,9 +122,6 @@ export default function VerifyKtpPage() {
     <div className="min-h-screen bg-muted flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8 font-sans">
       <div className="max-w-2xl w-full">
         <div className="text-center mb-10 space-y-3">
-          <div className="inline-flex items-center justify-center w-16 h-16 bjg-indigo-600 rounded-2xl shadow-sm mb-4">
-            <ShieldCheck className="w-8 h-8 text-primary-foreground" />
-          </div>
           <h1 className="text-3xl font-bold text-foreground tracking-tight">Verifikasi Identitas</h1>
           <p className="text-muted-foreground max-w-md mx-auto">
             Satu langkah lagi untuk mengaktifkan akun Anda secara penuh. Silakan verifikasi KTP Anda.
@@ -143,18 +140,18 @@ export default function VerifyKtpPage() {
                   <p className="text-sm text-muted-foreground">Pastikan foto terlihat jelas, tidak blur, dan tidak terpotong.</p>
                 </div>
 
-                <div 
+                <div
                   onClick={() => fileInputRef.current?.click()}
                   className={`relative group cursor-pointer border-2 border-dashed rounded-3xl p-10 transition-all duration-300 flex flex-col items-center justify-center space-y-4 ${preview ? 'border-primary bg-indigo-50/30' : 'border-border hover:border-indigo-400 hover:bg-accent'}`}
                 >
-                  <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    onChange={handleFileChange} 
-                    accept="image/*" 
-                    className="hidden" 
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept="image/*"
+                    className="hidden"
                   />
-                  
+
                   {preview ? (
                     <div className="relative w-full aspect-3/2 max-w-sm rounded-2xl overflow-hidden shadow-lg border-4 border-white">
                       <img src={preview} alt="KTP Preview" className="w-full h-full object-cover" />
@@ -206,14 +203,14 @@ export default function VerifyKtpPage() {
                   {/* Pulse Effect */}
                   <div className="absolute inset-0 bg-primary/10 rounded-full animate-ping" />
                   <div className="absolute inset-4 bg-primary/20 rounded-full animate-pulse" />
-                  
+
                   <div className="relative z-10 w-full h-full bg-card rounded-full border-4 border-indigo-50 flex items-center justify-center overflow-hidden">
                     <Scan className="w-20 h-20 text-primary animate-pulse" />
                     {/* Scanning Line */}
                     <div className="absolute top-0 left-0 w-full h-1 bg-primary shadow-[0_0_15px_rgba(79,70,229,0.5)] animate-scan" />
                   </div>
                 </div>
-                
+
                 <div className="space-y-3">
                   <h2 className="text-2xl font-bold text-foreground">Menganalisa Data...</h2>
                   <p className="text-muted-foreground">Sistem AI kami sedang mengekstrak informasi dari KTP Anda secara otomatis.</p>
@@ -244,10 +241,10 @@ export default function VerifyKtpPage() {
                     <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                       <CreditCard className="w-4 h-4 text-primary" /> NIK
                     </label>
-                    <input 
+                    <input
                       type="text"
                       value={extractedData.nik}
-                      onChange={(e) => setExtractedData({...extractedData, nik: e.target.value})}
+                      onChange={(e) => setExtractedData({ ...extractedData, nik: e.target.value })}
                       className="w-full h-12 bg-muted border border-border rounded-xl px-4 text-sm font-semibold focus:ring-2 focus:ring-primary outline-none transition-all"
                     />
                   </div>
@@ -255,10 +252,10 @@ export default function VerifyKtpPage() {
                     <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                       <User className="w-4 h-4 text-primary" /> Nama Lengkap
                     </label>
-                    <input 
+                    <input
                       type="text"
                       value={extractedData.fullName}
-                      onChange={(e) => setExtractedData({...extractedData, fullName: e.target.value})}
+                      onChange={(e) => setExtractedData({ ...extractedData, fullName: e.target.value })}
                       className="w-full h-12 bg-muted border border-border rounded-xl px-4 text-sm font-semibold focus:ring-2 focus:ring-primary outline-none transition-all"
                     />
                   </div>
@@ -266,10 +263,10 @@ export default function VerifyKtpPage() {
                     <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                       <MapPin className="w-4 h-4 text-primary" /> Tempat Lahir
                     </label>
-                    <input 
+                    <input
                       type="text"
                       value={extractedData.birthPlace}
-                      onChange={(e) => setExtractedData({...extractedData, birthPlace: e.target.value})}
+                      onChange={(e) => setExtractedData({ ...extractedData, birthPlace: e.target.value })}
                       className="w-full h-12 bg-muted border border-border rounded-xl px-4 text-sm font-semibold focus:ring-2 focus:ring-primary outline-none transition-all"
                     />
                   </div>
@@ -277,10 +274,10 @@ export default function VerifyKtpPage() {
                     <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                       <Calendar className="w-4 h-4 text-primary" /> Tanggal Lahir
                     </label>
-                    <input 
+                    <input
                       type="text"
                       value={extractedData.birthDate}
-                      onChange={(e) => setExtractedData({...extractedData, birthDate: e.target.value})}
+                      onChange={(e) => setExtractedData({ ...extractedData, birthDate: e.target.value })}
                       className="w-full h-12 bg-muted border border-border rounded-xl px-4 text-sm font-semibold focus:ring-2 focus:ring-primary outline-none transition-all"
                     />
                   </div>
@@ -288,9 +285,9 @@ export default function VerifyKtpPage() {
                     <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                       <FileText className="w-4 h-4 text-primary" /> Jenis Kelamin
                     </label>
-                    <select 
+                    <select
                       value={extractedData.gender}
-                      onChange={(e) => setExtractedData({...extractedData, gender: e.target.value})}
+                      onChange={(e) => setExtractedData({ ...extractedData, gender: e.target.value })}
                       className="w-full h-12 bg-muted border border-border rounded-xl px-4 text-sm font-semibold focus:ring-2 focus:ring-primary outline-none transition-all appearance-none"
                     >
                       <option value="LAKI-LAKI">LAKI-LAKI</option>
@@ -301,9 +298,9 @@ export default function VerifyKtpPage() {
                     <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                       <MapPin className="w-4 h-4 text-primary" /> Alamat
                     </label>
-                    <textarea 
+                    <textarea
                       value={extractedData.address}
-                      onChange={(e) => setExtractedData({...extractedData, address: e.target.value})}
+                      onChange={(e) => setExtractedData({ ...extractedData, address: e.target.value })}
                       rows={3}
                       className="w-full bg-muted border border-border rounded-xl p-4 text-sm font-semibold focus:ring-2 focus:ring-primary outline-none transition-all resize-none"
                     />
