@@ -336,7 +336,7 @@ export function Navbar() {
                     <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
                       <Button variant="outline" className="w-full rounded-xl h-12">Masuk</Button>
                     </Link>
-                    <Link href="/register" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
                       <Button className="w-full rounded-xl h-12">Mulai Sekarang</Button>
                     </Link>
                   </div>
